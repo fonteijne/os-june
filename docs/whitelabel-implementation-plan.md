@@ -1,6 +1,6 @@
 # Implementation plan: Whitelabel capability
 
-**Owner:** proposed by agent, for review · **Date:** 2026-08-03 · **Status:** Proposed
+**Owner:** proposed by agent, for review · **Date:** 2026-08-03 · **Status:** Phases 1-3 implemented; Phase 4 (per-brand identity & release operations) and Phase 5 (brand-drift lint) remain
 **ADR:** [0054-whitelabel-branding-as-additive-config-layer.md](adr/0054-whitelabel-branding-as-additive-config-layer.md)
 **Repos:** `os-june` (app + June API) in this fork; `os-accounts` for per-brand OAuth client + App API key registration (operational only, no `os-accounts` code change proposed here)
 

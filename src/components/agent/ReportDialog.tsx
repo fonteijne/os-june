@@ -3,6 +3,7 @@ import { IconCrossSmall } from "central-icons/IconCrossSmall";
 import { IconPaperclip1 } from "central-icons/IconPaperclip1";
 import { useId, useMemo, useState } from "react";
 
+import { BRAND_NAME, BRAND_SUPPORT_TEXT } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { recordPositiveFeedbackSent } from "../../lib/referral-nudge";
 import { submitIssueReport } from "../../lib/tauri";
@@ -129,7 +130,7 @@ export function ReportDialog({
     >
       {sent ? (
         <p className="report-dialog-sent" role="status">
-          Your report was sent to the June team. Thank you for helping improve June.
+          Your report was sent to {BRAND_SUPPORT_TEXT}. Thank you for helping improve {BRAND_NAME}.
         </p>
       ) : (
         <div className="dialog-body report-dialog-drop">

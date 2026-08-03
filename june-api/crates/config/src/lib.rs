@@ -156,6 +156,11 @@ pub struct AppConfig {
     pub attestation: AttestationConfig,
     #[serde(default)]
     pub issue_reports: IssueReportsConfig,
+    /// Whitelabel brand identity (docs/whitelabel-implementation-plan.md,
+    /// ADR-0054). Defaults to today's June strings, so a deployment that sets
+    /// no `JUNE__BRAND__*` env vars is unaffected.
+    #[serde(default)]
+    pub brand: BrandConfig,
     /// Emergency rollout control for the local Computer use driver. The
     /// desktop fetches this before exposing the capability, allowing an OS or
     /// app-version regression to be disabled without a desktop update.
@@ -232,6 +237,7 @@ impl Debug for AppConfig {
             .field("upstreams", &self.upstreams)
             .field("attestation", &self.attestation)
             .field("issue_reports", &self.issue_reports)
+            .field("brand", &self.brand)
             .field("computer_use", &self.computer_use)
             .field("share", &RedactedShare(&self.share))
             .field("companion", &RedactedCompanion(&self.companion))
@@ -305,6 +311,41 @@ impl Default for ComputerUseConfig {
 
 const fn default_true() -> bool {
     true
+}
+
+/// Whitelabel brand identity (docs/whitelabel-implementation-plan.md,
+/// ADR-0054). Routes the small set of backend-generated strings that name
+/// June (currently the issue-report title/body) through a per-deployment
+/// name, following the existing `JUNE__SECTION__FIELD` figment convention.
+/// Both fields default to today's June strings, so an unconfigured deployment
+/// is unaffected.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct BrandConfig {
+    /// `JUNE__BRAND__NAME`.
+    #[serde(default = "default_brand_name")]
+    pub name: String,
+    /// How the brand is referred to as a recipient, e.g. "the June team".
+    /// `JUNE__BRAND__SUPPORT_TEXT`.
+    #[serde(default = "default_brand_support_text")]
+    pub support_text: String,
+}
+
+fn default_brand_name() -> String {
+    "June".to_string()
+}
+
+fn default_brand_support_text() -> String {
+    "the June team".to_string()
+}
+
+impl Default for BrandConfig {
+    fn default() -> Self {
+        Self {
+            name: default_brand_name(),
+            support_text: default_brand_support_text(),
+        }
+    }
 }
 
 /// Where user-submitted issue reports get forwarded. The destination defaults
@@ -1193,6 +1234,7 @@ impl Default for AppConfig {
                         .to_string(),
             },
             issue_reports: IssueReportsConfig::default(),
+            brand: BrandConfig::default(),
             computer_use: ComputerUseConfig::default(),
             share: ShareConfig::default(),
             companion: CompanionConfig::default(),
@@ -1830,6 +1872,32 @@ mod tests {
             .merge(Serialized::defaults(AppConfig::default()))
             .extract()?;
         assert_eq!(config.share.max_ciphertext_bytes, 10 * 1024 * 1024);
+        Ok(())
+    }
+
+    #[test]
+    fn brand_config_defaults_to_june() {
+        let config = AppConfig::default();
+        assert_eq!(config.brand.name, "June");
+        assert_eq!(config.brand.support_text, "the June team");
+    }
+
+    #[test]
+    fn brand_config_overrides_through_the_figment_merge() -> Result<(), Box<dyn std::error::Error>>
+    {
+        // Mirrors the shape `Env::prefixed("JUNE__").split("__")` produces for
+        // `JUNE__BRAND__NAME` / `JUNE__BRAND__SUPPORT_TEXT` (docs/whitelabel-implementation-plan.md),
+        // without mutating process-global env vars in a test.
+        use figment::{Figment, providers::Serialized};
+        let overlay = serde_json::json!({
+            "brand": { "name": "Acme Notes", "support_text": "the Acme Notes team" }
+        });
+        let config: AppConfig = Figment::new()
+            .merge(Serialized::defaults(AppConfig::default()))
+            .merge(Serialized::defaults(overlay))
+            .extract()?;
+        assert_eq!(config.brand.name, "Acme Notes");
+        assert_eq!(config.brand.support_text, "the Acme Notes team");
         Ok(())
     }
 

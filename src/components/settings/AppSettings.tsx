@@ -76,6 +76,7 @@ import { APP_COMMIT_HASH, APP_VERSION } from "../../app/build-info";
 import type { ReportCategory } from "../agent/composer/reportCategory";
 import { getStoredTheme, setStoredTheme, type ThemePreference } from "../../lib/theme";
 import { BRAND_PRESETS, getStoredBrand, setStoredBrand, type BrandId } from "../../lib/brand";
+import { BRAND_NAME, BRAND_SUPPORT_TEXT } from "../../lib/brand.generated";
 import {
   FONT_SCALE_PRESETS,
   setStoredFontScale,
@@ -2639,7 +2640,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="about-heading"
               title="About"
-              blurb="Version, release channel, and other details about this copy of June."
+              blurb={`Version, release channel, and other details about this copy of ${BRAND_NAME}.`}
             />
             <div className="settings-card">
               <div className="settings-rows">
@@ -2779,8 +2780,8 @@ export function AppSettings({
                     <div className="settings-row-info">
                       <h3 className="settings-row-title">Report an issue</h3>
                       <p className="settings-row-description">
-                        Describe the problem, attach files if you have them, and send the report to
-                        the June team.
+                        Describe the problem, attach files if you have them, and send the report to{" "}
+                        {BRAND_SUPPORT_TEXT}.
                       </p>
                     </div>
                     <div className="settings-row-control">

@@ -663,8 +663,11 @@ fn build_issue_report_sink(
     config: &AppConfig,
     http: &reqwest::Client,
 ) -> Arc<dyn june_domain::IssueReportSink> {
-    if let Some(sink) = OsPlatformIssueReportSink::from_config(http.clone(), &config.issue_reports)
-    {
+    if let Some(sink) = OsPlatformIssueReportSink::from_config(
+        http.clone(),
+        &config.issue_reports,
+        &config.brand.name,
+    ) {
         tracing::info!("issue reports will be filed as os-platform issues");
         Arc::new(sink)
     } else {

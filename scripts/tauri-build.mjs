@@ -15,8 +15,20 @@ const platformConfigs = {
   win32: "src-tauri/tauri.windows.conf.json",
 };
 
+const BRAND_FLAG_PREFIX = "--brand=";
+const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
 const rawUserArgs = process.argv.slice(2);
-const userArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
+const preStripArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
+let brandId = process.env.BRAND;
+const userArgs = [];
+for (const arg of preStripArgs) {
+  if (arg.startsWith(BRAND_FLAG_PREFIX)) {
+    brandId = arg.slice(BRAND_FLAG_PREFIX.length);
+  } else {
+    userArgs.push(arg);
+  }
+}
 const target = optionValue(userArgs, "--target");
 const buildPlatform = platformForTarget(target) ?? process.platform;
 if (buildPlatform === "darwin") {
@@ -42,6 +54,22 @@ if (config && !hasConfigOverride) {
 }
 if (bundles && !hasBundleOverride) {
   args.push("--bundles", bundles.join(","));
+}
+// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0054): an
+// additive branding/<brand-id>/tauri.override.json merges on top of the
+// platform config via Tauri's native --config merge. Unset BRAND (the
+// default) means this block is a no-op and `pnpm tauri:build` behaves exactly
+// as it does today.
+if (brandId) {
+  const brandConfigPath = resolve(ROOT_DIR, "branding", brandId, "tauri.override.json");
+  if (!existsSync(brandConfigPath)) {
+    console.error(
+      `BRAND=${brandId} was requested but ${brandConfigPath} does not exist. See branding/README.md.`,
+    );
+    process.exit(1);
+  }
+  console.error(`Using whitelabel brand "${brandId}" (${brandConfigPath}).`);
+  args.push("--config", brandConfigPath);
 }
 args.push(...userArgs);
 // Trailing args after `--` go to the cargo runner. `--locked` keeps release

@@ -1,0 +1,15 @@
+{
+  "$comment": "Synthetic fixture brand — proves the whitelabel mechanism end to end (docs/whitelabel-implementation-plan.md, ADR-0054). Not a real partner. Copy this directory to branding/<your-brand-id>/ and edit every field below to onboard one.",
+  "id": "example",
+  "productName": "Acme Notes",
+  "identifier": "co.acme.notes",
+  "accent": "#3d7a7a",
+  "supportText": "the Acme Notes team",
+  "deepLinkScheme": "acmenotes",
+  "windowTitles": {
+    "main": "Acme Notes",
+    "hud": "Acme Notes Dictation",
+    "agentHud": "Acme Notes Agents",
+    "meetingHud": "Acme Notes Recording"
+  }
+}

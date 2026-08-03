@@ -4,6 +4,7 @@ import { IconLock } from "central-icons/IconLock";
 import { IconMicrophone } from "central-icons/IconMicrophone";
 import { IconSparkle } from "central-icons/IconSparkle";
 import { IconTelegram } from "central-icons/IconTelegram";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import { fallbackDictationCapabilities } from "../../../lib/platform";
 import { juneOpenCommunityPage, osAccountsCancelLogin, osAccountsLogin } from "../../../lib/tauri";
 import type { AccountStatus } from "../../../lib/tauri";
@@ -17,7 +18,7 @@ const JUNE_POINTS = [
   {
     icon: IconSparkle,
     title: "Delegate real work",
-    detail: "Give June a task and come back to the result.",
+    detail: `Give ${BRAND_NAME} a task and come back to the result.`,
   },
   {
     icon: IconMicrophone,
@@ -106,7 +107,7 @@ export function SignInStep({
 
   return (
     <StepCard
-      title="Welcome to June"
+      title={`Welcome to ${BRAND_NAME}`}
       subtitle="Private AI for everyday life and work."
       mark
       wide

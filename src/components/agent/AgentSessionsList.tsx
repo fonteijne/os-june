@@ -21,6 +21,7 @@ import {
   useState,
 } from "react";
 import { AGENT_DELETE_SESSION_EVENT } from "../../lib/agent-events";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { useForcedEmptyStates } from "../../lib/empty-states-demo";
 import { primaryShortcutLabel } from "../../lib/platform";
@@ -328,8 +329,8 @@ export const AgentSessionsList = forwardRef<AgentSessionsListHandle, AgentSessio
           <EmptyState
             label="Start your first session"
             icon={<IconBubble3 size={28} />}
-            title="Put June to work"
-            description="Ask June to check on your computer, dig through your files, or research a topic. Each session keeps one task's conversation and everything it produces in one place."
+            title={`Put ${BRAND_NAME} to work`}
+            description={`Ask ${BRAND_NAME} to check on your computer, dig through your files, or research a topic. Each session keeps one task's conversation and everything it produces in one place.`}
             action={
               <button type="button" className="primary-action primary-solid" onClick={onNewSession}>
                 <IconPlusMedium size={13} />

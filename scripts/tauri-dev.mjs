@@ -106,12 +106,14 @@ async function resolveApiPort() {
 }
 
 const REPLAY_ONBOARDING_FLAG = "--replay-onboarding";
+const BRAND_FLAG_PREFIX = "--brand=";
 const platformConfigs = {
   darwin: "src-tauri/tauri.macos.conf.json",
   win32: "src-tauri/tauri.windows.conf.json",
 };
 
 let replayOnboarding = false;
+let brandId = process.env.BRAND;
 const tauriArgs = [];
 const rawUserArgs = process.argv.slice(2);
 const userArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
@@ -119,6 +121,8 @@ const userArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
 for (const arg of userArgs) {
   if (arg === REPLAY_ONBOARDING_FLAG) {
     replayOnboarding = true;
+  } else if (arg.startsWith(BRAND_FLAG_PREFIX)) {
+    brandId = arg.slice(BRAND_FLAG_PREFIX.length);
   } else {
     tauriArgs.push(arg);
   }
@@ -130,6 +134,23 @@ const hasConfigOverride = tauriArgs.some(
 );
 if (config && !hasConfigOverride) {
   tauriArgs.unshift("--config", config);
+}
+
+// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0054): an
+// additive branding/<brand-id>/tauri.override.json merges on top of the
+// platform config via Tauri's native --config merge. Unset BRAND (the
+// default) means this block is a no-op and `pnpm tauri:dev` behaves exactly
+// as it does today.
+if (brandId) {
+  const brandConfigPath = resolve(ROOT_DIR, "branding", brandId, "tauri.override.json");
+  if (!existsSync(brandConfigPath)) {
+    console.error(
+      `BRAND=${brandId} was requested but ${brandConfigPath} does not exist. See branding/README.md.`,
+    );
+    process.exit(1);
+  }
+  console.error(`Using whitelabel brand "${brandId}" (${brandConfigPath}).`);
+  tauriArgs.push("--config", brandConfigPath);
 }
 
 const frontendPort = await resolveFrontendPort();
