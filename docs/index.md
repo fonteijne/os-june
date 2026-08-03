@@ -63,6 +63,7 @@ decision. See "When to add an ADR" in [AGENTS.md](../AGENTS.md).
 - [adr/0051](adr/0051-companion-attachments-use-bounded-staging-and-opaque-mac-references.md) - companion attachments use bounded app-data staging and opaque, user-granted Mac file references
 - [adr/0052](adr/0052-companion-media-results-use-canonical-artifacts.md) - companion image/video results reuse canonical agent artifacts and cross E2EE only as bounded references plus verified full-file chunks
 - [adr/0053](adr/0053-companion-computer-use-approvals-are-one-shot.md) - linked companions may approve one exact Computer use interruption under the desktop policy ceiling, with a short-lived one-shot permit
+- [adr/0054](adr/0054-whitelabel-branding-as-additive-config-layer.md) - whitelabel branding lives in an additive `branding/` config/asset layer with build-time composition, never in-place rebrand edits, to keep upstream merges conflict-free
 
 ## Enforceable rules (spec/)
 
@@ -139,6 +140,7 @@ Per-repo config the engineering skills read before acting (see the
 - [private-connectors-implementation-plan.md](private-connectors-implementation-plan.md) — implementation plan for private connectors phases (Phases 1-2 local mode implemented; see [adr/0016](adr/0016-private-connectors-local-mode.md))
 - [private-connectors-threat-model.md](private-connectors-threat-model.md) — local-mode threat model: the source of truth for all connector privacy copy (what OpenSoftware can and cannot see, the trust surface, agent protections, the known runtime limitation)
 - [configuration.md](configuration.md) — env + config reference (desktop client + June API)
+- [whitelabel-implementation-plan.md](whitelabel-implementation-plan.md) — proposed plan to enable whitelabel branding (app identity, icons, UI copy, backend copy, per-brand OS Accounts/updater identity) while keeping fork updates from upstream `os-june` conflict-free; see [ADR-0054](adr/0054-whitelabel-branding-as-additive-config-layer.md)
 - [auto-model-rollout.md](auto-model-rollout.md) — canary, enablement, and rollback steps for automatic private model routing
 - [development.md](development.md) — local development: quick start, running against staging or an ephemeral Phala CVM, local data, permissions, agent skills, verification commands
 - [os-accounts-login.md](os-accounts-login.md) — Login with Open Software: PKCE, keychain, account gates
