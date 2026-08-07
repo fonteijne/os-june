@@ -35,6 +35,8 @@
     "extension:build": "pnpm --filter june-extension build",
     "check": "biome check .",
     "check:write": "biome check --write .",
+    "brand-drift:check": "node scripts/check-brand-drift.mjs",
+    "brand-drift:update": "node scripts/check-brand-drift.mjs --update-allowlist",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p extension"
   },

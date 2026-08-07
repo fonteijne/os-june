@@ -35,9 +35,14 @@ const DEFAULT_LOOPBACK_PORT: u16 = 8765;
 // user's credits for note transcription / generation / dictation work.
 const OAUTH_SCOPES: &str = "profile:read profile:write billing:read billing:write credits:spend";
 // June's OS Accounts token store. Keep this app-scoped so June does not
-// touch credentials written by other Open Software apps on startup.
-const KEYCHAIN_SERVICE: &str = "co.opensoftware.june.accounts";
-const DEV_KEYCHAIN_SERVICE: &str = "co.opensoftware.june-dev.accounts";
+// touch credentials written by other Open Software apps on startup. Compiled
+// per-build like OS_ACCOUNTS_CLIENT_ID below (env_or_build_trimmed), so a
+// whitelabel build can register its own keychain service instead of reading
+// or writing stock June's entries when both are installed on the same
+// machine (docs/whitelabel-implementation-plan.md, Phase 4). Unset, both
+// fall back to today's June defaults.
+const DEFAULT_KEYCHAIN_SERVICE: &str = "co.opensoftware.june.accounts";
+const DEFAULT_DEV_KEYCHAIN_SERVICE: &str = "co.opensoftware.june-dev.accounts";
 const KEYCHAIN_USER: &str = "tokens";
 const LOCAL_DEV_ENV: &str = "OS_JUNE_LOCAL_DEV";
 const LOCAL_DEV_BEARER_TOKEN_ENV: &str = "OS_JUNE_LOCAL_DEV_BEARER_TOKEN";
@@ -452,6 +457,19 @@ fn env_or_build_trimmed(key: &str, build_value: Option<&'static str>) -> String 
         build_value.map(str::trim).unwrap_or_default().to_string()
     } else {
         runtime_value
+    }
+}
+
+/// Like `env_or_build_trimmed`, but falls back to `default` instead of an
+/// empty string — for values (like a keychain service id) that must never be
+/// empty, unlike OS Accounts' own url/client-id fields, whose emptiness is
+/// how `Config::configured()` detects "not configured".
+fn env_or_build_trimmed_or(key: &str, build_value: Option<&'static str>, default: &str) -> String {
+    let value = env_or_build_trimmed(key, build_value);
+    if value.is_empty() {
+        default.to_string()
+    } else {
+        value
     }
 }
 
@@ -1980,7 +1998,7 @@ async fn store_tokens(account: &StoredAccount) -> Result<(), AppError> {
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 async fn store_platform_tokens(json: String) -> Result<(), AppError> {
-    let service = keychain_service().to_string();
+    let service = keychain_service();
     tokio::task::spawn_blocking(move || {
         keyring::Entry::new(&service, KEYCHAIN_USER).and_then(|entry| entry.set_password(&json))
     })
@@ -2021,7 +2039,7 @@ async fn load_tokens() -> Option<TokenPair> {
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 async fn load_platform_tokens() -> Option<StoredAccount> {
-    let service = keychain_service().to_string();
+    let service = keychain_service();
     let raw = tokio::task::spawn_blocking(move || {
         keyring::Entry::new(&service, KEYCHAIN_USER)
             .ok()
@@ -2034,7 +2052,7 @@ async fn load_platform_tokens() -> Option<StoredAccount> {
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 async fn load_platform_account_for_logout() -> Result<Option<StoredAccount>, AppError> {
-    let service = keychain_service().to_string();
+    let service = keychain_service();
     let raw = tokio::task::spawn_blocking(move || {
         let entry = keyring::Entry::new(&service, KEYCHAIN_USER)?;
         match entry.get_password() {
@@ -2077,7 +2095,7 @@ async fn clear_tokens() {
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 async fn clear_platform_tokens() {
-    let service = keychain_service().to_string();
+    let service = keychain_service();
     let _ = tokio::task::spawn_blocking(move || {
         if let Ok(entry) = keyring::Entry::new(&service, KEYCHAIN_USER) {
             let _ = entry.delete_credential();
@@ -2089,15 +2107,23 @@ async fn clear_platform_tokens() {
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 async fn clear_platform_tokens() {}
 
-fn keychain_service() -> &'static str {
+fn keychain_service() -> String {
     keychain_service_for_build(cfg!(debug_assertions), use_prod_accounts_tokens())
 }
 
-fn keychain_service_for_build(debug_assertions: bool, use_prod: bool) -> &'static str {
+fn keychain_service_for_build(debug_assertions: bool, use_prod: bool) -> String {
     if debug_assertions && !use_prod {
-        DEV_KEYCHAIN_SERVICE
+        env_or_build_trimmed_or(
+            "OS_JUNE_DEV_KEYCHAIN_SERVICE",
+            option_env!("OS_JUNE_DEV_KEYCHAIN_SERVICE"),
+            DEFAULT_DEV_KEYCHAIN_SERVICE,
+        )
     } else {
-        KEYCHAIN_SERVICE
+        env_or_build_trimmed_or(
+            "OS_JUNE_KEYCHAIN_SERVICE",
+            option_env!("OS_JUNE_KEYCHAIN_SERVICE"),
+            DEFAULT_KEYCHAIN_SERVICE,
+        )
     }
 }
 
@@ -2458,20 +2484,38 @@ mod tests {
 
     #[test]
     fn release_builds_use_the_production_keychain_service() {
-        assert_eq!(keychain_service_for_build(false, false), KEYCHAIN_SERVICE);
+        assert_eq!(
+            keychain_service_for_build(false, false),
+            DEFAULT_KEYCHAIN_SERVICE
+        );
     }
 
     #[test]
     fn debug_builds_use_a_separate_keychain_service_by_default() {
         assert_eq!(
             keychain_service_for_build(true, false),
-            DEV_KEYCHAIN_SERVICE
+            DEFAULT_DEV_KEYCHAIN_SERVICE
         );
     }
 
     #[test]
     fn debug_builds_can_opt_into_the_production_keychain_service() {
-        assert_eq!(keychain_service_for_build(true, true), KEYCHAIN_SERVICE);
+        assert_eq!(
+            keychain_service_for_build(true, true),
+            DEFAULT_KEYCHAIN_SERVICE
+        );
+    }
+
+    #[test]
+    fn keychain_service_falls_back_to_default_when_env_and_build_are_unset() {
+        // The compiled option_env! value is baked in at build time and can't be
+        // unset from a test, but env_or_build_trimmed_or's fallback path is
+        // exercised directly here — mirrors how a default build (no
+        // OS_JUNE_KEYCHAIN_SERVICE set anywhere) resolves.
+        assert_eq!(
+            env_or_build_trimmed_or("OS_JUNE_KEYCHAIN_SERVICE_TEST_UNSET", None, "fallback"),
+            "fallback"
+        );
     }
 
     #[test]

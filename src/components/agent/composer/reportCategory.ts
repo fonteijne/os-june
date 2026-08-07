@@ -5,7 +5,7 @@
  * for restored older drafts.
  */
 
-import { BRAND_SUPPORT_TEXT } from "../../../lib/brand.generated";
+import { BRAND_NAME, BRAND_SUPPORT_TEXT } from "../../../lib/brand.generated";
 
 export type ReportCategory = "bug" | "feedback" | "feature";
 
@@ -43,7 +43,7 @@ export const REPORT_CATEGORIES: ReportCategoryDef[] = [
     key: "feature",
     label: "Feature request",
     hint: "Ask for something new",
-    placeholder: "What would you like June to do?",
+    placeholder: `What would you like ${BRAND_NAME} to do?`,
     keywords: ["feature", "request", "idea", "wish", "want"],
   },
 ];

@@ -68,9 +68,14 @@ release infrastructure — copy it to start a real brand.
    Point `plugins.updater.endpoints` at that brand's own public releases repo.
    Per [ADR-0001](../docs/adr/0001-auto-updates-via-tauri-updater.md), this key
    and endpoint are compiled into every shipped build permanently, so treat
-   them as a one-time, per-brand decision — see Phase 4 in the implementation
-   plan for the rest of the per-brand release/signing checklist (OS Accounts
-   OAuth client, code-signing identities, Keychain service id).
+   them as a one-time, per-brand decision.
+6. Work through
+   [docs/whitelabel-release-runbook.md](../docs/whitelabel-release-runbook.md)
+   (Phase 4) for the rest of the per-brand release checklist: OS Accounts
+   OAuth client + App API key, code-signing identities, and the
+   `OS_JUNE_KEYCHAIN_SERVICE` / `OS_JUNE_DEV_KEYCHAIN_SERVICE` build-time env
+   vars so a whitelabel build doesn't read or write stock June's OS Accounts
+   keychain entry when both are installed on the same machine.
 
 ## A note on icon path resolution
 
@@ -84,16 +89,37 @@ change (no macOS/Windows toolchain was available while writing it) — verify
 the icon actually swaps on a real `pnpm tauri:build -- --brand=example` run
 on your platform before relying on it for a shipping brand.
 
+## Guarding against brand drift (Phase 5)
+
+`node scripts/check-brand-drift.mjs` (wired into CI via the Biome check job,
+and into `make check` / `make lint` / `make verify`) fails when one of the
+curated high-visibility files listed in that script gains a new literal
+"June" string that isn't already recorded in
+`scripts/brand-drift-allowlist.json` as a deliberate exception (a reference to
+June's own product, infrastructure, or community, rather than the whitelabel
+identity). This is what keeps an upstream merge from silently reintroducing
+unbranded copy into the surfaces Phase 2 already converted. Route new copy on
+one of those files through `BRAND_NAME` / `BRAND_SUPPORT_TEXT`; if a failure
+is a genuine exception, review it and then run
+`node scripts/check-brand-drift.mjs --update-allowlist` to record the
+decision — never to silence a failure you haven't looked at.
+
 ## What this layer does not cover
 
 - Choosing a brand at runtime in one binary — bundle identifier, deep-link
   scheme, and code signing are fixed per build (see ADR-0054's "Alternatives
   considered").
 - Onboarding a real partner: registering an OS Accounts OAuth client and App
-  API key, a releases repo, code-signing identities, and a distinct Keychain
-  service id are operational steps, not code — see Phase 4 of
-  [docs/whitelabel-implementation-plan.md](../docs/whitelabel-implementation-plan.md).
+  API key, a releases repo, and code-signing identities are operational steps,
+  not code — see
+  [docs/whitelabel-release-runbook.md](../docs/whitelabel-release-runbook.md)
+  (Phase 4). The Keychain service id for the OS Accounts token store *is* code
+  now (`OS_JUNE_KEYCHAIN_SERVICE`); five other `co.opensoftware.june*`
+  keychain namespaces (agent MCP, agent runtime, companion, Notion connector,
+  the generic connector store) are not yet brand-configurable — see the
+  runbook's "Known gap" section.
 - The long tail of "June" copy in `src/`. Only the highest-visibility,
   most-likely-to-be-seen-in-a-demo strings are routed through
   `BRAND_NAME` (Phase 2); everything else stays literal "June" until a real
-  partner need justifies the cost.
+  partner need justifies the cost. The brand-drift check above only watches
+  that curated set — it does not chase the rest.

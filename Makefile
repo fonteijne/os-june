@@ -5,7 +5,7 @@
 .PHONY: help install \
 	dev dev-staging dev-api \
 	ephemeral-api ephemeral-api-down dev-with-ephemeral-api \
-	check format typecheck test-web \
+	check format typecheck test-web brand-drift brand-drift-update \
 	tauri-fmt tauri-fmt-check tauri-lint tauri-test \
 	companion-fmt companion-fmt-check companion-lint companion-test \
 	june-api-fmt june-api-fmt-check june-api-lint june-api-test \
@@ -68,6 +68,12 @@ format:  ## Biome format (write) + biome safe fixes
 
 typecheck:  ## tsc --noEmit
 	pnpm typecheck
+
+brand-drift:  ## Fail on new literal "June" copy in curated whitelabel surfaces (Phase 5)
+	pnpm brand-drift:check
+
+brand-drift-update:  ## Record a reviewed exception in the brand-drift allowlist
+	pnpm brand-drift:update
 
 test-web:  ## Vitest
 	pnpm test
@@ -147,11 +153,11 @@ fmt: format tauri-fmt companion-fmt june-api-fmt  ## Format everything
 
 fmt-check: tauri-fmt-check companion-fmt-check june-api-fmt-check  ## Check Rust formatting
 
-lint: check tauri-lint companion-lint june-api-lint  ## Lint everything
+lint: check brand-drift tauri-lint companion-lint june-api-lint  ## Lint everything
 
 test: test-web tauri-test companion-test june-api-test  ## Run all test suites
 
-verify: check typecheck test-web tauri-fmt-check tauri-lint tauri-test companion-fmt-check companion-lint companion-test june-api-fmt-check june-api-lint june-api-test  ## Full CI-parity gate
+verify: check brand-drift typecheck test-web tauri-fmt-check tauri-lint tauri-test companion-fmt-check companion-lint companion-test june-api-fmt-check june-api-lint june-api-test  ## Full CI-parity gate
 
 local-ci:  ## Run path-aware local PR checks and post required signoff/* statuses
 	./scripts/local-ci.sh

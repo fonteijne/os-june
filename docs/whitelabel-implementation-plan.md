@@ -1,6 +1,6 @@
 # Implementation plan: Whitelabel capability
 
-**Owner:** proposed by agent, for review · **Date:** 2026-08-03 · **Status:** Phases 1-3 implemented; Phase 4 (per-brand identity & release operations) and Phase 5 (brand-drift lint) remain
+**Owner:** proposed by agent, for review · **Date:** 2026-08-03 · **Status:** Phases 1-5 implemented (Phase 4's operational steps — OS Accounts OAuth client, releases repo, signing identities — are a runbook, not code; see [whitelabel-release-runbook.md](whitelabel-release-runbook.md))
 **ADR:** [0054-whitelabel-branding-as-additive-config-layer.md](adr/0054-whitelabel-branding-as-additive-config-layer.md)
 **Repos:** `os-june` (app + June API) in this fork; `os-accounts` for per-brand OAuth client + App API key registration (operational only, no `os-accounts` code change proposed here)
 
@@ -166,19 +166,27 @@ Summary:
    strings a partner would actually see in a demo, not the full ~1,032.
 3. **Backend copy** — issue-report title/text and any other user-facing
    backend-generated strings routed through `JUNE__BRAND__*`.
-4. **Per-brand identity & release operations** — the runbook for a new OS
-   Accounts OAuth client + App API key registration, a new public releases
-   repo + Ed25519 updater keypair, new Apple Developer ID / Windows
-   Authenticode signing identities, and a brand-specific Keychain service id
-   (today hardcoded to `co.opensoftware.june.accounts`) so a whitelabel
-   build can be installed alongside stock June on the same machine without
-   colliding.
-5. **Brand-drift lint (deferred)** — a CI check, in the spirit of the
-   existing lucide-import ban in Biome, that fails a whitelabel branch build
-   when an upstream merge introduces new hardcoded "June" copy that should
-   route through `BRAND_NAME`. Not built in this plan; flagged as the
-   highest-leverage follow-up once Phase 2 lands, since it is what keeps
-   Phase 2's scope from silently rotting after every upstream merge.
+4. **Per-brand identity & release operations** — [whitelabel-release-runbook.md](whitelabel-release-runbook.md)
+   is the checklist for a new OS Accounts OAuth client + App API key
+   registration, a new public releases repo + Ed25519 updater keypair, and
+   new Apple Developer ID / Windows Authenticode signing identities — all
+   operational, not code. The one piece of this phase that *is* code shipped:
+   the OS Accounts token store's Keychain service id
+   (`src-tauri/src/os_accounts.rs`, was hardcoded to
+   `co.opensoftware.june.accounts`) is now set at build time via
+   `OS_JUNE_KEYCHAIN_SERVICE` / `OS_JUNE_DEV_KEYCHAIN_SERVICE`, the same
+   `option_env!` pattern `OS_ACCOUNTS_CLIENT_ID` already uses, so a whitelabel
+   build can be installed alongside stock June without colliding on that
+   entry. Five other `co.opensoftware.june*` keychain namespaces (agent MCP,
+   agent runtime, companion, Notion connector, the generic connector store)
+   were found during implementation but are **not** yet brand-configurable —
+   see the runbook's "Known gap" section; this plan's original inventory
+   named only the OS Accounts one.
+5. **Brand-drift lint** — `scripts/check-brand-drift.mjs`, wired into CI
+   alongside the lucide-import ban, fails when one of the high-visibility
+   files Phase 2 touched gains a new literal "June" string not already
+   recorded in `scripts/brand-drift-allowlist.json` as a deliberate exception
+   — see "Guarding against brand drift" in [branding/README.md](../branding/README.md).
 
 Phases are independent enough to land as separate PRs; nothing later depends
 on shipping a real partner brand to be useful — each phase is verifiable
@@ -199,10 +207,10 @@ than living only inside the architecture section:
 - House rule (load-bearing, restated from ADR-0054): brand-specific work is
   additive files first. Any edit that must touch a shared file is a
   single-line token substitution, never a restructure.
-- After every upstream merge: run the brand-drift lint (Phase 5, once it
-  exists) plus `pnpm typecheck`, `pnpm test`, and `cargo test` to confirm the
-  branding layer still overrides cleanly and nothing new leaked into a
-  build-target surface unbranded.
+- After every upstream merge: run `pnpm brand-drift:check` (Phase 5) plus
+  `pnpm typecheck`, `pnpm test`, and `cargo test` to confirm the branding
+  layer still overrides cleanly and nothing new leaked into a build-target
+  surface unbranded.
 - Because June API must stay backward-compatible (AGENTS.md's boundary) and
   OS Accounts is never owned by June, neither boundary needs to change for
   whitelabeling — that keeps the merge surface smaller than it would be for
