@@ -61,7 +61,7 @@ Trying a brand needs nothing beyond this repo's normal first-time setup — see
 
 1. `cp -r branding/example branding/<brand-id>`
 2. Edit `brand.json`: `id`, `productName`, `identifier`, `accent`,
-   `supportText`, `deepLinkScheme`, `windowTitles`.
+   `accentWash` (optional), `supportText`, `deepLinkScheme`, `windowTitles`.
 3. Edit `tauri.override.json` to match — `productName`, `identifier`, each
    window's `title`, the deep-link `schemes`, and `bundle.icon`. Keep every
    field of each window object (not just `title`): Tauri's config merge
@@ -119,6 +119,36 @@ one of those files through `BRAND_NAME` / `BRAND_SUPPORT_TEXT`; if a failure
 is a genuine exception, review it and then run
 `node scripts/check-brand-drift.mjs --update-allowlist` to record the
 decision — never to silence a failure you haven't looked at.
+
+## Accent color (`accent` / `accentWash`)
+
+`brand.json`'s `accent` seeds `--brand` (and `accentWash` seeds
+`--brand-wash`) app-wide — the sidebar mark, buttons, and every other
+`var(--brand)` consumer — the *first* time the app runs with no accent
+explicitly picked yet (`src/lib/brand.ts`'s `initBrand()`/`subscribeBrand()`).
+It does not touch `src/lib/brand.ts`'s own five named presets
+(clay/rose/sage/ocean/plum) or their selector in Settings — that picker,
+and its behavior once a whitelabel user explicitly chooses one of the five,
+are unchanged. Two known limitations, deliberately not fixed here:
+
+- **A brief flash of clay on load.** `index.html`'s pre-paint bootstrap
+  (which sets `--brand` before the JS bundle runs, to avoid a flash for the
+  five-preset picker) doesn't know about `branding/<brand-id>/brand.json` —
+  it's a static, unprocessed file. `initBrand()` corrects the color as soon
+  as the bundle runs, so this is a sub-frame flash in practice, not a
+  persistent wrong color.
+- **The dock icon doesn't follow a manually picked accent.** If a
+  whitelabel user opens Settings and explicitly picks one of the five named
+  presets, `src-tauri/src/theme_icon.rs` only knows those five and falls
+  back to June's own clay-colored dock icon — overwriting the correctly
+  bundled whitelabel dock icon Tauri set at launch. `accentWash` alone can't
+  fix this; it needs `theme_icon.rs` to know the brand's own icon too. Left
+  alone with no accent explicitly picked, this doesn't happen — the bundled
+  dock icon is never touched.
+
+If `accentWash` is omitted, it falls back to `accent` itself — less refined
+(the five hand-tuned presets use a subtly different wash than their base
+accent) but not wrong.
 
 ## What this layer does not cover
 

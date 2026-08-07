@@ -4,6 +4,7 @@
   "productName": "Acme Notes",
   "identifier": "co.acme.notes",
   "accent": "#3d7a7a",
+  "accentWash": "#4a7d78",
   "supportText": "the Acme Notes team",
   "deepLinkScheme": "acmenotes",
   "windowTitles": {
