@@ -9128,6 +9128,29 @@ button.agent-user-attachment:hover {
   color: var(--foreground);
 }
 
+/* Whitelabel fallback (BrandWordmark, BRAND_ID !== "june"): the mark squircle
+ * plus BRAND_NAME as plain text, sized to match .sidebar-brand-mark's SVG
+ * wordmark so the header layout doesn't shift between brands. */
+.brand-wordmark-fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: calc(14px * var(--font-scale));
+}
+
+.brand-wordmark-fallback-mark {
+  flex: 0 0 auto;
+}
+
+.brand-wordmark-fallback-text {
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
 .sidebar[data-collapsed="true"] .sidebar-header {
   padding: var(--sp-1) 0 0;
   justify-content: center;

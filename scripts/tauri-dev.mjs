@@ -194,6 +194,12 @@ const child = spawn(tauri.command, [...tauri.args, "dev", ...tauriArgs], {
     ...(developerDir ? { DEVELOPER_DIR: developerDir } : {}),
     OS_JUNE_DEV_APP_NAME: devAppIdentity.productName,
     ...(replayOnboarding ? { VITE_JUNE_REPLAY_ONBOARDING: "1" } : {}),
+    // Propagate --brand=<id> to the beforeDevCommand chain (Vite's predev
+    // hook runs scripts/select-brand.mjs, which only reads BRAND from the
+    // environment — it has no CLI flag of its own). Without this, a
+    // `--brand=<id>` flag applied the Tauri config override correctly but
+    // silently left the frontend's brand.generated.ts on June defaults.
+    ...(brandId ? { BRAND: brandId } : {}),
   },
   shell: false,
   stdio: "inherit",

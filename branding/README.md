@@ -25,6 +25,20 @@ branding/
 whole mechanism. It is not a real partner and ships no real signing keys or
 release infrastructure — copy it to start a real brand.
 
+## Prerequisites (same as any other checkout)
+
+Trying a brand needs nothing beyond this repo's normal first-time setup — see
+[docs/development.md](../docs/development.md)'s Quick start:
+
+- `cp .env.example .env && cp june-api/.env.example june-api/.env`. A Venice
+  key is **not** required to start the app — `JUNE__LOCAL_DEV__ENABLED=true`
+  in `.env.example` skips that check; it only means Venice-backed models
+  won't appear.
+- `pnpm tauri:build` (a real production bundle) additionally requires Node
+  24 active (`agent-runtime`'s `engines.node`) to package the agent-runtime
+  sidecar — `pnpm tauri:dev` does not need this, since dev mode skips that
+  packaging step entirely. Fastest way to see a rebrand: `pnpm tauri:dev -- --brand=example`.
+
 ## Using a brand
 
 - **Native shell:** `BRAND=<brand-id> pnpm tauri:dev` or

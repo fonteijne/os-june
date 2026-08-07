@@ -83,6 +83,12 @@ args.push("--locked");
 
 const tauri = tauriInvocation();
 const child = spawn(tauri.command, [...tauri.args, ...args], {
+  // Propagate --brand=<id> to the beforeBuildCommand chain (pnpm run build's
+  // prebuild hook runs scripts/select-brand.mjs, which only reads BRAND from
+  // the environment — it has no CLI flag of its own). Without this, a
+  // `--brand=<id>` flag applied the Tauri config override correctly but
+  // silently left the frontend's brand.generated.ts on June defaults.
+  env: { ...process.env, ...(brandId ? { BRAND: brandId } : {}) },
   shell: false,
   stdio: "inherit",
 });

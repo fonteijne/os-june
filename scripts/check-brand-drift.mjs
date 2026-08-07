@@ -41,6 +41,7 @@ const SURFACE_FILES = [
   "src/components/settings/AppSettings.tsx",
   "src/components/share/ShareDialog.tsx",
   "src/components/onboarding/steps/SignInStep.tsx",
+  "src/components/sidebar/Sidebar.tsx",
 ];
 
 const JUNE_WORD = /\bJune\b/;
@@ -54,12 +55,19 @@ function isCommentLine(trimmed) {
   );
 }
 
+// Module specifiers (import/export ... from "...") are always internal paths
+// or identifiers (JuneWordmark, useJuneAgent, ...), never user-facing copy —
+// see the plan's own non-goal about internal identifiers.
+function isImportLine(trimmed) {
+  return /^(import|export)\b.*\bfrom\b/.test(trimmed);
+}
+
 function juneLinesIn(relativePath) {
   const text = readFileSync(resolve(ROOT_DIR, relativePath), "utf8");
   const hits = [];
   text.split("\n").forEach((rawLine, index) => {
     const trimmed = rawLine.trim();
-    if (!trimmed || isCommentLine(trimmed)) return;
+    if (!trimmed || isCommentLine(trimmed) || isImportLine(trimmed)) return;
     if (!JUNE_WORD.test(trimmed)) return;
     hits.push({ line: index + 1, text: trimmed });
   });
