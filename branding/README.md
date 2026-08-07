@@ -57,11 +57,13 @@ release infrastructure — copy it to start a real brand.
 4. Generate a real icon set from a source SVG:
    `pnpm tauri icon --icon branding/<brand-id>/source-icon.svg -o branding/<brand-id>/icons`
    (this is the same `tauri icon` step `scripts/generate-icons.mjs` runs for
-   June's own icon set — see that script's header comment). The example
-   fixture ships only four placeholder PNGs (`32x32`, `128x128`, `128x128@2x`,
-   `icon.png`) as solid swatches; a shippable build additionally needs
-   `icon.icns` (macOS) and `icon.ico` (Windows), which `tauri icon` also
-   produces.
+   June's own icon set — see that script's header comment). `tauri icon`
+   always emits proper RGBA PNGs; if you ever hand-roll a placeholder instead,
+   it must be RGBA (4 channels, not RGB) — `tauri::generate_context!()` panics
+   at compile time on an RGB PNG with "is not RGBA". The example fixture ships
+   only four placeholder PNGs (`32x32`, `128x128`, `128x128@2x`, `icon.png`)
+   as solid swatches; a shippable build additionally needs `icon.icns`
+   (macOS) and `icon.ico` (Windows), which `tauri icon` also produces.
 5. Generate a brand-owned updater keypair with `pnpm tauri signer generate`
    and put the public half in `tauri.override.json`'s
    `plugins.updater.pubkey`; keep the private half out of git (CI secret).
