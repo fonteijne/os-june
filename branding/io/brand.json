@@ -1,0 +1,16 @@
+{
+  "$comment": "iO — colors distilled from www.iodigital.com's own design tokens (--color-primary-blue / --color-blue-dark: #0000D2, the first-listed color in their --color-primary-* palette). Icons here are solid-swatch placeholders, not iO's real mark — see branding/README.md step 4 to generate a real icon set from an actual iO logo SVG before shipping.",
+  "id": "io",
+  "productName": "iO",
+  "identifier": "com.iodigital.io",
+  "accent": "#0000D2",
+  "accentWash": "#2d2db5",
+  "supportText": "the iO team",
+  "deepLinkScheme": "iodigital",
+  "windowTitles": {
+    "main": "iO",
+    "hud": "iO Dictation",
+    "agentHud": "iO Agents",
+    "meetingHud": "iO Recording"
+  }
+}
