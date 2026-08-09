@@ -160,7 +160,10 @@ Summary:
 1. **App-shell whitelabel** — product name, bundle identifier, icon set,
    updater target, deep-link scheme made brand-selectable via the
    `--config` override + `branding/` assets. Verifies the mechanism end to
-   end with zero frontend/backend copy changes.
+   end with zero frontend/backend copy changes. The icon override only shows
+   up in a real packaged `.app` (`pnpm tauri:build`) — `pnpm tauri:dev`'s
+   Dock icon is a separate, dev-mode-only limitation; see
+   [branding/README.md](../branding/README.md)'s icon section.
 2. **High-visibility UI copy** — title bar, about/settings screen,
    onboarding, HUD window titles routed through `BRAND_NAME`. Scoped to the
    strings a partner would actually see in a demo, not the full ~1,032.

@@ -93,17 +93,47 @@ Trying a brand needs nothing beyond this repo's normal first-time setup — see
    vars so a whitelabel build doesn't read or write stock June's OS Accounts
    keychain entry when both are installed on the same machine.
 
-## A note on icon path resolution
+## A note on icon path resolution — and why `pnpm tauri:dev` won't show it
 
 `tauri.override.json`'s `bundle.icon` paths are written relative to
 `src-tauri/` (matching how the base `tauri.conf.json` and the existing
 `tauri.macos.conf.json` / `tauri.windows.conf.json` platform overrides resolve
 their own paths), since Tauri resolves bundle paths against the directory of
 the primary config regardless of which `--config` fragment supplied the
-value. This has not been exercised against a real `tauri build` in this
-change (no macOS/Windows toolchain was available while writing it) — verify
-the icon actually swaps on a real `pnpm tauri:build -- --brand=example` run
-on your platform before relying on it for a shipping brand.
+value. `tauri::generate_context!()` does read this override correctly at
+compile time — it's exactly why the icon PNGs shipped here have to be RGBA
+(see above); a plain-RGB placeholder makes that macro panic.
+
+That said, **`bundle.icon` never reaches the macOS Dock/Cmd-Tab icon during
+`pnpm tauri:dev`.** Traced to the source: `tao` (Tauri's windowing library)
+implements `set_window_icon` as a literal no-op on macOS
+(`tao-0.35.3/src/platform_impl/macos/window.rs`, with the comment "macOS
+doesn't have window icons"). The only thing in this codebase that ever sets
+the live NSApplication icon is `src-tauri/src/theme_icon.rs`'s
+`set_dock_icon` command — and it only recognizes June's own five named
+accent presets (clay/rose/sage/ocean/plum), falling back to June's own
+`icon-clay.png` for anything else, including a whitelabel `BRAND_ID`. So:
+
+- With no accent explicitly picked (the common case for a fresh whitelabel
+  install), `src/lib/brand.ts`'s `initBrand()` skips calling
+  `set_dock_icon` entirely for a whitelabel build (see "Accent color"
+  above) — so the Dock icon during `pnpm tauri:dev` is whatever macOS
+  assigns a bare unsigned dev binary by default, not your bundled icon.
+- If a whitelabel user explicitly picks one of the five presets from
+  Settings, the Dock icon flips to June's own themed PNG for that preset —
+  not the whitelabel one either.
+
+None of this touches a **real, packaged `.app`** (`pnpm tauri:build`):
+`bundle.icon` is what macOS reads from the bundle's `Info.plist` /
+`icon.icns` for the Dock, Finder, and Cmd-Tab in that case, independent of
+`tao`'s no-op and of `theme_icon.rs`. **`pnpm tauri:build -- --brand=<id>`
+(needs Node 24 active — see Prerequisites above) is the only way to
+actually verify a brand's icon.** Extending `theme_icon.rs` to fall back to
+the compiled default icon for an unrecognized brand (rather than clay)
+would fix the dev-mode case too, but needs a new Rust dependency
+(`image`, to re-encode the already-decoded default icon back to PNG bytes)
+and native `objc2`/AppKit code that can't be compiled or tested from a
+Linux sandbox — a real follow-up, not done here.
 
 ## Guarding against brand drift (Phase 5)
 
