@@ -170,8 +170,17 @@ const devConfigPath = resolve(scriptDir, "..", "src-tauri", ".tauri.dev.generate
 writeFileSync(
   devConfigPath,
   JSON.stringify({
-    productName: devAppIdentity.productName,
-    identifier: devAppIdentity.identifier,
+    // Only override productName/identifier when this branch actually matched
+    // the per-agent-worktree naming convention (claude/JUN-123, codex/JUN-123)
+    // — devAppIdentityForBranch falls back to plain "June" otherwise, and
+    // pushing that unconditionally as the LAST --config would silently
+    // clobber a --brand override's productName/identifier (this overlay
+    // wins on every merge, brand override included) even though its own
+    // purpose — keeping parallel agent worktrees from colliding — doesn't
+    // apply on a non-JUN-numbered branch like a whitelabel feature branch.
+    ...(devAppIdentity.productName !== "June"
+      ? { productName: devAppIdentity.productName, identifier: devAppIdentity.identifier }
+      : {}),
     build: { devUrl: `http://127.0.0.1:${frontendPort}` },
   }),
 );
