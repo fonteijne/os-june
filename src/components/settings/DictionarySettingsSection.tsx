@@ -4,6 +4,7 @@ import { IconPlusMedium } from "central-icons/IconPlusMedium";
 import { IconTrashCanSimple } from "central-icons/IconTrashCanSimple";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import {
   createDictionaryEntry,
   deleteDictionaryEntry,
@@ -108,7 +109,7 @@ export function DictionarySettingsSection() {
         Dictionary
       </h2>
       <p className="settings-group-description">
-        Words or phrases Clovy should preserve during transcription.
+        Words or phrases {BRAND_NAME} should preserve during transcription.
       </p>
       <div className="settings-card dictionary-card">
         <div className="dictionary-toolbar">

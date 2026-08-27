@@ -14,6 +14,7 @@ import {
   type AgentMcpServerDto,
   type AgentMcpTransport,
 } from "../../lib/agent-mcp";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { Dialog } from "../ui/Dialog";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -272,7 +273,7 @@ export function AgentMcpServersSection() {
         </button>
       </div>
       <p className="settings-group-description">
-        Add local or remote tools to Clovy. Credentials stay in your system keychain.
+        Add local or remote tools to {BRAND_NAME}. Credentials stay in your system keychain.
       </p>
 
       {error ? (
@@ -374,7 +375,7 @@ export function AgentMcpServersSection() {
         description={
           editing
             ? "Blank secret fields keep the credentials already saved in your system keychain."
-            : "Clovy discovers tools directly from this server. Secret values are saved only in your system keychain."
+            : `${BRAND_NAME} discovers tools directly from this server. Secret values are saved only in your system keychain.`
         }
         footer={
           <>
@@ -566,7 +567,7 @@ export function AgentMcpServersSection() {
         onClose={() => setToDelete(undefined)}
         onConfirm={() => (toDelete ? remove(toDelete) : undefined)}
         title={toDelete ? `Delete ${toDelete.name}?` : "Delete MCP server?"}
-        description="Clovy will remove this server and its keychain credentials. This cannot be undone."
+        description={`${BRAND_NAME} will remove this server and its keychain credentials. This cannot be undone.`}
         confirmLabel="Delete server"
         confirmBusyLabel="Deleting..."
         destructive

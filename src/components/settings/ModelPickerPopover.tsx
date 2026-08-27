@@ -13,6 +13,7 @@ import {
 } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { modelAvailableForMode, modelIsPrivate, modelPrivacyBadge } from "../../lib/model-privacy";
 import { modelMatchesQuery } from "../../lib/model-search";
 import {
@@ -847,7 +848,7 @@ export function ModelPickerPopover({
                   </div>
                   {veniceApiKeyConfigured ? (
                     <p className="agent-composer-model-auto-note">
-                      Auto is billed to Clovy credits and does not use your Venice API key.
+                      Auto is billed to {BRAND_NAME} credits and does not use your Venice API key.
                     </p>
                   ) : null}
                 </>

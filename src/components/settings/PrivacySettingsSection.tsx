@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { dispatchP3aSettingsChanged, TELEMETRY_INFO_URL } from "../../lib/p3a";
 import { p3aSettings, setP3aEnabled, type P3aSettingsDto } from "../../lib/tauri";
 import { Switch } from "../ui/Switch";
@@ -53,7 +54,8 @@ export function PrivacySettingsSection() {
         Privacy
       </h2>
       <p className="settings-group-description">
-        Choose whether Clovy shares anonymous usage statistics with OpenSoftware. Off by default.
+        Choose whether {BRAND_NAME} shares anonymous usage statistics with OpenSoftware. Off by
+        default.
       </p>
       <div className="settings-card">
         <div className="settings-rows">
