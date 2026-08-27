@@ -8,6 +8,7 @@ import { recordDictationFinished } from "../lib/referral-nudge";
 import { AGENT_NEW_SESSION_EVENT, dispatchAgentSessionStatus } from "../lib/agent-events";
 import { nextDictationWorkflowActive, parseDictationHelperEvent } from "../lib/dictation-events";
 import { titleFromPrompt } from "../lib/session-title";
+import { BRAND_NAME } from "../lib/brand.generated";
 import { stringPayloadValue } from "./app-helpers";
 import type { UseDictationEventsDependencies } from "./use-dictation-events-types";
 
@@ -38,7 +39,7 @@ export function useDictationEvents(dependencies: UseDictationEventsDependencies)
           prompt,
           title: titleFromPrompt(prompt),
           status: "received",
-          summary: "Clovy is starting.",
+          summary: `${BRAND_NAME} is starting.`,
         });
         markAgentNewSessionPending(prompt);
         setActiveView("agent");

@@ -10,6 +10,7 @@ import {
   resumeRecording,
 } from "../lib/tauri";
 import { playRecordingSound } from "../lib/recording-sounds";
+import { BRAND_NAME } from "../lib/brand.generated";
 import { AGENT_RECORDER_REQUEST_EVENT } from "../lib/events";
 import { errorCode, messageFromError } from "../lib/errors";
 import { getCurrentDataPartitionName } from "../lib/data-partition";
@@ -94,7 +95,7 @@ export function useRecordingControls(dependencies: UseRecordingControlsDependenc
       resolve({
         ok: false,
         errorCode: "app_not_ready",
-        errorMessage: "Clovy is not ready to start or stop recording yet.",
+        errorMessage: `${BRAND_NAME} is not ready to start or stop recording yet.`,
       });
       return;
     }

@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { BRAND_NAME } from "../lib/brand.generated";
 
 type WorkspaceLoader<Props extends object> = {
   Component: ComponentType<Props>;
@@ -91,7 +92,7 @@ function WorkspaceLoadFailure({ onRetry }: { onRetry: () => void }) {
   return (
     <section className="workspace-fallback workspace-load-error" role="alert">
       <h2>Couldn't open this view</h2>
-      <p>Clovy couldn't load this part of the app. Try again.</p>
+      <p>{BRAND_NAME} couldn't load this part of the app. Try again.</p>
       <button type="button" className="primary-action primary-solid" onClick={onRetry}>
         Try again
       </button>

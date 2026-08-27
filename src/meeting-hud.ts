@@ -21,6 +21,7 @@ import {
 import { MEETING_END_STATE_EVENT } from "./lib/events";
 import { installNativeContextMenuGuard } from "./lib/native-context-menu";
 import { subscribeBrand } from "./lib/brand";
+import { BRAND_NAME } from "./lib/brand.generated";
 import { createHudLifecycle } from "./lib/hud-lifecycle";
 import "./styles/meeting-hud.css";
 
@@ -83,7 +84,7 @@ function applyStatus(status: RecordingStatusDto | RecordingTelemetryDto) {
     pill.dataset.state = paused ? "paused" : "recording";
     pill.setAttribute(
       "aria-label",
-      paused ? "Paused. Click to open Clovy" : "Recording. Click to open Clovy",
+      paused ? `Paused. Click to open ${BRAND_NAME}` : `Recording. Click to open ${BRAND_NAME}`,
     );
   }
 
@@ -127,7 +128,7 @@ function applyMeetingEndStatus(status: MeetingEndStatus | null) {
       delete pill.dataset.mode;
       pill.setAttribute("role", "button");
       pill.setAttribute("tabindex", "0");
-      pill.setAttribute("aria-label", "Recording. Click to open Clovy");
+      pill.setAttribute("aria-label", `Recording. Click to open ${BRAND_NAME}`);
     }
     // Let the snapped state paint before the transition comes back (same
     // two-frame dance as applyZone).

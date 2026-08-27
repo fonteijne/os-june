@@ -83,6 +83,7 @@ import {
 } from "../lib/agent-session-models";
 import { readClovyHomeStoredSessionId, writeClovyHomeStoredSessionId } from "../lib/clovy-home";
 import type { AgentSessionDto } from "../lib/agent-runtime-contract";
+import { BRAND_NAME } from "../lib/brand.generated";
 import {
   COMPLETED_DEMO_SESSION_PREFIX,
   SIDEBAR_DEMO_SESSIONS_EVENT,
@@ -1286,7 +1287,7 @@ export function App() {
                 type: "error",
                 data: {
                   code: "unsupported",
-                  message: "That model is not available in Clovy's recommended model set.",
+                  message: `That model is not available in ${BRAND_NAME}'s recommended model set.`,
                   retryable: false,
                 },
               });
