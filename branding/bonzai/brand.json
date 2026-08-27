@@ -1,5 +1,5 @@
 {
-  "$comment": "Bonzai — colors distilled from www.iobonzai.com's own stylesheet and primary CTA button (background: linear-gradient(#0000d2,#0000d2) — i.e. a flat #0000D2 fill, the same primary blue as iO's own site, since iO Bonzai ships on iO's shared design system). Icons here are solid-swatch placeholders, not Bonzai's real mark — see branding/README.md step 4 to generate a real icon set from an actual Bonzai logo SVG before shipping.",
+  "$comment": "Bonzai — colors distilled from www.iobonzai.com's own stylesheet and primary CTA button (background: linear-gradient(#0000d2,#0000d2) — i.e. a flat #0000D2 fill, the same primary blue as iO's own site, since iO Bonzai ships on iO's shared design system). Icons here are the real bonsai-tree mark from the site's own favicon.svg (250x250 source, decoded and resized to each target size with Lanczos resampling), on the site's own #00000f dark tile — a genuine likeness, but still only 4 raster PNGs upscaled from a 250px source, not a full production set. Before shipping: get a vector source (SVG/AI) from Bonzai directly and regenerate via `pnpm tauri icon` per branding/README.md step 4, which also produces the missing icon.icns (macOS) and icon.ico (Windows).",
   "id": "bonzai",
   "productName": "Bonzai",
   "identifier": "com.iobonzai.bonzai",
