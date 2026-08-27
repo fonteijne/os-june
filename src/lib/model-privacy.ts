@@ -1,4 +1,5 @@
 import { AUTO_MODEL_ID } from "./agent-model-selection";
+import { BRAND_NAME } from "./brand.generated";
 import type { ProviderModelMode, VeniceModelDto } from "./tauri";
 
 export type ModelPrivacyMode = "e2ee" | "private" | "anonymous";
@@ -35,8 +36,7 @@ export const E2EE_MODEL_DESCRIPTION =
   "Private model with end-to-end encryption. Your prompt is encrypted on your device and only decrypted inside a hardware-secured enclave (TEE); the response is encrypted before it leaves the enclave. No prompt data is ever readable by the model provider or its infrastructure.";
 export const PRIVATE_MODEL_DESCRIPTION =
   "Private model with zero data retention. No prompt data is stored, shared with a third party, or trained on.";
-export const ANONYMOUS_MODEL_DESCRIPTION =
-  "The model provider may retain prompts, though they're anonymized. Your identity is stripped before anything leaves Clovy. For sensitive content, pick a Private or E2EE model.";
+export const ANONYMOUS_MODEL_DESCRIPTION = `The model provider may retain prompts, though they're anonymized. Your identity is stripped before anything leaves ${BRAND_NAME}. For sensitive content, pick a Private or E2EE model.`;
 
 type ModelPrivacySignals = Pick<VeniceModelDto, "privacy" | "traits"> &
   Partial<Pick<VeniceModelDto, "capabilities">>;

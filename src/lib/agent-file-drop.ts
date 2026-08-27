@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "./brand.generated";
 import { discardStagedAgentAttachments, stageAgentAttachmentBytes } from "./tauri";
 
 export const MAX_AGENT_COMPOSER_ATTACHMENTS = 8;
@@ -25,7 +26,7 @@ export async function stageDroppedAgentFiles(
   existingAttachmentCount: number,
 ): Promise<string[]> {
   if (!files.length) {
-    throw new Error("Drop files from Finder to attach them to Clovy.");
+    throw new Error(`Drop files from Finder to attach them to ${BRAND_NAME}.`);
   }
   if (existingAttachmentCount + files.length > MAX_AGENT_COMPOSER_ATTACHMENTS) {
     throw new Error(`You can attach up to ${MAX_AGENT_COMPOSER_ATTACHMENTS} files at a time.`);

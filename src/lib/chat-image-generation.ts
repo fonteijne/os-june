@@ -21,6 +21,7 @@ import {
   type AgentAttachmentState,
   type ImportedAgentFile,
 } from "./agent-image-attachments";
+import { BRAND_NAME } from "./brand.generated";
 import { messageFromError } from "./errors";
 import type { GeneratedImageDto } from "./tauri";
 
@@ -126,7 +127,7 @@ export async function generateChatImage(
   if (!parseImageDataUrl(dataUrl)) {
     return {
       status: "error",
-      message: "Clovy returned an image it can't display.",
+      message: `${BRAND_NAME} returned an image it can't display.`,
     };
   }
 
@@ -177,7 +178,7 @@ export async function editChatImage(
   if (!parsedSource) {
     return {
       status: "error",
-      message: "Clovy couldn't read the source image.",
+      message: `${BRAND_NAME} couldn't read the source image.`,
     };
   }
 
@@ -192,7 +193,7 @@ export async function editChatImage(
   if (!parseImageDataUrl(dataUrl)) {
     return {
       status: "error",
-      message: "Clovy returned an image it can't display.",
+      message: `${BRAND_NAME} returned an image it can't display.`,
     };
   }
 
