@@ -55,7 +55,7 @@ if (config && !hasConfigOverride) {
 if (bundles && !hasBundleOverride) {
   args.push("--bundles", bundles.join(","));
 }
-// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0054): an
+// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0056): an
 // additive branding/<brand-id>/tauri.override.json merges on top of the
 // platform config via Tauri's native --config merge. Unset BRAND (the
 // default) means this block is a no-op and `pnpm tauri:build` behaves exactly
@@ -87,7 +87,7 @@ const child = spawn(tauri.command, [...tauri.args, ...args], {
   // prebuild hook runs scripts/select-brand.mjs, which only reads BRAND from
   // the environment — it has no CLI flag of its own). Without this, a
   // `--brand=<id>` flag applied the Tauri config override correctly but
-  // silently left the frontend's brand.generated.ts on June defaults.
+  // silently left the frontend's brand.generated.ts on Clovy defaults.
   env: { ...process.env, ...(brandId ? { BRAND: brandId } : {}) },
   shell: false,
   stdio: "inherit",

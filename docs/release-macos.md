@@ -1,13 +1,26 @@
-# Releasing June for macOS
+# Releasing Clovy for macOS
 
-June ships signed, notarized macOS builds with in-app auto-updates through
+Clovy ships signed, notarized macOS builds with in-app auto-updates through
 `tauri-plugin-updater`. The source repo stays private; update artifacts,
 signatures, the DMG, and `latest.json` are published to the public
 `open-software-network/os-june-releases` repo.
 
+`Clovy_*` names are canonical release artifacts. The existing release
+repository, June-named artifact aliases, and installed `June.app` path remain
+compatibility identities under
+[ADR-0055](adr/0055-clovy-technical-identity-migrates-through-a-compatibility-bridge.md).
+The bundle keeps `CFBundleDisplayName=June` in its base `Info.plist` so macOS
+recognizes that the physical `June.app` path has not been renamed, then maps the
+localized display name to Clovy through `en.lproj/InfoPlist.strings`. Finder and
+newly pinned Dock items therefore present Clovy while updater and permission
+continuity stay attached to `June.app`. A Dock item pinned before the rebrand
+may retain its own cached `June` label after an in-place update. macOS exposes
+no supported application API for rewriting that per-user Dock state; remove the
+old item and choose **Keep in Dock** again once to refresh it to Clovy.
+
 ## macOS support
 
-June supports macOS 14.0 and later on Apple Silicon and Intel Macs, including
+Clovy supports macOS 14.0 and later on Apple Silicon and Intel Macs, including
 macOS 15. Production and staging builds ship as universal macOS apps. System
 audio capture uses Core Audio process taps and is available only on macOS 14.2
 and later. On macOS 14.0 or 14.1, recording falls back to microphone-only mode.
@@ -39,7 +52,7 @@ Create or confirm these before cutting the first updater release:
   password-protected, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 - Production runtime secrets: `PRODUCTION_OS_ACCOUNTS_URL`,
   `PRODUCTION_OS_ACCOUNTS_API_URL`, `PRODUCTION_OS_ACCOUNTS_CLIENT_ID`, and
-  `PRODUCTION_JUNE_API_URL`.
+  `PRODUCTION_CLOVY_API_URL`.
 - Slack incoming-webhook secret: `SLACK_WEBHOOK_URL`, configured for the release
   announcements channel. An absent or failing webhook warns but does not fail an
   otherwise successful RC build.
@@ -80,7 +93,8 @@ GitHub Actions -> rc-desktop-release -> Run workflow
 `rc-desktop-release` builds a signed + notarized `universal-apple-darwin` app at
 version `X.Y.Z-rc.N` (bundling both agent sidecar architectures), and publishes it to a fixed
 `rc` prerelease in `open-software-network/os-june-releases` with `latest-rc.json`.
-The fixed `June_universal.dmg` asset follows the current RC for the updater, while
+The fixed `Clovy_universal.dmg` asset follows the current RC, while
+`June_universal.dmg` remains an updater compatibility alias and
 an immutable versioned DMG remains available for each Slack announcement. The
 versioned asset is uploaded without replacement before the fixed RC release
 channel aliases; reuse a higher RC number if that append-only upload already
@@ -201,7 +215,7 @@ After the workflow publishes a release, download the DMG from
 
 ```sh
 APP="/Applications/June.app"
-DMG="$HOME/Downloads/June_universal.dmg"
+DMG="$HOME/Downloads/Clovy_universal.dmg"
 
 codesign --verify --deep --strict --verbose=2 "$APP"
 spctl --assess --type execute --verbose "$APP"
@@ -212,7 +226,7 @@ plutil -extract CFBundleURLTypes xml1 -o - "$APP/Contents/Info.plist"
 lipo -archs "$APP/Contents/MacOS/os-june"
 lipo -archs "$APP/Contents/Resources/native/bin/June Dictation Helper.app/Contents/MacOS/june-dictation-helper"
 lipo -archs "$APP/Contents/Resources/native/bin/June.app/Contents/MacOS/june-system-audio-recorder"
-RUNTIME="$APP/Contents/Resources/native/bin/june-agent-runtime"
+RUNTIME="$APP/Contents/Resources/native/bin/clovy-agent-runtime"
 test "$(shasum -a 256 "$RUNTIME" | awk '{print $1}')" = "$(cat "$RUNTIME.sha256")"
 codesign --verify --strict --verbose=2 "$RUNTIME"
 /usr/bin/arch -arm64 "$RUNTIME"
@@ -225,6 +239,16 @@ and both architecture commands must execute successfully. On an
 Apple Silicon validation host, the x86_64 command is a real Rosetta execution,
 not an architecture inferred from file metadata.
 
+Also confirm the compatibility path resolves to the Clovy presentation name:
+
+```sh
+node scripts/verify-macos-app-name.mjs "$APP"
+```
+
+Do not replace this with a raw `CFBundleDisplayName` assertion. Finder requires
+the base display name to match the physical bundle name before it applies the
+localized Clovy value.
+
 The Node sidecar is a separate hardened executable and must retain both
 `com.apple.security.cs.allow-jit` and
 `com.apple.security.cs.allow-unsigned-executable-memory` after the outer app is
@@ -234,14 +258,23 @@ The release workflow reads the packaged sidecar entitlements and runs both
 architecture slices before notarization.
 
 For the first updater-to-updater validation, install an older updater-capable
-build, run **June -> Check for updates…**, confirm the prompt shows the
-new version and release notes, install, and verify the app relaunches without
-Gatekeeper warnings. Also confirm microphone and Accessibility permissions are
-still granted after relaunch. During the relaunch, confirm the app remains
+build and pin its June item in the Dock before updating. Run **Clovy -> Check
+for updates…**, confirm the prompt shows the new version and release notes,
+install, and verify the app relaunches without Gatekeeper warnings. Run
+`verify-macos-app-name.mjs` against `/Applications/June.app`, confirm Finder
+shows Clovy, and hover the already-pinned Dock item. Capture the Dock result as
+release evidence. If macOS retained its cached June label, remove the item,
+choose **Keep in Dock** again, and confirm the refreshed item says Clovy.
+
+Also confirm microphone and Accessibility permissions are still granted after
+relaunch. On a clean validation account, capture the microphone and Screen
+Recording permission prompts plus the Privacy & Security and Login Items rows;
+each user-facing name must say Clovy even though the base plist name remains the
+`June.app` compatibility key. During the relaunch, confirm the app remains
 responsive after the command is accepted: the main event loop must return in
 under one second while bounded child cleanup continues off-thread. For the
-forced-child check, stop the tracked `june-agent-runtime` process with
-`kill -STOP <pid>` before accepting the update and confirm June still
+forced-child check, stop the tracked `clovy-agent-runtime` process with
+`kill -STOP <pid>` before accepting the update and confirm Clovy still
 relaunches after kill escalation or the five-second aggregate deadline instead
 of showing a permanent beachball.
 

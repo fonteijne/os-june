@@ -1,7 +1,7 @@
 ---
 name: repo-build-pr
 description: >-
-  End-to-end implementation loop for the os-june repo: study the prompt, ask
+  End-to-end implementation loop for the os-clovy repo: study the prompt, ask
   the clarifying questions that change what gets built, plan and architect on
   the session model while delegating bulk implementation and review to cheaper
   strong models, isolate work in git worktrees, validate with deterministic
@@ -9,14 +9,14 @@ description: >-
   evidence through os-platform, open a draft PR, run the automated Greptile and
   Codex review loop with judgment, and mark it ready. Use when the user invokes
   /repo-build-pr (or $repo-build-pr in Codex), or asks to build, implement,
-  ship, or fix something in os-june from a feature prompt, bug report,
+  ship, or fix something in os-clovy from a feature prompt, bug report,
   screenshot, PR comment, or tracker task id, optionally with a cross-harness
   implementer directive like "/repo-build-pr JUN-200 with codex".
 ---
 
 # Repo build PR
 
-Use this skill for the end-to-end implementation loop in `open-software-network/os-june`. The goal is not only to make code changes. The goal is to understand the prompt, isolate the work in worktrees, ship a coherent PR, and run the automated review loop with judgment.
+Use this skill for the end-to-end implementation loop in `open-software-network/os-clovy`. The goal is not only to make code changes. The goal is to understand the prompt, isolate the work in worktrees, ship a coherent PR, and run the automated review loop with judgment.
 
 To hand this entire workflow to a *different* harness as orchestrator (e.g. dispatch a whole build to Codex from Claude Code, or vice versa), use the `repo-orchestrate` skill instead — it wraps this workflow in a per-harness runner with a stop-before-publish default.
 
@@ -127,7 +127,7 @@ Always isolate implementation work from the user's active checkout.
   cannot write it). Then copy the gitignored local environment files into it.
   Resolve the main checkout path first (via the common git dir, so this is
   correct even when the current directory is itself a worktree), because fresh
-  worktrees do not inherit `.env` or `june-api/.env`:
+  worktrees do not inherit `.env` or `clovy-api/.env`:
   ```bash
   MAIN="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
   git fetch origin main
@@ -136,12 +136,13 @@ Always isolate implementation work from the user's active checkout.
   git worktree add -b "$BRANCH" "$WT" origin/main
   cd "$WT"
   cp "$MAIN/.env" .env 2>/dev/null || true
-  cp "$MAIN/june-api/.env" june-api/.env 2>/dev/null || true
+  cp "$MAIN/clovy-api/.env" clovy-api/.env 2>/dev/null || true
   ```
   These files are gitignored and exist only in the main checkout. The app, the
   local dev token, and the QA video upload all depend on them. In particular,
-  `june-api/.env` holds the os-platform API key
-  (`JUNE__ISSUE_REPORTS__OS_PLATFORM_API_KEY` / `OS_PLATFORM_API_KEY`) that the
+  `clovy-api/.env` holds the os-platform API key
+  (`CLOVY__ISSUE_REPORTS__OS_PLATFORM_API_KEY`, with the June-era alias, or
+  `OS_PLATFORM_API_KEY`) that the
   video upload step reads, so without this copy `prepare_qa_video.py --upload`
   fails inside the worktree.
 - Use one worktree for simple or medium tasks.
@@ -171,7 +172,7 @@ Run the smallest checks that prove the change, then broaden based on blast radiu
 - **Full gate:** `make verify` — the CI-parity gate (Biome, typecheck, web tests, and fmt/clippy/test for both Rust crates). A green `make verify` should mean green CI; run it before publish for any non-trivial diff.
 - **Frontend-only:** `make check typecheck test-web`, or a single vitest file while iterating.
 - **Tauri Rust:** `make tauri-test` (add `make tauri-lint` if shared behavior changed).
-- **June API:** `make june-api-test` — uses the pinned toolchain from the Makefile.
+- **Clovy API:** `make clovy-api-test` — uses the pinned toolchain from the Makefile.
 - **Docs or skill-only:** validate the skill's structure and that it is symlinked per `AGENTS.md`; skip expensive app builds unless touched files require them.
 
 Hosted PR CI intentionally skips slower local-signoff gates. After the final
@@ -208,7 +209,7 @@ Treat walkthrough failures as validation failures. Fix the issue, rerun the rele
 What this workflow requires of the walkthrough (the commands and pipeline live in `$agent-e2e-qa`):
 
 - Record video when human reviewers would benefit from seeing the result (visual/UI changes, native interactions, agent behavior, fixed bug repros, "the test is the demo" flows); prefer the background browser helper over foreground screen capture so the run does not fight the user's screen.
-- When PR sharing was authorized, compress and upload the video to os-platform and put the remote URL or PR comment in the validation evidence — a local path is not sufficient. The upload key rides in `june-api/.env`, which fresh worktrees lack (see Worktree strategy); a missing key is a `BLOCKED` upload with the local path kept as evidence.
+- When PR sharing was authorized, compress and upload the video to os-platform and put the remote URL or PR comment in the validation evidence — a local path is not sufficient. The upload key rides in `clovy-api/.env`, which fresh worktrees lack (see Worktree strategy); a missing key is a `BLOCKED` upload with the local path kept as evidence.
 
 ### Pre-publish review pass
 

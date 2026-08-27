@@ -21,7 +21,7 @@ const branch = spawnSync("git", ["branch", "--show-current"], {
 });
 const devAppIdentity = devAppIdentityForBranch(branch.status === 0 ? branch.stdout : "");
 
-if (devAppIdentity.productName !== "June") {
+if (devAppIdentity.productName !== "Clovy") {
   console.error(
     `Using development app identity ${devAppIdentity.productName} (${devAppIdentity.identifier}).`,
   );
@@ -98,8 +98,8 @@ async function resolveFrontendPort() {
 
 async function resolveApiPort() {
   return chooseDevPort({
-    name: "June API",
-    explicitValue: process.env.JUNE_API_PORT,
+    name: "Clovy API",
+    explicitValue: process.env.CLOVY_API_PORT ?? process.env.JUNE_API_PORT,
     base: 8080,
     portIsFree,
   });
@@ -136,7 +136,7 @@ if (config && !hasConfigOverride) {
   tauriArgs.unshift("--config", config);
 }
 
-// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0054): an
+// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0056): an
 // additive branding/<brand-id>/tauri.override.json merges on top of the
 // platform config via Tauri's native --config merge. Unset BRAND (the
 // default) means this block is a no-op and `pnpm tauri:dev` behaves exactly
@@ -154,10 +154,11 @@ if (brandId) {
 }
 
 const frontendPort = await resolveFrontendPort();
-const startsLocalApi = process.env.JUNE_DEV_SKIP_LOCAL_API !== "1";
+const startsLocalApi =
+  (process.env.CLOVY_DEV_SKIP_LOCAL_API ?? process.env.JUNE_DEV_SKIP_LOCAL_API) !== "1";
 const apiPort = startsLocalApi ? await resolveApiPort() : undefined;
 if (apiPort !== undefined) {
-  console.error(`Using an isolated June API on http://127.0.0.1:${apiPort}.`);
+  console.error(`Using an isolated Clovy API on http://127.0.0.1:${apiPort}.`);
 }
 const developerDir =
   process.platform === "darwin" && existsSync("/Applications/Xcode.app/Contents/Developer")
@@ -170,15 +171,17 @@ const devConfigPath = resolve(scriptDir, "..", "src-tauri", ".tauri.dev.generate
 writeFileSync(
   devConfigPath,
   JSON.stringify({
-    // Only override productName/identifier when this branch actually matched
-    // the per-agent-worktree naming convention (claude/JUN-123, codex/JUN-123)
-    // — devAppIdentityForBranch falls back to plain "June" otherwise, and
-    // pushing that unconditionally as the LAST --config would silently
-    // clobber a --brand override's productName/identifier (this overlay
-    // wins on every merge, brand override included) even though its own
-    // purpose — keeping parallel agent worktrees from colliding — doesn't
-    // apply on a non-JUN-numbered branch like a whitelabel feature branch.
-    ...(devAppIdentity.productName !== "June"
+    // Only override the identifier when this branch actually matched the
+    // per-agent-worktree naming convention (claude/JUN-123, codex/JUN-123) —
+    // devAppIdentityForBranch always returns productName "Clovy" and only
+    // suffixes the identifier for a matching branch, falling back to the
+    // plain base identifier otherwise. Pushing this unconditionally as the
+    // LAST --config would silently clobber a --brand override's
+    // productName/identifier (this overlay wins on every merge, brand
+    // override included) even though its own purpose — keeping parallel
+    // agent worktrees from colliding — doesn't apply on a non-JUN-numbered
+    // branch like a whitelabel feature branch.
+    ...(devAppIdentity.identifier !== "co.opensoftware.june"
       ? { productName: devAppIdentity.productName, identifier: devAppIdentity.identifier }
       : {}),
     build: { devUrl: `http://127.0.0.1:${frontendPort}` },
@@ -196,18 +199,18 @@ const child = spawn(tauri.command, [...tauri.args, "dev", ...tauriArgs], {
     ...(apiPort === undefined
       ? {}
       : {
-          JUNE_API_PORT: String(apiPort),
-          JUNE_API_URL: `http://127.0.0.1:${apiPort}`,
-          JUNE__SERVER__PORT: String(apiPort),
+          CLOVY_API_PORT: String(apiPort),
+          CLOVY_API_URL: `http://127.0.0.1:${apiPort}`,
+          CLOVY__SERVER__PORT: String(apiPort),
         }),
     ...(developerDir ? { DEVELOPER_DIR: developerDir } : {}),
-    OS_JUNE_DEV_APP_NAME: devAppIdentity.productName,
-    ...(replayOnboarding ? { VITE_JUNE_REPLAY_ONBOARDING: "1" } : {}),
+    OS_CLOVY_DEV_APP_NAME: devAppIdentity.productName,
+    ...(replayOnboarding ? { VITE_CLOVY_REPLAY_ONBOARDING: "1" } : {}),
     // Propagate --brand=<id> to the beforeDevCommand chain (Vite's predev
     // hook runs scripts/select-brand.mjs, which only reads BRAND from the
     // environment — it has no CLI flag of its own). Without this, a
     // `--brand=<id>` flag applied the Tauri config override correctly but
-    // silently left the frontend's brand.generated.ts on June defaults.
+    // silently left the frontend's brand.generated.ts on Clovy defaults.
     ...(brandId ? { BRAND: brandId } : {}),
   },
   shell: false,

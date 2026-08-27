@@ -1,34 +1,34 @@
 {
   "src/components/settings/AppSettings.tsx": [
-    "blurb=\"Your account and everyday June preferences.\"",
-    "blurb=\"Choose the theme, accent color, text size, and date format June uses.\"",
-    "blurb=\"Set the keyboard shortcuts that start dictation and control June.\"",
-    "Relaunch June",
-    "? \"Control how June captures microphone audio on this device.\"",
-    ": \"Control how June captures meeting and system audio.\"",
-    "blurb=\"Choose the models June uses for voice, text, image, and video.\"",
-    "Choose the model June uses for note transcription and dictation.",
-    "Choose the model June uses for generated notes and agent responses.",
-    "Choose how June balances model quality and usage cost.",
-    "description={`Notes and chat are billed to June credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? \"a Venice model\"} to use your key for notes and new chats.`}",
-    "Choose the models June uses when you ask it to generate an image or video.",
-    "Check whether a newer version of June is available.",
-    "Join us in the June community on Telegram at{\" \"}",
-    "June&apos;s server runs in a confidential VM. See exactly what code is running",
-    "Turning it off applies fully after June restarts.",
-    "? \"Enable Linked devices and the June Companion runtime on this install. Changes apply after June restarts.\"",
-    "? \"Companion pairing remains available until June restarts. It is saved as off for the next launch.\"",
-    ": \"Companion pairing is saved as on and will become available after June restarts.\"}",
-    "Dictation shortcuts and meeting detection only work while June is running.",
-    "<h3 className=\"settings-row-title\">Open June at login</h3>",
-    "Start June automatically when you sign in to your computer.",
-    "aria-label=\"Open June at login\"",
-    "Use your own key for Venice models so June credits are not used. Stored locally and sent"
+    "blurb=\"Your account and everyday Clovy preferences.\"",
+    "blurb=\"Choose the theme, accent color, text size, and date format Clovy uses.\"",
+    "blurb=\"Set the keyboard shortcuts that start dictation and control Clovy.\"",
+    "Relaunch Clovy",
+    "? \"Control how Clovy captures microphone audio on this device.\"",
+    ": \"Control how Clovy captures meeting and system audio.\"",
+    "blurb=\"Choose the models Clovy uses for voice, text, image, and video.\"",
+    "Choose the model Clovy uses for note transcription and dictation.",
+    "Choose the model Clovy uses for generated notes and agent responses.",
+    "Choose how Clovy balances model quality and usage cost.",
+    "description={`Notes and chat are billed to Clovy credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? \"a Venice model\"} to use your key for notes and new chats.`}",
+    "Choose the models Clovy uses when you ask it to generate an image or video.",
+    "Check whether a newer version of Clovy is available.",
+    "Join us in the Clovy community on Telegram at{\" \"}",
+    "Clovy&apos;s server runs in a confidential VM. See exactly what code is",
+    "Turning it off applies fully after Clovy restarts.",
+    "? \"Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after Clovy restarts.\"",
+    "? \"Companion pairing remains available until Clovy restarts. It is saved as off for the next launch.\"",
+    ": \"Companion pairing is saved as on and will become available after Clovy restarts.\"}",
+    "Dictation shortcuts and meeting detection only work while Clovy is running.",
+    "<h3 className=\"settings-row-title\">Open Clovy at login</h3>",
+    "Start Clovy automatically when you sign in to your computer.",
+    "aria-label=\"Open Clovy at login\"",
+    "Use your own key for Venice models so Clovy credits are not used. Stored locally and sent"
   ],
   "src/components/share/ShareDialog.tsx": [
-    "if (!createdInvite) throw new Error(\"June returned no share link.\");"
+    "if (!createdInvite) throw new Error(\"Clovy returned no share link.\");"
   ],
   "src/components/onboarding/steps/SignInStep.tsx": [
-    "<span>Join the June community on Telegram</span>"
+    "<span>Join the Clovy community on Telegram</span>"
   ]
 }

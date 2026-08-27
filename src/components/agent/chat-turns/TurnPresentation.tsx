@@ -15,7 +15,11 @@ export function SudoPart({
   part: Extract<AgentChatPart, { type: "sudo" }>;
   [key: string]: unknown;
 }) {
-  return <div className="agent-system-notice">{part.reason || "Approval required"}</div>;
+  return (
+    <div className="agent-system-notice" data-status={part.status}>
+      {part.reason || "Approval required"}
+    </div>
+  );
 }
 
 export function SecretPart({
@@ -45,6 +49,7 @@ export function SecretPart({
   return (
     <form
       className="agent-action-card"
+      data-status={part.status}
       onSubmit={(event) => {
         event.preventDefault();
         if (!value || disabled) return;
@@ -54,7 +59,7 @@ export function SecretPart({
     >
       <div className="agent-action-card-body">
         <label htmlFor={inputId}>Secret required</label>
-        <p>{part.reason || "June needs a secret before it can continue."}</p>
+        <p>{part.reason || "Clovy needs a secret before it can continue."}</p>
         <input
           id={inputId}
           className="dialog-input"

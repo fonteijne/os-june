@@ -3,7 +3,6 @@ import { IconArrowUp } from "central-icons/IconArrowUp";
 import { IconArrowUpRight } from "central-icons/IconArrowUpRight";
 import { IconChecklist } from "central-icons/IconChecklist";
 import { IconCrossMedium } from "central-icons/IconCrossMedium";
-import { IconCrossSmall } from "central-icons/IconCrossSmall";
 import { IconEmail1Sparkle } from "central-icons/IconEmail1Sparkle";
 import { IconFileSparkle } from "central-icons/IconFileSparkle";
 import { IconFlag1 } from "central-icons/IconFlag1";
@@ -27,8 +26,8 @@ import {
   providerModelSettings,
   type VeniceModelDto,
 } from "../../lib/tauri";
-import { FileTypeIcon } from "../agent/FileTypeIcon";
 import { MarkdownContent } from "../agent/MarkdownContent";
+import { AgentAttachmentTile } from "../agent/composer/AgentAttachmentTile";
 import { ComposerEditor, type ComposerEditorHandle } from "../agent/composer/ComposerEditor";
 import { UpstreamProviderFailureNoticePart } from "../agent/chat-turns/RunNotices";
 import {
@@ -74,7 +73,7 @@ const NOTE_PRESETS: NotePreset[] = [
   },
 ];
 
-const NOTE_CHAT_WIDTH_KEY = "june:note-chat:panel-width";
+const NOTE_CHAT_WIDTH_KEY = "clovy:note-chat:panel-width";
 const NOTE_CHAT_MIN_W = 300;
 const NOTE_CHAT_MAX_W = 600;
 
@@ -86,7 +85,7 @@ function clampNoteChatWidth(width: number) {
 }
 
 /** The first message of a note chat carries the note reference token so
- * June resolves the note; the panel already says which note it's about, so
+ * Clovy resolves the note; the panel already says which note it's about, so
  * the token is chrome, not content, in the panel's own transcript. */
 function stripLeadingNoteToken(text: string) {
   return text.replace(/^@note:[\w-]+(?: \("[^"]*"\))?\s*/, "");
@@ -130,7 +129,7 @@ function assistantPartNode(part: AgentChatPart, index: number, onRetry?: () => v
   }
 }
 
-/** The contextual Ask June chat: a fixed side panel next to the meeting note,
+/** The contextual Ask Clovy chat: a fixed side panel next to the meeting note,
  * mirroring the agent artifact panel's attach mechanics (sibling card on the
  * window background; the main card slides left via the :has() margin in
  * app.css). The conversation is a real agent session scoped to the
@@ -407,20 +406,20 @@ export function NoteChatPanel({
         className="note-chat-resize-handle"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize Ask June panel"
+        aria-label="Resize Ask Clovy panel"
         onPointerDown={startResize}
       />
       <aside
         ref={panelRef}
         className="note-chat-panel"
-        aria-label="Ask June about this note"
+        aria-label="Ask Clovy about this note"
         data-entered={entered || undefined}
         onAnimationEnd={(event) => {
           if (event.animationName === "note-chat-panel-in") setEntered(true);
         }}
       >
         <header className="note-chat-bar">
-          <h2 className="note-chat-bar-title">Ask June</h2>
+          <h2 className="note-chat-bar-title">Ask Clovy</h2>
           <button
             type="button"
             className="icon-button"
@@ -434,7 +433,7 @@ export function NoteChatPanel({
           <button
             type="button"
             className="icon-button"
-            aria-label="Close Ask June"
+            aria-label="Close Ask Clovy"
             title="Close"
             onClick={onClose}
           >
@@ -519,25 +518,15 @@ export function NoteChatPanel({
             {attachments.length ? (
               <div className="agent-composer-attachments">
                 {attachments.map((attachment) => (
-                  <span
+                  <AgentAttachmentTile
                     key={attachment.id}
-                    className="agent-attachment-chip"
-                    title={attachment.name}
-                  >
-                    <FileTypeIcon name={attachment.name} size={14} />
-                    <span className="agent-attachment-name">{attachment.name}</span>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${attachment.name}`}
-                      onClick={() =>
-                        setAttachments((current) =>
-                          current.filter((item) => item.id !== attachment.id),
-                        )
-                      }
-                    >
-                      <IconCrossSmall size={12} />
-                    </button>
-                  </span>
+                    name={attachment.name}
+                    onRemove={() =>
+                      setAttachments((current) =>
+                        current.filter((item) => item.id !== attachment.id),
+                      )
+                    }
+                  />
                 ))}
               </div>
             ) : null}
@@ -591,8 +580,8 @@ export function NoteChatPanel({
                   <button
                     type="button"
                     className="agent-composer-stop"
-                    aria-label="Stop June"
-                    title="Stop June"
+                    aria-label="Stop Clovy"
+                    title="Stop Clovy"
                     onClick={stop}
                   >
                     <IconStop size={16} />

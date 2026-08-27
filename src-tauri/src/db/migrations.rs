@@ -8,7 +8,7 @@ const SCHEMA_MIGRATIONS_TABLE: &str = "schema_migrations";
 
 const LEGACY_PENDING_COMPANION_MESSAGE: &str =
     "This request may already have reached June. Check your Mac before trying a different request.";
-const OUTCOME_UNKNOWN_COMPANION_MESSAGE: &str = "This request may already have reached June. Check your Mac, then choose the action again only if it is still needed.";
+const OUTCOME_UNKNOWN_COMPANION_MESSAGE: &str = "This request may already have reached Clovy. Check your Mac, then choose the action again only if it is still needed.";
 
 #[derive(Clone, Copy)]
 struct ColumnDefinition {
@@ -1330,6 +1330,23 @@ const MIGRATIONS: &[Migration] = &[
             "../../migrations/033_linear_managed_mcp.sql"
         ))],
     },
+    Migration {
+        version: 50,
+        name: "agent_artifact_display_names",
+        requirements: &[SchemaRequirement::Column {
+            table: "agent_artifacts",
+            column: "display_name",
+        }],
+        steps: &[
+            MigrationStep::EnsureColumns {
+                table: "agent_artifacts",
+                columns: AGENT_ARTIFACT_DISPLAY_NAME_COLUMN,
+            },
+            MigrationStep::Sql(include_str!(
+                "../../migrations/034_agent_artifact_display_names.sql"
+            )),
+        ],
+    },
 ];
 
 const NOTE_REVISION_COLUMN: &[ColumnDefinition] = &[ColumnDefinition {
@@ -1347,6 +1364,10 @@ const COMPANION_ACCOUNT_USER_COLUMN: &[ColumnDefinition] = &[ColumnDefinition {
 const COMPANION_OPERATION_STATE_COLUMN: &[ColumnDefinition] = &[ColumnDefinition {
     name: "operation_state",
     definition: "TEXT NOT NULL DEFAULT 'completed'",
+}];
+const AGENT_ARTIFACT_DISPLAY_NAME_COLUMN: &[ColumnDefinition] = &[ColumnDefinition {
+    name: "display_name",
+    definition: "TEXT",
 }];
 
 struct AppliedMigration {
@@ -1431,7 +1452,7 @@ pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
 async fn migrate_legacy_companion_reservations(
     pool: &SqlitePool,
 ) -> Result<(), sqlx::error::Error> {
-    use june_companion_protocol::{FailureCode, ResultPayload};
+    use clovy_companion_protocol::{FailureCode, ResultPayload};
 
     let rows = query(
         "SELECT device_id, operation_id, response
@@ -1445,7 +1466,7 @@ async fn migrate_legacy_companion_reservations(
     for row in rows {
         let encoded: Vec<u8> = row.get("response");
         let Ok(mut response) =
-            serde_json::from_slice::<june_companion_protocol::Response>(&encoded)
+            serde_json::from_slice::<clovy_companion_protocol::Response>(&encoded)
         else {
             continue;
         };
@@ -1896,11 +1917,11 @@ fn validate_applied_migrations_with_tolerance(
     if applied.len() > migrations.len() {
         if !tolerate_newer {
             return Err(sqlx::Error::Protocol(
-                "database schema is newer than this June build".to_string(),
+                "database schema is newer than this Clovy build".to_string(),
             ));
         }
         eprintln!(
-            "warning: database schema is {} migration(s) ahead of this June build; \
+            "warning: database schema is {} migration(s) ahead of this Clovy build; \
              continuing because this is a dev build on the dev data dir",
             applied.len() - migrations.len()
         );
@@ -1932,7 +1953,7 @@ fn detect_legacy_version(
 
     let mut detected = 0;
     let mut first_missing: Option<&Migration> = None;
-    // The first June-owned agent runtime migration intentionally retires the
+    // The first Clovy-owned agent runtime migration intentionally retires the
     // three Hermes-era agent tables after importing them. Builds that shipped
     // that migration before the version catalog landed therefore have a
     // complete, unversioned runtime schema where migrations 9 through 11 are
@@ -1959,7 +1980,7 @@ fn detect_legacy_version(
         });
     if agent_runtime_tables_present && !agent_runtime_installed {
         return Err(sqlx::Error::Protocol(
-            "unversioned database contains an incomplete June agent runtime schema".to_string(),
+            "unversioned database contains an incomplete Clovy agent runtime schema".to_string(),
         ));
     }
     for migration in migrations {
@@ -1988,7 +2009,7 @@ fn detect_legacy_version(
 
     if detected == 0 {
         return Err(sqlx::Error::Protocol(
-            "unversioned database does not match a known June schema".to_string(),
+            "unversioned database does not match a known Clovy schema".to_string(),
         ));
     }
     Ok(detected)
@@ -2324,9 +2345,83 @@ mod tests {
                 (47, "companion_computer_use_approval_audit".to_string()),
                 (48, "linear_managed_mcp".to_string()),
                 (49, "linear_managed_mcp_repair".to_string()),
+                (50, "agent_artifact_display_names".to_string()),
             ]
         );
         assert_latest_stamp(&pool).await;
+    }
+
+    #[tokio::test]
+    async fn artifact_display_name_survives_message_compaction() {
+        let pool = test_pool().await;
+        run_migration_catalog(&pool, &MIGRATIONS[..49])
+            .await
+            .expect("schema before artifact display names");
+        query(
+            "INSERT INTO agent_sessions (
+                id, title, status, model, safety_mode, source, created_at, updated_at
+             ) VALUES ('session', 'title', 'idle', 'auto', 'sandboxed', 'user', 'now', 'now')",
+        )
+        .execute(&pool)
+        .await
+        .expect("agent session");
+        let path = "/workspace/attachments/1fb34e2e-e4e7-45d7-b538-a87aefa4c8e4-9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf";
+        let display_name = "9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf";
+        let payload = serde_json::json!({
+            "role": "user",
+            "content": "Review this",
+            "attachments": [{
+                "id": "attachment",
+                "name": display_name,
+                "path": path,
+                "mimeType": "application/pdf",
+                "sizeBytes": 42,
+                "available": true,
+                "createdAt": "now"
+            }]
+        })
+        .to_string();
+        query(
+            "INSERT INTO agent_items (
+                id, session_id, sequence, kind, payload_json, created_at
+             ) VALUES ('message', 'session', 1, 'user_message', ?, 'now')",
+        )
+        .bind(payload)
+        .execute(&pool)
+        .await
+        .expect("agent message");
+        query(
+            "INSERT INTO agent_artifacts (
+                id, session_id, item_id, provenance, action, path, original_path,
+                mime_type, size_bytes, available, created_at
+             ) VALUES (
+                'artifact', 'session', 'message', 'attachment', 'imported', ?,
+                '/tmp/companion/content', 'application/pdf', 42, 1, 'now'
+             )",
+        )
+        .bind(path)
+        .execute(&pool)
+        .await
+        .expect("agent artifact");
+
+        run_migrations(&pool)
+            .await
+            .expect("artifact display-name migration");
+        query("DELETE FROM agent_items WHERE id = 'message'")
+            .execute(&pool)
+            .await
+            .expect("compact message");
+        let artifact =
+            query("SELECT item_id, display_name FROM agent_artifacts WHERE id = 'artifact'")
+                .fetch_one(&pool)
+                .await
+                .expect("persisted artifact");
+
+        assert_eq!(artifact.get::<Option<String>, _>("item_id"), None);
+        assert_eq!(
+            artifact.get::<Option<String>, _>("display_name").as_deref(),
+            Some(display_name)
+        );
     }
 
     #[tokio::test]
@@ -2570,6 +2665,7 @@ mod tests {
                 (47, "companion_computer_use_approval_audit".to_string()),
                 (48, "linear_managed_mcp".to_string()),
                 (49, "linear_managed_mcp_repair".to_string()),
+                (50, "agent_artifact_display_names".to_string()),
             ]
         );
 
@@ -3053,7 +3149,7 @@ mod tests {
 
         let error = validate_applied_migrations_with_tolerance(&applied, FAILING_MIGRATIONS, false)
             .expect_err("newer stamp must refuse");
-        assert!(error.to_string().contains("newer than this June build"));
+        assert!(error.to_string().contains("newer than this Clovy build"));
     }
 
     #[test]

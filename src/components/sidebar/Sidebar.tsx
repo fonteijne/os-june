@@ -47,6 +47,7 @@ import { createPortal } from "react-dom";
 import { markAgentNewSessionPending } from "../agent/session-persistence";
 import { CategoryIcon } from "../agent/composer/CategoryIcon";
 import { BrandWordmark } from "../brand/BrandWordmark";
+import { ClovyMark } from "../brand/ClovyLogo";
 import { AccountAvatar, accountDisplayName } from "../account/AccountAvatar";
 import { type ReportCategory, reportCategoryDef } from "../agent/composer/reportCategory";
 import {
@@ -60,7 +61,7 @@ import {
 } from "../../lib/agent-events";
 import { BRAND_NAME } from "../../lib/brand.generated";
 import { errorCode, messageFromError } from "../../lib/errors";
-import { NOTE_DND_MIME } from "../../lib/dnd";
+import { LEGACY_NOTE_DND_MIME, NOTE_DND_MIME } from "../../lib/dnd";
 import { useDismiss } from "../../lib/use-dismiss";
 import { attachScrollThumbFade } from "../../lib/scroll-thumb-fade";
 import { useScrollFade } from "../../lib/use-scroll-fade";
@@ -91,7 +92,6 @@ import {
   sessionPartitionMap,
   type SessionPartitionMap,
 } from "../../lib/session-partition-filter";
-import { JuneMark } from "../account/AccountGate";
 import { OPEN_REFERRAL_DIALOG_EVENT } from "../referral/ReferralNudge";
 import { settingsTabsForCompanionPairing, type SettingsTab } from "../settings/settings-config";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -204,9 +204,9 @@ type CommandPromptGroup = {
 
 const AGENT_SIDEBAR_SESSION_FETCH_LIMIT = 100;
 const AGENT_SIDEBAR_SESSION_LIMIT = 12;
-const PINNED_AGENT_SESSION_IDS_STORAGE_KEY = "june:pinned-agent-session-ids";
+const PINNED_AGENT_SESSION_IDS_STORAGE_KEY = "clovy:pinned-agent-session-ids";
 const AGENT_SIDEBAR_SESSION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 16000, 32000];
-const SIDEBAR_DEV_STATES_EVENT = "june:sidebar:dev-states";
+const SIDEBAR_DEV_STATES_EVENT = "clovy:sidebar:dev-states";
 const SIDEBAR_DEV_SESSION_IDS = {
   selected: "sidebar-state-selected",
   working: "sidebar-state-working",
@@ -602,7 +602,7 @@ export function Sidebar({
               id: "quick:home",
               label: "Go to Home",
               icon: <IconHomeOpen size={15} />,
-              searchText: normalizeCommandQuery("home june personal assistant conversation"),
+              searchText: normalizeCommandQuery("home clovy june personal assistant conversation"),
               action: () => onChangeView("home"),
             } satisfies CommandPromptItem,
           ]
@@ -1533,6 +1533,7 @@ function NoteRow({
   function handleDragStart(event: DragEvent<HTMLElement>) {
     event.dataTransfer.effectAllowed = "link";
     event.dataTransfer.setData(NOTE_DND_MIME, note.id);
+    event.dataTransfer.setData(LEGACY_NOTE_DND_MIME, note.id);
     event.dataTransfer.setData("text/plain", note.id);
 
     const node = event.currentTarget;
@@ -1954,7 +1955,7 @@ function ReferralDialog({
       <div className="referral-split">
         <div className="referral-hero">
           <span className="referral-hero-logo" aria-hidden>
-            <JuneMark />
+            <ClovyMark width={28} height={29} variant="mono" />
           </span>
           <span className="referral-hero-eyebrow">
             <IconGift1 size={13} />

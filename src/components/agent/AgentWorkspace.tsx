@@ -15,16 +15,19 @@ import { IconShieldCrossed } from "central-icons/IconShieldCrossed";
 import { IconStop } from "central-icons/IconStop";
 import {
   type CSSProperties,
+  type DragEvent,
   Fragment,
   type FormEvent,
   type RefObject,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   agentItemsToChatTurns,
   applyAgentRuntimeEvent,
@@ -41,6 +44,7 @@ import type {
   AgentSessionDto,
   ResolveAgentInterruptionRequest,
 } from "../../lib/agent-runtime-contract";
+import { stageDroppedAgentFiles } from "../../lib/agent-file-drop";
 import {
   agentRuntimeBindings,
   companionCompleteFrontendRequest,
@@ -49,12 +53,14 @@ import {
   type CompanionAgentStatus,
   type CompanionFrontendRequest,
   assignSessionToProfile,
+  discardStagedAgentAttachments,
   downloadAgentArtifact,
   dictationHelperCommand,
-  juneHomeChat,
-  type JuneHomeChatResponse,
+  clovyHomeChat,
+  type ClovyHomeChatResponse,
   listVeniceModels,
   providerModelSettings,
+  pruneStagedAgentAttachments,
   setCostQuality as setProviderCostQuality,
   type VeniceModelDto,
 } from "../../lib/tauri";
@@ -87,6 +93,16 @@ import {
   rememberSessionModel,
 } from "../../lib/agent-session-models";
 import {
+  clearAgentSessionDraftRevision,
+  clearPendingAgentSessionDraft,
+  invalidateAgentSessionDraft,
+  readAgentSessionDraft,
+  readAgentSessionDraftRevision,
+  transferPendingAgentSessionDraft,
+  writePendingAgentSessionDraft,
+  writeAgentSessionDraft,
+} from "../../lib/agent-session-drafts";
+import {
   forgetSessionThinkingLevel,
   loadSessionThinkingLevels,
   loadThinkingLevel,
@@ -102,7 +118,6 @@ import {
 } from "../../lib/agent-project-context";
 import { AgentChatTurnRow } from "./chat-turns/AgentChatTurnRow";
 import {
-  AgentArtifactList,
   AgentArtifactPanel,
   type AgentArtifact,
   type AgentArtifactPanelState,
@@ -111,6 +126,7 @@ import { AgentSessionBar } from "./chat-turns/AgentSessionBar";
 import { AgentThinking } from "./AgentThinking";
 import {
   advanceHeroGreeting,
+  AGENT_DELETE_SESSION_EVENT,
   AGENT_NEW_SESSION_EVENT,
   AGENT_SHORTCUTS,
   rememberUnrestrictedAcknowledged,
@@ -118,8 +134,13 @@ import {
   unrestrictedAcknowledged,
 } from "./agent-workspace-config";
 import { ComposerEditor, type ComposerEditorHandle } from "./composer/ComposerEditor";
+import { AgentAttachmentTile } from "./composer/AgentAttachmentTile";
 import { agentComposerClearance } from "./composer/layout";
-import { ComposerModelPicker, heroPrivacyFootnote } from "./composer/ModelPicker";
+import {
+  ComposerModelPicker,
+  heroPrivacyFootnote,
+  useComposerModelPopoverPosition,
+} from "./composer/ModelPicker";
 import { modelPrivacyBadge } from "../../lib/model-privacy";
 import { autoPillDesignation } from "../../lib/suggested-models";
 import { getCurrentDataPartitionName } from "../../lib/data-partition";
@@ -129,7 +150,7 @@ import { AUTO_MODEL_ID, modelOptions, selectedModel } from "../settings/ModelPic
 import { ModelPickerPopover, type ModelPickerFlyout } from "../settings/ModelPickerPopover";
 import { Dialog } from "../ui/Dialog";
 import { Spinner } from "../ui/Spinner";
-import { JuneBloom } from "../brand/JuneBloom";
+import { ClovyAlive } from "../brand/ClovyAlive";
 import { ShareDialog } from "../share/ShareDialog";
 import { ReportDialog } from "./ReportDialog";
 import type { ReportCategory } from "./composer/reportCategory";
@@ -142,20 +163,20 @@ import {
 } from "./session-persistence";
 import type { AgentWorkspaceProps } from "./agent-workspace-types";
 import {
-  forgetJuneHomeStoredSessionId,
-  juneHomeDailyCheckIn,
-  juneHomeDayKey,
-  juneHomeDayLabel,
-  juneHomeGreetingParts,
-  juneHomeNudgePrompts,
-  JUNE_HOME_THREAD_CHANGED_EVENT,
-  resolveJuneHomeThreadSessionId,
-  stripJuneHomeContextFromPreview,
-  withJuneHomeCurrentResearch,
-  withJuneHomeLatestTaskIntent,
-  type JuneHomeConversationContext,
-  type JuneHomeTaskRequest,
-} from "../../lib/june-home";
+  forgetClovyHomeStoredSessionId,
+  clovyHomeDailyCheckIn,
+  clovyHomeDayKey,
+  clovyHomeDayLabel,
+  clovyHomeGreetingParts,
+  clovyHomeNudgePrompts,
+  CLOVY_HOME_THREAD_CHANGED_EVENT,
+  resolveClovyHomeThreadSessionId,
+  stripClovyHomeContextFromPreview,
+  withClovyHomeCurrentResearch,
+  withClovyHomeLatestTaskIntent,
+  type ClovyHomeConversationContext,
+  type ClovyHomeTaskRequest,
+} from "../../lib/clovy-home";
 import type { AgentChatTurn } from "../../lib/agent-chat-runtime";
 import {
   clearHomeTaskHandoffActive,
@@ -171,6 +192,7 @@ import {
   markHomeTaskHandoffActive,
   persistHomeDirectTurns,
   persistHomeTaskHandoffs,
+  readAllHomeTaskHandoffAttachments,
   readHomeDirectTurns,
   readHomeTaskHandoffs,
   recoverInterruptedHomeTaskHandoffs,
@@ -191,7 +213,7 @@ export {
   type AgentSessionsChangedDetail,
 } from "./agent-workspace-config";
 
-export const AGENT_RUNTIME_EVENT = "june://agent-runtime-event";
+export const AGENT_RUNTIME_EVENT = "clovy://agent-runtime-event";
 const DEFAULT_MODEL = AUTO_MODEL_ID;
 const AGENT_SUGGESTED_MODEL_IDS = [AUTO_MODEL_ID] as const;
 const AGENT_AUTO_MODEL: VeniceModelDto = {
@@ -200,10 +222,13 @@ const AGENT_AUTO_MODEL: VeniceModelDto = {
   name: "Auto",
   description: "Chooses the best available model for each request.",
   modelType: "text",
+  privacy: "private",
   traits: [],
   capabilities: [],
 };
 const projectContextSignaturesBySessionId = new ProjectContextSignatureStore();
+const USAGE_FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function composerInSteerStateFor(input: {
   selectedSessionId?: string;
@@ -299,7 +324,7 @@ function artifactView(artifact: AgentArtifactDto): AgentArtifact {
   return {
     name: artifact.name,
     path: artifact.path,
-    rootLabel: "June workspace",
+    rootLabel: "Clovy workspace",
     size: artifact.sizeBytes,
   };
 }
@@ -342,11 +367,60 @@ export function AgentWorkspace({
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string>();
   const [usageOpen, setUsageOpen] = useState(false);
+  const usagePanelRef = useRef<HTMLElement>(null);
+  const usageReturnFocusRef = useRef<HTMLElement | null>(null);
+  const usageTitleId = useId();
   const [compactOpen, setCompactOpen] = useState(false);
   const [compacting, setCompacting] = useState(false);
   const [compactResult, setCompactResult] = useState<string>();
   const [models, setModels] = useState<VeniceModelDto[]>([]);
   const [veniceApiKeyConfigured, setVeniceApiKeyConfigured] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!usageOpen || !usagePanelRef.current) return;
+    usageReturnFocusRef.current = document.activeElement as HTMLElement | null;
+    usagePanelRef.current.querySelector<HTMLElement>(USAGE_FOCUSABLE)?.focus();
+    return () => {
+      usageReturnFocusRef.current?.focus?.();
+      usageReturnFocusRef.current = null;
+    };
+  }, [usageOpen]);
+
+  useEffect(() => {
+    if (!usageOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setUsageOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !usagePanelRef.current) return;
+      const focusables = Array.from(
+        usagePanelRef.current.querySelectorAll<HTMLElement>(USAGE_FOCUSABLE),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!usagePanelRef.current.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [usageOpen]);
+
   const focusedHomeModelRef = useRef(DEFAULT_MODEL);
   const focusedHomeThinkingLevelRef = useRef(loadThinkingLevel());
   const initialModelSelection = agentModelSelection(initialAgentSession?.model || DEFAULT_MODEL);
@@ -380,17 +454,57 @@ export function AgentWorkspace({
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const draftHasContentRef = useRef(Boolean(draft.trim()));
-  const setComposerDraft = useCallback((value: string) => {
+  const setComposerDraft = useCallback((value: string, options?: { persist?: boolean }) => {
     draftRef.current = value;
     draftHasContentRef.current = Boolean(value.trim());
+    if (options?.persist !== false && selectedIdRef.current) {
+      writeAgentSessionDraft(selectedIdRef.current, value);
+    }
     setDraft(value);
     setDraftRevision((revision) => revision + 1);
   }, []);
   const [attachments, setAttachments] = useState<string[]>([]);
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
+  const attachmentGenerationRef = useRef(0);
+  const dropOwnerRef = useRef<string>();
+  const inFlightAttachmentLeasesRef = useRef(new Map<string, string[]>());
+  const [attaching, setAttaching] = useState(false);
+  const setComposerAttachments = useCallback(
+    (update: string[] | ((current: string[]) => string[])) => {
+      const next = typeof update === "function" ? update(attachmentsRef.current) : update;
+      attachmentsRef.current = next;
+      setAttachments(next);
+    },
+    [],
+  );
+  const abandonComposerAttachments = useCallback(() => {
+    attachmentGenerationRef.current += 1;
+    dropOwnerRef.current = undefined;
+    setAttaching(false);
+    const paths = attachmentsRef.current;
+    attachmentsRef.current = [];
+    setAttachments([]);
+    if (paths.length > 0) {
+      void discardStagedAgentAttachments(paths).catch(() => undefined);
+    }
+  }, []);
+  useEffect(
+    () => () => {
+      attachmentGenerationRef.current += 1;
+      dropOwnerRef.current = undefined;
+      const paths = attachmentsRef.current;
+      attachmentsRef.current = [];
+      if (paths.length > 0) {
+        void discardStagedAgentAttachments(paths).catch(() => undefined);
+      }
+    },
+    [],
+  );
   const [queuedFollowUps, setQueuedFollowUpsState] =
     useState<QueuedAgentFollowUps>(loadQueuedAgentFollowUps);
+  const queuedFollowUpsRef = useRef(queuedFollowUps);
+  queuedFollowUpsRef.current = queuedFollowUps;
   const attemptedQueuedMessageIdsRef = useRef(new Set<string>());
   const [failedQueuedMessageIds, setFailedQueuedMessageIds] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -399,6 +513,7 @@ export function AgentWorkspace({
     (update: (current: QueuedAgentFollowUps) => QueuedAgentFollowUps) => {
       setQueuedFollowUpsState((current) => {
         const next = update(current);
+        queuedFollowUpsRef.current = next;
         if (next !== current) saveQueuedAgentFollowUps(next);
         return next;
       });
@@ -421,7 +536,20 @@ export function AgentWorkspace({
     model: string;
     thinkingLevel: ThinkingLevel;
   }>();
+  const recoverableSubmissionRef = useRef(recoverableSubmission);
+  recoverableSubmissionRef.current = recoverableSubmission;
   const recoverableSubmissionSnapshotRef = useRef<typeof recoverableSubmission>();
+  const [recoverableHomeSubmission, setRecoverableHomeSubmissionState] = useState<{
+    id: string;
+    prompt: string;
+    attachments: string[];
+  }>();
+  const recoverableHomeSubmissionRef = useRef(recoverableHomeSubmission);
+  recoverableHomeSubmissionRef.current = recoverableHomeSubmission;
+  const setRecoverableHomeSubmission = useCallback((value: typeof recoverableHomeSubmission) => {
+    recoverableHomeSubmissionRef.current = value;
+    setRecoverableHomeSubmissionState(value);
+  }, []);
   const [pendingInitialTurn, setPendingInitialTurn] = useState<{
     prompt: string;
     storedSessionId?: string;
@@ -429,6 +557,7 @@ export function AgentWorkspace({
     turn: AgentChatTurn;
   }>();
   const pendingSessionCreationRef = useRef<string>();
+  const creationDraftDestinationsRef = useRef(new Map<string, string | null | undefined>());
   const hydrationRequestRef = useRef<string>();
   const submissionOwnerRef = useRef<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -477,6 +606,8 @@ export function AgentWorkspace({
   const [homeStreamingReply, setHomeStreamingReply] = useState<AgentChatTurn | null>(null);
   const [homeDirectPendingCount, setHomeDirectPendingCount] = useState(0);
   const homeSessionPromiseRef = useRef<Promise<string> | null>(null);
+  const homeSessionCreationDraftOwnerRef = useRef<string>();
+  const [homeSessionCreating, setHomeSessionCreating] = useState(false);
   const handledHomeTaskToolCallsRef = useRef(new Set<string>());
 
   useEffect(() => {
@@ -493,6 +624,7 @@ export function AgentWorkspace({
       setHydratedSelectionId(undefined);
       pendingSessionCreationRef.current = undefined;
       submissionOwnerRef.current = undefined;
+      abandonComposerAttachments();
       setSelectedId(undefined);
       selectedIdRef.current = undefined;
       setNewSessionMode(true);
@@ -502,13 +634,12 @@ export function AgentWorkspace({
       setShareUrl(undefined);
       setThinkingLevel(loadThinkingLevel());
       setComposerDraft(request?.prompt ?? "");
-      setAttachments([]);
       setPendingInitialTurn(undefined);
       setSubmitting(false);
       setError(undefined);
       onSessionSelected?.(undefined);
     },
-    [onSessionSelected, setComposerDraft],
+    [abandonComposerAttachments, onSessionSelected, setComposerDraft],
   );
 
   const applyCostQuality = useCallback((value: number) => {
@@ -606,8 +737,8 @@ export function AgentWorkspace({
       setHomeDirectTurns(restoredTurns);
       setHomeTaskHandoffs(readHomeTaskHandoffs(storedSessionId));
     };
-    window.addEventListener(JUNE_HOME_THREAD_CHANGED_EVENT, refreshHomeThread);
-    return () => window.removeEventListener(JUNE_HOME_THREAD_CHANGED_EVENT, refreshHomeThread);
+    window.addEventListener(CLOVY_HOME_THREAD_CHANGED_EVENT, refreshHomeThread);
+    return () => window.removeEventListener(CLOVY_HOME_THREAD_CHANGED_EVENT, refreshHomeThread);
   }, [homeMode]);
 
   const publishSessions = useCallback((next: AgentSessionDto[]) => {
@@ -705,7 +836,7 @@ export function AgentWorkspace({
       .then((next) => {
         const selected = selectedIdRef.current;
         if (!homeMode || !selected || next.some((session) => session.id === selected)) return;
-        forgetJuneHomeStoredSessionId(getCurrentDataPartitionName(), selected);
+        forgetClovyHomeStoredSessionId(getCurrentDataPartitionName(), selected);
         selectedIdRef.current = undefined;
         setSelectedId(undefined);
         setNewSessionMode(true);
@@ -739,6 +870,22 @@ export function AgentWorkspace({
       .catch(() => setVeniceApiKeyConfigured(false));
   }, [homeMode, initialAgentSession, initialSessionId, refreshSessions]);
 
+  const pendingDraftTakesPriorityRef = useRef(Boolean(pendingRequestRef.current?.prompt));
+  useEffect(() => {
+    if (!selectedId) return;
+    // A request that opens a new session deliberately pre-fills the composer;
+    // do not let a stale session draft replace that navigation intent.
+    if (pendingDraftTakesPriorityRef.current) {
+      pendingDraftTakesPriorityRef.current = false;
+      return;
+    }
+    // The first session id is assigned while its initial send is still in
+    // flight. Its composer may already contain a follow-up, which is not a
+    // stored draft to restore over.
+    if (pendingSessionCreationRef.current) return;
+    setComposerDraft(readAgentSessionDraft(selectedId) ?? "", { persist: false });
+  }, [selectedId, setComposerDraft]);
+
   useEffect(() => {
     const nextId = initialSession?.id ?? initialSessionId;
     if (!nextId) return;
@@ -746,6 +893,7 @@ export function AgentWorkspace({
       pendingSessionCreationRef.current = undefined;
       submissionOwnerRef.current = undefined;
       setSubmitting(false);
+      abandonComposerAttachments();
     }
     setPendingInitialTurn((current) =>
       current && current.storedSessionId !== nextId ? undefined : current,
@@ -768,7 +916,14 @@ export function AgentWorkspace({
       if (homeMode && selectedIdRef.current !== nextId) return;
       setError(messageFromError(cause));
     });
-  }, [applySessionModel, homeMode, hydrate, initialSession?.id, initialSessionId]);
+  }, [
+    abandonComposerAttachments,
+    applySessionModel,
+    homeMode,
+    hydrate,
+    initialSession?.id,
+    initialSessionId,
+  ]);
 
   useEffect(() => {
     const handleNewSession = (event: Event) => {
@@ -779,6 +934,16 @@ export function AgentWorkspace({
     window.addEventListener(AGENT_NEW_SESSION_EVENT, handleNewSession);
     return () => window.removeEventListener(AGENT_NEW_SESSION_EVENT, handleNewSession);
   }, [startNewSession]);
+
+  useEffect(() => {
+    const handleDeletedSession = (event: Event) => {
+      const storedSessionId = (event as CustomEvent<{ sessionId?: string }>).detail?.sessionId;
+      if (!storedSessionId) return;
+      invalidateAgentSessionDraft(storedSessionId);
+    };
+    window.addEventListener(AGENT_DELETE_SESSION_EVENT, handleDeletedSession);
+    return () => window.removeEventListener(AGENT_DELETE_SESSION_EVENT, handleDeletedSession);
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -1159,6 +1324,10 @@ export function AgentWorkspace({
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
+    if (dropOwnerRef.current) {
+      setError("Wait for files to finish attaching, then send again.");
+      return;
+    }
     const queuedSubmission = queuedSubmissionSnapshotRef.current;
     const clearQueuedSubmissionAttempt = () => {
       queuedSubmissionSnapshotRef.current = undefined;
@@ -1180,17 +1349,25 @@ export function AgentWorkspace({
       clearQueuedSubmissionAttempt();
       return;
     }
+    const submittedStoredSessionId = selectedIdRef.current;
+    const submittedDraftRevision =
+      !queuedSubmission &&
+      !recoveredSubmission &&
+      submittedStoredSessionId &&
+      readAgentSessionDraft(submittedStoredSessionId)?.trim() === prompt
+        ? readAgentSessionDraftRevision(submittedStoredSessionId)
+        : undefined;
     if (running) {
-      const submittedAttachments = queuedSubmission?.attachments ?? attachments;
+      const submittedAttachments = queuedSubmission?.attachments ?? attachmentsRef.current;
       const submittedModel = queuedSubmission?.model ?? agentRunModelId(model, costQuality);
       const submittedThinkingLevel = queuedSubmission?.thinkingLevel ?? thinkingLevel;
       clearQueuedSubmissionAttempt();
-      const ownerSessionId = selectedIdRef.current;
-      if (!ownerSessionId) return;
+      const ownerStoredSessionId = selectedIdRef.current;
+      if (!ownerStoredSessionId) return;
       const messageId = crypto.randomUUID();
       updateQueuedFollowUps((current) => ({
         ...current,
-        [ownerSessionId]: mergeQueuedAgentFollowUp(current[ownerSessionId], {
+        [ownerStoredSessionId]: mergeQueuedAgentFollowUp(current[ownerStoredSessionId], {
           messageId,
           prompt,
           attachments: submittedAttachments,
@@ -1200,8 +1377,9 @@ export function AgentWorkspace({
           steering: "pending",
         }),
       }));
-      setComposerDraft("");
-      setAttachments([]);
+      setComposerDraft("", { persist: false });
+      setComposerAttachments([]);
+      clearAgentSessionDraftRevision(ownerStoredSessionId, submittedDraftRevision);
       requestSubmittedMessageScroll();
       if (projection.run) {
         const activeRunId = projection.run.id;
@@ -1210,7 +1388,7 @@ export function AgentWorkspace({
           .then((result) => {
             if (result.accepted) {
               updateQueuedFollowUps((current) =>
-                withQueuedSteering(current, ownerSessionId, messageId, "accepted"),
+                withQueuedSteering(current, ownerStoredSessionId, messageId, "accepted"),
               );
               return;
             }
@@ -1221,7 +1399,7 @@ export function AgentWorkspace({
               messageId,
             });
             updateQueuedFollowUps((current) =>
-              withQueuedSteering(current, ownerSessionId, messageId, undefined),
+              withQueuedSteering(current, ownerStoredSessionId, messageId, undefined),
             );
           })
           .catch((cause: unknown) => {
@@ -1232,7 +1410,7 @@ export function AgentWorkspace({
               messageId,
             });
             updateQueuedFollowUps((current) =>
-              withQueuedSteering(current, ownerSessionId, messageId, undefined),
+              withQueuedSteering(current, ownerStoredSessionId, messageId, undefined),
             );
           });
       }
@@ -1255,9 +1433,15 @@ export function AgentWorkspace({
     const optimisticId = `optimistic:${crypto.randomUUID()}`;
     const optimisticCreatedAt = new Date().toISOString();
     const attachedPaths =
-      queuedSnapshot?.attachments ?? recoveredSnapshot?.attachments ?? attachments;
+      queuedSnapshot?.attachments ?? recoveredSnapshot?.attachments ?? attachmentsRef.current;
+    if (attachedPaths.length > 0) {
+      inFlightAttachmentLeasesRef.current.set(submissionId, [...new Set(attachedPaths)]);
+    }
     if (creatingSession) {
       pendingSessionCreationRef.current = creationRequestId;
+      if (creationRequestId) {
+        creationDraftDestinationsRef.current.set(creationRequestId, undefined);
+      }
       setPendingInitialTurn({
         prompt,
         title: titleFromPrompt(prompt),
@@ -1278,8 +1462,8 @@ export function AgentWorkspace({
         },
       });
       if (submissionOwnerRef.current === submissionId && !recoveredSnapshot) {
-        setComposerDraft("");
-        setAttachments([]);
+        setComposerDraft("", { persist: false });
+        setComposerAttachments([]);
       }
     }
     try {
@@ -1304,12 +1488,21 @@ export function AgentWorkspace({
           createdSession,
           ...current.filter((item) => item.id !== createdSession.id),
         ]);
+        if (creationRequestId) {
+          creationDraftDestinationsRef.current.set(creationRequestId, createdSession.id);
+        }
+        const transferredPendingDraft = creationRequestId
+          ? transferPendingAgentSessionDraft(creationRequestId, createdSession.id)
+          : false;
         const shouldPresentCreatedSession =
           pendingSessionCreationRef.current === creationRequestId &&
           selectedIdRef.current === undefined;
         if (shouldPresentCreatedSession) {
           setSelectedId(createdSession.id);
           selectedIdRef.current = createdSession.id;
+          if (!transferredPendingDraft) {
+            writeAgentSessionDraft(createdSession.id, draftRef.current);
+          }
           setNewSessionMode(false);
           setPendingInitialTurn((current) =>
             current ? { ...current, storedSessionId: createdSession.id } : current,
@@ -1352,8 +1545,8 @@ export function AgentWorkspace({
         !creatingSession &&
         submissionOwnerRef.current === submissionId
       ) {
-        setComposerDraft("");
-        setAttachments([]);
+        setComposerDraft("", { persist: false });
+        setComposerAttachments([]);
       }
       const enabledSkillIds = (await agentRuntimeBindings.listSkills())
         .filter((skill) => skill.enabled)
@@ -1372,6 +1565,9 @@ export function AgentWorkspace({
         enabledSkillIds,
         attachments: attachedPaths,
       });
+      void discardStagedAgentAttachments(attachedPaths).catch(() => undefined);
+      clearAgentSessionDraftRevision(activeSession.id, submittedDraftRevision);
+      inFlightAttachmentLeasesRef.current.delete(submissionId);
       if (queuedSnapshot) {
         attemptedQueuedMessageIdsRef.current.delete(queuedSnapshot.messageId);
         setFailedQueuedMessageIds((current) => {
@@ -1417,20 +1613,44 @@ export function AgentWorkspace({
       });
       await refreshSessions();
     } catch (cause) {
+      if (
+        creationRequestId &&
+        creationDraftDestinationsRef.current.has(creationRequestId) &&
+        creationDraftDestinationsRef.current.get(creationRequestId) === undefined
+      ) {
+        clearPendingAgentSessionDraft(creationRequestId);
+        creationDraftDestinationsRef.current.set(creationRequestId, null);
+      }
       if (queuedSnapshot) {
         setFailedQueuedMessageIds((current) => new Set([...current, queuedSnapshot.messageId]));
       }
-      if (submissionOwnerRef.current !== submissionId) return;
+      if (submissionOwnerRef.current !== submissionId) {
+        inFlightAttachmentLeasesRef.current.delete(submissionId);
+        if (!queuedSnapshot && !recoveredSnapshot) {
+          void discardStagedAgentAttachments(attachedPaths).catch(() => undefined);
+        }
+        return;
+      }
       submissionOwnerRef.current = undefined;
       setSubmitting(false);
       const operationIsVisible = creationRequestId
         ? pendingSessionCreationRef.current === creationRequestId
         : selectedIdRef.current === selectedSession?.id;
-      if (!operationIsVisible) return;
-      if (creatingSession && !selectedIdRef.current) {
-        pendingSessionCreationRef.current = undefined;
-        setPendingInitialTurn(undefined);
-        setNewSessionMode(true);
+      if (!operationIsVisible) {
+        inFlightAttachmentLeasesRef.current.delete(submissionId);
+        if (!queuedSnapshot && !recoveredSnapshot) {
+          void discardStagedAgentAttachments(attachedPaths).catch(() => undefined);
+        }
+        return;
+      }
+      if (creatingSession) {
+        if (pendingSessionCreationRef.current === creationRequestId) {
+          pendingSessionCreationRef.current = undefined;
+        }
+        if (!selectedIdRef.current) {
+          setPendingInitialTurn(undefined);
+          setNewSessionMode(true);
+        }
       }
       if (!queuedSnapshot) {
         const failedSubmission = {
@@ -1444,9 +1664,10 @@ export function AgentWorkspace({
           setRecoverableSubmission(failedSubmission);
         } else {
           setComposerDraft(prompt);
-          setAttachments(attachedPaths);
+          setComposerAttachments(attachedPaths);
         }
       }
+      inFlightAttachmentLeasesRef.current.delete(submissionId);
       setError(messageFromError(cause));
     }
   }
@@ -1456,6 +1677,9 @@ export function AgentWorkspace({
     if (selected) return selected;
     if (homeSessionPromiseRef.current) return homeSessionPromiseRef.current;
 
+    const draftOwnerId = crypto.randomUUID();
+    homeSessionCreationDraftOwnerRef.current = draftOwnerId;
+    creationDraftDestinationsRef.current.set(draftOwnerId, undefined);
     const creation = agentRuntimeBindings
       .createSession({
         title: "Home",
@@ -1464,6 +1688,8 @@ export function AgentWorkspace({
         profile: getCurrentDataPartitionName(),
       })
       .then((createdSession) => {
+        creationDraftDestinationsRef.current.set(draftOwnerId, createdSession.id);
+        transferPendingAgentSessionDraft(draftOwnerId, createdSession.id);
         setSelectedId(createdSession.id);
         selectedIdRef.current = createdSession.id;
         setNewSessionMode(false);
@@ -1475,12 +1701,24 @@ export function AgentWorkspace({
         rememberSessionThinkingLevel(createdSession.id, "instant");
         onHomeSessionCreated?.(createdSession.id);
         return createdSession.id;
+      })
+      .catch((cause) => {
+        clearPendingAgentSessionDraft(draftOwnerId);
+        creationDraftDestinationsRef.current.set(draftOwnerId, null);
+        throw cause;
       });
     homeSessionPromiseRef.current = creation;
+    setHomeSessionCreating(true);
     try {
       return await creation;
     } finally {
-      if (homeSessionPromiseRef.current === creation) homeSessionPromiseRef.current = null;
+      if (homeSessionPromiseRef.current === creation) {
+        homeSessionPromiseRef.current = null;
+        if (homeSessionCreationDraftOwnerRef.current === draftOwnerId) {
+          homeSessionCreationDraftOwnerRef.current = undefined;
+        }
+        setHomeSessionCreating(false);
+      }
     }
   }
 
@@ -1491,15 +1729,15 @@ export function AgentWorkspace({
   }
 
   async function startHomeTask(
-    request: JuneHomeTaskRequest,
+    request: ClovyHomeTaskRequest,
     toolCallId: string,
-    conversation: JuneHomeConversationContext,
+    conversation: ClovyHomeConversationContext,
     homeStoredSessionId: string,
     profile: string,
     taskAttachments: string[] = [],
     sourceUserTurnId?: string,
   ) {
-    const activeHomeSessionId = resolveJuneHomeThreadSessionId(homeStoredSessionId);
+    const activeHomeSessionId = resolveClovyHomeThreadSessionId(homeStoredSessionId);
     if (!activeHomeSessionId) return;
     if (handledHomeTaskToolCallsRef.current.has(toolCallId)) return;
     const handoffId = `home-task-${toolCallId}`;
@@ -1551,7 +1789,7 @@ export function AgentWorkspace({
         safetyMode: "sandboxed",
         profile: activeHomeSessionId === homeStoredSessionId ? profile : "default",
       });
-      const activeAfterCreation = resolveJuneHomeThreadSessionId(homeStoredSessionId);
+      const activeAfterCreation = resolveClovyHomeThreadSessionId(homeStoredSessionId);
       if (!activeAfterCreation) {
         await agentRuntimeBindings.deleteSession(focusedSession.id);
         return;
@@ -1563,7 +1801,7 @@ export function AgentWorkspace({
         .filter((skill) => skill.enabled)
         .map((skill) => skill.id);
       const runtimePrompt = request.requiresCurrentResearch
-        ? withJuneHomeCurrentResearch(request.prompt, conversation)
+        ? withClovyHomeCurrentResearch(request.prompt, conversation)
         : request.prompt;
       await agentRuntimeBindings.startRun({
         sessionId: focusedSession.id,
@@ -1578,6 +1816,7 @@ export function AgentWorkspace({
         enabledSkillIds,
         attachments: taskAttachments,
       });
+      void discardStagedAgentAttachments(taskAttachments).catch(() => undefined);
       updateHandoff({ status: "running", storedSessionId: focusedSession.id });
       void refreshSessions().catch(() => undefined);
     } catch (cause) {
@@ -1618,16 +1857,39 @@ export function AgentWorkspace({
 
   async function submitHomeMessage(event?: FormEvent) {
     event?.preventDefault();
+    if (recoverableHomeSubmissionRef.current) {
+      setError("Retry or discard the unsent Home message before sending another.");
+      return;
+    }
+    if (dropOwnerRef.current) {
+      setError("Wait for files to finish attaching, then send again.");
+      return;
+    }
+    if (!selectedIdRef.current && homeSessionPromiseRef.current) {
+      setError("Wait for Home to finish starting, then send again.");
+      return;
+    }
     const message = draftRef.current.trim();
     if (!message || submitting || textActionsDisabledReason) return;
     if (Array.from(message).length > 64_000) {
       setError("Home messages must be 64,000 characters or less.");
       return;
     }
+    const submittedHomeStoredSessionId = selectedIdRef.current;
+    const submittedHomeDraftRevision =
+      submittedHomeStoredSessionId &&
+      readAgentSessionDraft(submittedHomeStoredSessionId)?.trim() === message
+        ? readAgentSessionDraftRevision(submittedHomeStoredSessionId)
+        : undefined;
     const profile = getCurrentDataPartitionName();
-    const messageAttachments = attachments;
-    setComposerDraft("");
-    setAttachments([]);
+    const messageAttachments = attachmentsRef.current;
+    const attachmentLeaseId = `home:${crypto.randomUUID()}`;
+    if (messageAttachments.length > 0) {
+      inFlightAttachmentLeasesRef.current.set(attachmentLeaseId, [...new Set(messageAttachments)]);
+    }
+    const messageAttachmentGeneration = attachmentGenerationRef.current;
+    setComposerDraft("", { persist: false });
+    setComposerAttachments([]);
     setHomeDirectPendingCount((count) => count + 1);
 
     let storedSessionId: string | undefined;
@@ -1660,6 +1922,7 @@ export function AgentWorkspace({
       const greetingReply = homeConversationGreetingReply(message);
       const directConversationReply = acknowledgesTaskHandoff ? "Got it." : greetingReply;
       commitHomeDirectTurns(storedSessionId, [...priorDirectTurns, userTurn]);
+      clearAgentSessionDraftRevision(storedSessionId, submittedHomeDraftRevision);
       requestSubmittedMessageScroll();
 
       if (directConversationReply && messageAttachments.length === 0) {
@@ -1677,7 +1940,7 @@ export function AgentWorkspace({
         return;
       }
 
-      // Attachments and commands need the full June tool/runtime context. Home
+      // Attachments and commands need the full Clovy tool/runtime context. Home
       // hands them to a focused session deterministically instead of running a
       // second hidden agent turn and hoping it emits a legacy bridge tool.
       if (messageAttachments.length > 0 || message.startsWith("/")) {
@@ -1691,7 +1954,7 @@ export function AgentWorkspace({
             {
               type: "tool",
               id: toolCallId,
-              name: "june_home_start_task",
+              name: "clovy_home_start_task",
               text: "",
               status: "complete",
             },
@@ -1709,7 +1972,7 @@ export function AgentWorkspace({
           profile,
           messageAttachments,
           userTurn.id,
-        );
+        ).finally(() => inFlightAttachmentLeasesRef.current.delete(attachmentLeaseId));
         setError(undefined);
         return;
       }
@@ -1734,11 +1997,11 @@ export function AgentWorkspace({
             parts: [{ type: "text", text: streamedContent, status: "running" }],
           });
         };
-        let response: JuneHomeChatResponse;
+        let response: ClovyHomeChatResponse;
         try {
           response =
             (await homeDemoReply(profile, onDelta)) ??
-            (await juneHomeChat(conversation.recentMessages, {
+            (await clovyHomeChat(conversation.recentMessages, {
               profile,
               ...(conversation.earlierContext
                 ? { historyContext: conversation.earlierContext }
@@ -1757,7 +2020,7 @@ export function AgentWorkspace({
             ? undefined
             : {
                 ...response.task,
-                prompt: withJuneHomeLatestTaskIntent(response.task.prompt, message),
+                prompt: withClovyHomeLatestTaskIntent(response.task.prompt, message),
               };
         const toolCallId = responseTask ? `direct:${suffix}` : undefined;
         const assistantTurn: AgentChatTurn =
@@ -1771,7 +2034,7 @@ export function AgentWorkspace({
                   {
                     type: "tool",
                     id: toolCallId,
-                    name: "june_home_start_task",
+                    name: "clovy_home_start_task",
                     text: "",
                     status: "complete",
                   },
@@ -1818,7 +2081,21 @@ export function AgentWorkspace({
       // The persisted user bubble is the durable retry record. Never remove it
       // when a newer draft exists or when this workspace unmounted while the
       // request was in flight. Restore the text only when the composer is free.
-      if (!draftHasContentRef.current) setComposerDraft(message);
+      if (attachmentGenerationRef.current === messageAttachmentGeneration) {
+        if (draftHasContentRef.current || attachmentsRef.current.length > 0) {
+          setRecoverableHomeSubmission({
+            id: attachmentLeaseId,
+            prompt: message,
+            attachments: messageAttachments,
+          });
+        } else {
+          setComposerDraft(message);
+          setComposerAttachments(messageAttachments);
+        }
+      } else if (messageAttachments.length > 0) {
+        void discardStagedAgentAttachments(messageAttachments).catch(() => undefined);
+      }
+      inFlightAttachmentLeasesRef.current.delete(attachmentLeaseId);
       setError(messageFromError(cause));
     } finally {
       setHomeDirectPendingCount((count) => Math.max(0, count - 1));
@@ -1984,6 +2261,7 @@ export function AgentWorkspace({
     setError(undefined);
     try {
       const branch = await agentRuntimeBindings.branchSession(selectedId, itemId);
+      abandonComposerAttachments();
       setSessions((current) => [branch, ...current.filter((item) => item.id !== branch.id)]);
       setSelectedId(branch.id);
       selectedIdRef.current = branch.id;
@@ -2000,7 +2278,56 @@ export function AgentWorkspace({
     const selected = await openFileDialog({ multiple: true, title: "Attach files" });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
-    setAttachments((current) => [...new Set([...current, ...paths])].slice(0, 8));
+    setComposerAttachments((current) => [...new Set([...current, ...paths])].slice(0, 8));
+  }
+
+  async function addDroppedAttachments(files: File[]) {
+    if (dropOwnerRef.current) {
+      setError("Wait for the current files to finish attaching, then drop these files again.");
+      return;
+    }
+    const owner = crypto.randomUUID();
+    const generation = attachmentGenerationRef.current;
+    dropOwnerRef.current = owner;
+    setAttaching(true);
+    try {
+      const protectedPaths = [
+        ...attachmentsRef.current,
+        ...Object.values(queuedFollowUpsRef.current).flatMap((followUp) => followUp.attachments),
+        ...(recoverableSubmissionRef.current?.attachments ?? []),
+        ...(recoverableHomeSubmissionRef.current?.attachments ?? []),
+        ...readAllHomeTaskHandoffAttachments(),
+        ...[...inFlightAttachmentLeasesRef.current.values()].flat(),
+      ];
+      await pruneStagedAgentAttachments([...new Set(protectedPaths)]);
+      if (attachmentGenerationRef.current !== generation || dropOwnerRef.current !== owner) return;
+      const paths = await stageDroppedAgentFiles(files, attachmentsRef.current.length);
+      if (attachmentGenerationRef.current !== generation || dropOwnerRef.current !== owner) {
+        void discardStagedAgentAttachments(paths).catch(() => undefined);
+        return;
+      }
+      if (attachmentsRef.current.length + paths.length > 8) {
+        void discardStagedAgentAttachments(paths).catch(() => undefined);
+        setError("You can attach up to 8 files at a time.");
+        return;
+      }
+      setComposerAttachments((current) => [...new Set([...current, ...paths])]);
+      setError(undefined);
+    } catch (cause) {
+      if (attachmentGenerationRef.current === generation && dropOwnerRef.current === owner) {
+        setError(messageFromError(cause));
+      }
+    } finally {
+      if (dropOwnerRef.current === owner) {
+        dropOwnerRef.current = undefined;
+        setAttaching(false);
+      }
+    }
+  }
+
+  function removeAttachment(path: string) {
+    setComposerAttachments((current) => current.filter((item) => item !== path));
+    void discardStagedAgentAttachments([path]).catch(() => undefined);
   }
 
   async function startDictation() {
@@ -2025,18 +2352,23 @@ export function AgentWorkspace({
 
   async function remove() {
     if (!selectedId) return;
-    await agentRuntimeBindings.deleteSession(selectedId);
-    projectContextSignaturesBySessionId.delete(selectedId);
-    forgetSessionThinkingLevel(selectedId);
-    forgetSessionModel(selectedId);
-    forgetLastOpenSessionId(selectedId);
+    const removedStoredSessionId = selectedId;
+    await agentRuntimeBindings.deleteSession(removedStoredSessionId);
+    projectContextSignaturesBySessionId.delete(removedStoredSessionId);
+    forgetSessionThinkingLevel(removedStoredSessionId);
+    forgetSessionModel(removedStoredSessionId);
+    forgetLastOpenSessionId(removedStoredSessionId);
+    invalidateAgentSessionDraft(removedStoredSessionId);
     updateQueuedFollowUps((current) => {
-      if (!(selectedId in current)) return current;
+      if (!(removedStoredSessionId in current)) return current;
       const next = { ...current };
-      delete next[selectedId];
+      delete next[removedStoredSessionId];
       return next;
     });
+    abandonComposerAttachments();
     setSelectedId(undefined);
+    selectedIdRef.current = undefined;
+    setComposerDraft("", { persist: false });
     setProjection(createAgentRuntimeProjection());
     setArtifacts([]);
     setNewSessionMode(true);
@@ -2056,7 +2388,7 @@ export function AgentWorkspace({
                   part.type === "text"
                     ? {
                         ...part,
-                        text: stripJuneHomeContextFromPreview(part.text) ?? part.text,
+                        text: stripClovyHomeContextFromPreview(part.text) ?? part.text,
                       }
                     : part,
                 ),
@@ -2094,16 +2426,16 @@ export function AgentWorkspace({
     return ids;
   }, [homeConversationTurns]);
   const homeCheckIn = homeMode
-    ? juneHomeDailyCheckIn(getCurrentDataPartitionName())
+    ? clovyHomeDailyCheckIn(getCurrentDataPartitionName())
     : { createdAt: "", text: "" };
   const lastHomeTurn = homeConversationTurns.at(-1);
   const homeGreetingVisible =
     homeMode && (!lastHomeTurn || lastHomeTurn.createdAt.localeCompare(homeCheckIn.createdAt) < 0);
-  const homeGreeting = juneHomeGreetingParts(new Date(), {
+  const homeGreeting = clovyHomeGreetingParts(new Date(), {
     displayName: homeUserDisplayName,
     returning: homeConversationTurns.length > 0,
   });
-  const homeNudgePrompts = juneHomeNudgePrompts(new Date());
+  const homeNudgePrompts = clovyHomeNudgePrompts(new Date());
   const renderedArtifacts = artifacts.filter((artifact) => artifact.available).map(artifactView);
   const openArtifact = (artifact: AgentArtifact) => setArtifactPanel({ view: "file", artifact });
   const downloadArtifact = async (artifact: AgentArtifact) => {
@@ -2173,13 +2505,80 @@ export function AgentWorkspace({
         <button
           type="button"
           aria-label="Discard unsent message"
-          onClick={() => setRecoverableSubmission(undefined)}
+          onClick={() => {
+            if (recoverableSubmissionSnapshotRef.current?.id === recoverableSubmission.id) {
+              recoverableSubmissionSnapshotRef.current = undefined;
+            }
+            void discardStagedAgentAttachments(recoverableSubmission.attachments).catch(
+              () => undefined,
+            );
+            setRecoverableSubmission(undefined);
+          }}
         >
           <IconCrossSmall size={12} aria-hidden />
         </button>
       </span>
     </div>
   ) : null;
+  const recoverableHomeSubmissionRow = recoverableHomeSubmission ? (
+    <div className="agent-follow-up-row" role="status">
+      <span className="agent-follow-up-copy">
+        <span className="agent-follow-up-announcement">Unsent Home message</span>
+        <span className="agent-follow-up-text">{recoverableHomeSubmission.prompt}</span>
+      </span>
+      <span className="agent-follow-up-actions">
+        <button
+          type="button"
+          aria-label="Retry unsent Home message"
+          disabled={
+            homeSessionCreating || Boolean(draftRef.current.trim()) || attachments.length > 0
+          }
+          onClick={() => {
+            setComposerDraft(recoverableHomeSubmission.prompt);
+            setComposerAttachments(recoverableHomeSubmission.attachments);
+            setRecoverableHomeSubmission(undefined);
+            setError(undefined);
+          }}
+        >
+          <IconArrowRotateClockwise size={12} aria-hidden />
+        </button>
+        <button
+          type="button"
+          aria-label="Discard unsent Home message"
+          onClick={() => {
+            void discardStagedAgentAttachments(recoverableHomeSubmission.attachments).catch(
+              () => undefined,
+            );
+            setRecoverableHomeSubmission(undefined);
+          }}
+        >
+          <IconCrossSmall size={12} aria-hidden />
+        </button>
+      </span>
+    </div>
+  ) : null;
+  function persistComposerDraftForOwner(
+    text: string,
+    draftOwnerId?: string | null,
+  ): string | undefined {
+    if (!draftOwnerId) return undefined;
+    if (creationDraftDestinationsRef.current.has(draftOwnerId)) {
+      const destinationStoredSessionId = creationDraftDestinationsRef.current.get(draftOwnerId);
+      if (destinationStoredSessionId) {
+        writeAgentSessionDraft(destinationStoredSessionId, text);
+        return destinationStoredSessionId;
+      } else if (destinationStoredSessionId === undefined) {
+        writePendingAgentSessionDraft(draftOwnerId, text);
+        return draftOwnerId;
+      }
+      return undefined;
+    }
+    writeAgentSessionDraft(draftOwnerId, text);
+    return draftOwnerId;
+  }
+
+  const draftOwnerId =
+    selectedId ?? pendingSessionCreationRef.current ?? homeSessionCreationDraftOwnerRef.current;
   const composer = (
     <AgentComposer
       formRef={composerRef}
@@ -2187,6 +2586,22 @@ export function AgentWorkspace({
       draft={draft}
       draftRevision={draftRevision}
       setDraft={setComposerDraft}
+      draftOwnerId={draftOwnerId}
+      onEditorDraftChange={(text, changedDraftOwnerId) => {
+        const resolvedDraftOwnerId = persistComposerDraftForOwner(text, changedDraftOwnerId);
+        const currentDraftOwnerId =
+          selectedIdRef.current ??
+          pendingSessionCreationRef.current ??
+          homeSessionCreationDraftOwnerRef.current;
+        if (
+          resolvedDraftOwnerId === currentDraftOwnerId ||
+          (!resolvedDraftOwnerId && !currentDraftOwnerId && !changedDraftOwnerId)
+        ) {
+          setComposerDraft(text, { persist: false });
+        }
+        return resolvedDraftOwnerId;
+      }}
+      onPendingDraftPersist={persistComposerDraftForOwner}
       onDraftContentChange={(hasContent) => {
         draftHasContentRef.current = hasContent;
       }}
@@ -2222,7 +2637,8 @@ export function AgentWorkspace({
       safetyMode={safetyMode}
       setSafetyMode={setSafetyMode}
       attachments={attachments}
-      setAttachments={setAttachments}
+      onDropAttachments={addDroppedAttachments}
+      onRemoveAttachment={removeAttachment}
       onPickAttachments={pickAttachments}
       onDictate={startDictation}
       onSubmit={homeMode ? submitHomeMessage : submit}
@@ -2230,7 +2646,10 @@ export function AgentWorkspace({
       running={running}
       waiting={waiting}
       stopping={stoppingRunId === projection.run?.id}
-      submitting={submitting}
+      submitting={
+        submitting || (homeMode && (homeSessionCreating || Boolean(recoverableHomeSubmission)))
+      }
+      attaching={attaching}
       disabledReason={textActionsDisabledReason}
       notice={!heroMode ? error : undefined}
       hero={heroMode}
@@ -2299,10 +2718,10 @@ export function AgentWorkspace({
               <div className="agent-timeline" data-home="true">
                 {homeConversationTurns.map((turn, index) => {
                   const previous = index > 0 ? homeConversationTurns[index - 1] : undefined;
-                  const dayKey = juneHomeDayKey(turn.createdAt);
+                  const dayKey = clovyHomeDayKey(turn.createdAt);
                   const dayMarker =
-                    previous && dayKey && dayKey !== juneHomeDayKey(previous.createdAt) ? (
-                      <div className="agent-home-day">{juneHomeDayLabel(turn.createdAt)}</div>
+                    previous && dayKey && dayKey !== clovyHomeDayKey(previous.createdAt) ? (
+                      <div className="agent-home-day">{clovyHomeDayLabel(turn.createdAt)}</div>
                     ) : null;
                   return (
                     <Fragment key={turn.id}>
@@ -2327,6 +2746,7 @@ export function AgentWorkspace({
                         onSecret={(part, secret) =>
                           void respondToSecret(part.runId, part.id, secret)
                         }
+                        onOpenArtifact={openArtifact}
                         homeTaskHandoff={homeHandoffsByTurnId.get(turn.id)}
                         onOpenHomeTaskSession={onOpenHomeTaskSession}
                         onRetryHomeTask={retryHomeTask}
@@ -2338,15 +2758,20 @@ export function AgentWorkspace({
                 {homeGreetingVisible ? (
                   <>
                     {homeConversationTurns.length > 0 &&
-                    juneHomeDayKey(homeCheckIn.createdAt) !==
-                      juneHomeDayKey(homeConversationTurns.at(-1)?.createdAt ?? "") ? (
+                    clovyHomeDayKey(homeCheckIn.createdAt) !==
+                      clovyHomeDayKey(homeConversationTurns.at(-1)?.createdAt ?? "") ? (
                       <div className="agent-home-day">
-                        {juneHomeDayLabel(homeCheckIn.createdAt)}
+                        {clovyHomeDayLabel(homeCheckIn.createdAt)}
                       </div>
                     ) : null}
                     <div className="agent-home-greeting">
                       <span className="agent-home-greeting-mark" aria-hidden>
-                        <JuneBloom size={30} animated />
+                        <ClovyAlive
+                          className="clovy-home-mark"
+                          palette="appearance"
+                          width={30}
+                          height={31}
+                        />
                       </span>
                       <h2>{homeGreeting.salutation}</h2>
                       <p>{homeGreeting.question}</p>
@@ -2367,6 +2792,7 @@ export function AgentWorkspace({
                   visible={!homeStreamingReply && homeDirectPendingCount > 0}
                 />
               </div>
+              {recoverableHomeSubmissionRow}
               {composer}
             </main>
           </div>
@@ -2437,6 +2863,7 @@ export function AgentWorkspace({
                     }
                     onSudo={() => undefined}
                     onSecret={(part, secret) => void respondToSecret(part.runId, part.id, secret)}
+                    onOpenArtifact={openArtifact}
                     onRetryUpstreamFailure={(turnId) => void retryFailure(turnId)}
                     onBranch={(itemId) => void branchFrom(itemId)}
                     branching={branchingItemId === turn.id}
@@ -2444,11 +2871,6 @@ export function AgentWorkspace({
                     upstreamFailureRetryDisabled={running || waiting || submitting}
                   />
                 ))}
-                <AgentArtifactList
-                  artifacts={renderedArtifacts}
-                  onOpen={openArtifact}
-                  onDownload={(artifact) => void downloadArtifact(artifact)}
-                />
                 <AgentThinking
                   visible={(running || submitting) && visibleTurns.at(-1)?.role === "user"}
                 />
@@ -2502,6 +2924,15 @@ export function AgentWorkspace({
                       }
                       onClick={() => {
                         if (!selectedId) return;
+                        if (
+                          queuedSubmissionSnapshotRef.current?.messageId ===
+                          queuedFollowUp.messageId
+                        ) {
+                          queuedSubmissionSnapshotRef.current = undefined;
+                        }
+                        void discardStagedAgentAttachments(queuedFollowUp.attachments).catch(
+                          () => undefined,
+                        );
                         attemptedQueuedMessageIdsRef.current.delete(queuedFollowUp.messageId);
                         setFailedQueuedMessageIds((current) => {
                           if (!current.has(queuedFollowUp.messageId)) return current;
@@ -2548,138 +2979,159 @@ export function AgentWorkspace({
           onClose={() => setArtifactPanel(null)}
         />
       ) : null}
-      {usageOpen && selectedSession ? (
-        <aside className="agent-usage-panel" aria-label="Session usage">
-          <div className="agent-usage-header">
-            <h2 className="agent-usage-title">Usage</h2>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label="Close usage"
-              onClick={() => setUsageOpen(false)}
+      {usageOpen && selectedSession
+        ? createPortal(
+            <div
+              className="agent-usage-overlay"
+              role="presentation"
+              onClick={(event) => {
+                if (event.target === event.currentTarget) setUsageOpen(false);
+              }}
             >
-              <IconCrossSmall size={14} />
-            </button>
-          </div>
-          <div className="agent-usage-body">
-            <div className="agent-usage-row">
-              <span className="agent-usage-primary">Model</span>
-              <span className="agent-usage-value">{usageModel?.name ?? sessionDisplayModel}</span>
-            </div>
-            {projection.run?.usage?.provider || usageModel?.provider ? (
-              <div className="agent-usage-row">
-                <span className="agent-usage-primary">Provider</span>
-                <span className="agent-usage-value">
-                  {projection.run?.usage?.provider ?? usageModel?.provider}
-                </span>
-              </div>
-            ) : null}
-            {projection.run?.usage?.privacyLevel || usageModel?.privacy ? (
-              <div className="agent-usage-row">
-                <span className="agent-usage-primary">Privacy</span>
-                <span className="agent-usage-value">
-                  {projection.run?.usage?.privacyLevel ?? usageModel?.privacy}
-                </span>
-              </div>
-            ) : null}
-            {projection.run?.usage?.endpoint ? (
-              <div className="agent-usage-row">
-                <span className="agent-usage-primary">Route</span>
-                <span className="agent-usage-value">{projection.run.usage.endpoint}</span>
-              </div>
-            ) : null}
-            {projection.run?.reasoningEffort ? (
-              <div className="agent-usage-row">
-                <span className="agent-usage-primary">Reasoning effort</span>
-                <span className="agent-usage-value">{projection.run.reasoningEffort}</span>
-              </div>
-            ) : null}
-            {projection.run?.usage ? (
-              <>
-                {projection.run.usage.inputTokens !== undefined ? (
+              <aside
+                ref={usagePanelRef}
+                className="agent-usage-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={usageTitleId}
+              >
+                <div className="agent-usage-header">
+                  <h2 id={usageTitleId} className="agent-usage-title">
+                    Usage
+                  </h2>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="Close usage"
+                    onClick={() => setUsageOpen(false)}
+                  >
+                    <IconCrossSmall size={14} />
+                  </button>
+                </div>
+                <div className="agent-usage-body">
                   <div className="agent-usage-row">
-                    <span className="agent-usage-primary">Input</span>
+                    <span className="agent-usage-primary">Model</span>
                     <span className="agent-usage-value">
-                      {projection.run.usage.inputTokens.toLocaleString()}
+                      {usageModel?.name ?? sessionDisplayModel}
                     </span>
                   </div>
-                ) : null}
-                {projection.run.usage.outputTokens !== undefined ? (
-                  <div className="agent-usage-row">
-                    <span className="agent-usage-primary">Output</span>
-                    <span className="agent-usage-value">
-                      {projection.run.usage.outputTokens.toLocaleString()}
-                    </span>
-                  </div>
-                ) : null}
-                {projection.run.usage.totalTokens !== undefined ? (
-                  <div className="agent-usage-row">
-                    <span className="agent-usage-primary">Total</span>
-                    <span className="agent-usage-value">
-                      {projection.run.usage.totalTokens.toLocaleString()}
-                    </span>
-                  </div>
-                ) : null}
-                {projection.run.usage.inputTokens === undefined &&
-                projection.run.usage.outputTokens === undefined &&
-                projection.run.usage.totalTokens === undefined ? (
-                  <p className="agent-usage-empty">
-                    Token counts were not reported for this request.
-                  </p>
-                ) : null}
-                {contextPercent !== undefined && contextUsed !== undefined && contextLimit ? (
-                  <div className="agent-usage-context">
+                  {projection.run?.usage?.provider || usageModel?.provider ? (
                     <div className="agent-usage-row">
-                      <span className="agent-usage-primary">Latest request context</span>
+                      <span className="agent-usage-primary">Provider</span>
                       <span className="agent-usage-value">
-                        {contextUsed.toLocaleString()} of {contextLimit.toLocaleString()} (
-                        {contextPercent.toFixed(1)}%)
+                        {projection.run?.usage?.provider ?? usageModel?.provider}
                       </span>
                     </div>
-                    <div
-                      className="agent-usage-context-track"
-                      role="progressbar"
-                      aria-label="Context used"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round(contextPercent)}
-                    >
-                      <span style={{ transform: `scaleX(${contextPercent / 100})` }} />
+                  ) : null}
+                  {projection.run?.usage?.privacyLevel || usageModel?.privacy ? (
+                    <div className="agent-usage-row">
+                      <span className="agent-usage-primary">Privacy</span>
+                      <span className="agent-usage-value">
+                        {projection.run?.usage?.privacyLevel ?? usageModel?.privacy}
+                      </span>
                     </div>
-                  </div>
-                ) : null}
-                {estimatedCredits !== undefined ? (
-                  <div className="agent-usage-row">
-                    <span className="agent-usage-primary">Estimated charge</span>
-                    <span className="agent-usage-value">
-                      {estimatedCredits.toLocaleString(undefined, {
-                        maximumFractionDigits: estimatedCredits < 1 ? 3 : 1,
-                      })}{" "}
-                      credits (about ${(estimatedCredits / 1_000).toFixed(4)})
-                    </span>
-                  </div>
-                ) : null}
-                {toolUsage.size > 0 ? (
-                  <div className="agent-usage-tools">
-                    <p className="agent-usage-section-title">Tools</p>
-                    {[...toolUsage.entries()].map(([name, usage]) => (
-                      <div className="agent-usage-row" key={name}>
-                        <span className="agent-usage-primary">{name}</span>
-                        <span className="agent-usage-value">
-                          {usage.calls} {usage.calls === 1 ? "call" : "calls"}
-                          {usage.failures > 0 ? `, ${usage.failures} failed` : ""}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <p className="agent-usage-empty">No usage reported for this session yet.</p>
-            )}
-          </div>
-        </aside>
-      ) : null}
+                  ) : null}
+                  {projection.run?.usage?.endpoint ? (
+                    <div className="agent-usage-row">
+                      <span className="agent-usage-primary">Route</span>
+                      <span className="agent-usage-value">{projection.run.usage.endpoint}</span>
+                    </div>
+                  ) : null}
+                  {projection.run?.reasoningEffort ? (
+                    <div className="agent-usage-row">
+                      <span className="agent-usage-primary">Reasoning effort</span>
+                      <span className="agent-usage-value">{projection.run.reasoningEffort}</span>
+                    </div>
+                  ) : null}
+                  {projection.run?.usage ? (
+                    <>
+                      {projection.run.usage.inputTokens !== undefined ? (
+                        <div className="agent-usage-row">
+                          <span className="agent-usage-primary">Input</span>
+                          <span className="agent-usage-value">
+                            {projection.run.usage.inputTokens.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {projection.run.usage.outputTokens !== undefined ? (
+                        <div className="agent-usage-row">
+                          <span className="agent-usage-primary">Output</span>
+                          <span className="agent-usage-value">
+                            {projection.run.usage.outputTokens.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {projection.run.usage.totalTokens !== undefined ? (
+                        <div className="agent-usage-row">
+                          <span className="agent-usage-primary">Total</span>
+                          <span className="agent-usage-value">
+                            {projection.run.usage.totalTokens.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {projection.run.usage.inputTokens === undefined &&
+                      projection.run.usage.outputTokens === undefined &&
+                      projection.run.usage.totalTokens === undefined ? (
+                        <p className="agent-usage-empty">
+                          Token counts were not reported for this request.
+                        </p>
+                      ) : null}
+                      {contextPercent !== undefined && contextUsed !== undefined && contextLimit ? (
+                        <div className="agent-usage-context">
+                          <div className="agent-usage-row">
+                            <span className="agent-usage-primary">Latest request context</span>
+                            <span className="agent-usage-value">
+                              {contextUsed.toLocaleString()} of {contextLimit.toLocaleString()} (
+                              {contextPercent.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div
+                            className="agent-usage-context-track"
+                            role="progressbar"
+                            aria-label="Context used"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(contextPercent)}
+                          >
+                            <span style={{ transform: `scaleX(${contextPercent / 100})` }} />
+                          </div>
+                        </div>
+                      ) : null}
+                      {estimatedCredits !== undefined ? (
+                        <div className="agent-usage-row">
+                          <span className="agent-usage-primary">Estimated charge</span>
+                          <span className="agent-usage-value">
+                            {estimatedCredits.toLocaleString(undefined, {
+                              maximumFractionDigits: estimatedCredits < 1 ? 3 : 1,
+                            })}{" "}
+                            credits (about ${(estimatedCredits / 1_000).toFixed(4)})
+                          </span>
+                        </div>
+                      ) : null}
+                      {toolUsage.size > 0 ? (
+                        <div className="agent-usage-tools">
+                          <p className="agent-usage-section-title">Tools</p>
+                          {[...toolUsage.entries()].map(([name, usage]) => (
+                            <div className="agent-usage-row" key={name}>
+                              <span className="agent-usage-primary">{name}</span>
+                              <span className="agent-usage-value">
+                                {usage.calls} {usage.calls === 1 ? "call" : "calls"}
+                                {usage.failures > 0 ? `, ${usage.failures} failed` : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="agent-usage-empty">No usage reported for this session yet.</p>
+                  )}
+                </div>
+              </aside>
+            </div>,
+            document.querySelector(".app-shell") ?? document.body,
+          )
+        : null}
       {selectedSession ? (
         <ShareDialog
           key={selectedSession.id}
@@ -2714,7 +3166,7 @@ export function AgentWorkspace({
           if (!compacting) setCompactOpen(false);
         }}
         title="Compact context?"
-        description="June will replace older conversation turns with one visible summary and keep recent turns unchanged."
+        description="Clovy will replace older conversation turns with one visible summary and keep recent turns unchanged."
         footer={
           <>
             <button
@@ -2750,6 +3202,9 @@ function AgentComposer({
   draft,
   draftRevision,
   setDraft,
+  draftOwnerId,
+  onEditorDraftChange,
+  onPendingDraftPersist,
   onDraftContentChange,
   model,
   setModel,
@@ -2761,7 +3216,8 @@ function AgentComposer({
   safetyMode,
   setSafetyMode,
   attachments,
-  setAttachments,
+  onDropAttachments,
+  onRemoveAttachment,
   onPickAttachments,
   onDictate,
   onSubmit,
@@ -2770,6 +3226,7 @@ function AgentComposer({
   waiting,
   stopping,
   submitting,
+  attaching,
   disabledReason,
   notice,
   hero = false,
@@ -2780,6 +3237,12 @@ function AgentComposer({
   draft: string;
   draftRevision: number;
   setDraft: (value: string) => void;
+  draftOwnerId?: string;
+  onEditorDraftChange: (
+    text: string,
+    draftOwnerId: string | null | undefined,
+  ) => string | undefined;
+  onPendingDraftPersist: (text: string, draftOwnerId: string | null | undefined) => void;
   onDraftContentChange: (hasContent: boolean) => void;
   model: string;
   setModel: (value: string, costQuality?: number) => void;
@@ -2791,7 +3254,8 @@ function AgentComposer({
   safetyMode: AgentSafetyMode;
   setSafetyMode: (value: AgentSafetyMode) => void;
   attachments: string[];
-  setAttachments: (value: string[]) => void;
+  onDropAttachments: (files: File[]) => Promise<void>;
+  onRemoveAttachment: (path: string) => void;
   onPickAttachments: () => Promise<void>;
   onDictate: () => Promise<void>;
   onSubmit: (event?: FormEvent) => Promise<void>;
@@ -2800,12 +3264,15 @@ function AgentComposer({
   waiting: boolean;
   stopping: boolean;
   submitting: boolean;
+  attaching: boolean;
   disabledReason?: string;
   notice?: string;
   hero?: boolean;
   showModelPicker?: boolean;
 }) {
   const editorRef = useRef<ComposerEditorHandle>(null);
+  const [editorDraftOwnerId, setEditorDraftOwnerId] = useState(draftOwnerId);
+  const ownerTransitionHandledRef = useRef(false);
   const publishedDraftRef = useRef(draft);
   const appliedDraftRevisionRef = useRef(draftRevision);
   const [hasEditorContent, setHasEditorContent] = useState(Boolean(draft.trim()));
@@ -2819,6 +3286,7 @@ function AgentComposer({
   const modelRootSearchRef = useRef<HTMLInputElement>(null);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [dropActive, setDropActive] = useState(false);
   const [confirmUnrestricted, setConfirmUnrestricted] = useState(false);
   const attachTriggerRef = useRef<HTMLButtonElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
@@ -2829,15 +3297,44 @@ function AgentComposer({
     ? models
     : [AGENT_AUTO_MODEL, ...models];
 
+  useComposerModelPopoverPosition({
+    open: modelOpen,
+    triggerRef: modelTriggerRef,
+    popoverRef: modelPopoverRef,
+    anchorRef: formRef,
+  });
+
   useEffect(() => {
+    if (draftOwnerId === editorDraftOwnerId) return;
+    const editor = editorRef.current;
+    if (!editor) {
+      setEditorDraftOwnerId(draftOwnerId);
+      return;
+    }
+    // An active IME composition cannot be serialized yet. Keep the old owner
+    // and document in place; compositionend publishes them, then the onChange
+    // path below advances to the latest requested owner.
+    ownerTransitionHandledRef.current = false;
+    if (!editor.flushPendingChange() || ownerTransitionHandledRef.current) return;
+    appliedDraftRevisionRef.current = draftRevision;
+    publishedDraftRef.current = draft;
+    editor.setContent(draft, null, { focus: false, changeKey: draftOwnerId });
+    setEditorDraftOwnerId(draftOwnerId);
+  }, [draft, draftOwnerId, draftRevision, editorDraftOwnerId]);
+
+  useEffect(() => {
+    if (draftOwnerId !== editorDraftOwnerId) return;
     if (appliedDraftRevisionRef.current === draftRevision && draft === publishedDraftRef.current) {
       return;
     }
     appliedDraftRevisionRef.current = draftRevision;
     if (draft === publishedDraftRef.current) return;
     publishedDraftRef.current = draft;
-    editorRef.current?.setContent(draft, null, { focus: false });
-  }, [draft, draftRevision]);
+    editorRef.current?.setContent(draft, null, {
+      focus: false,
+      changeKey: editorDraftOwnerId,
+    });
+  }, [draft, draftOwnerId, draftRevision, editorDraftOwnerId]);
 
   useEffect(() => {
     if (!modelOpen && !safetyOpen && !attachOpen) return;
@@ -2905,16 +3402,34 @@ function AgentComposer({
     editorRef.current?.setContent(next, null, { focus: true });
   }
 
+  function handleDragOver(event: DragEvent<HTMLFormElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setDropActive(true);
+  }
+
+  function handleDrop(event: DragEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDropActive(false);
+    void onDropAttachments(Array.from(event.dataTransfer.files));
+  }
+
   return (
     <form
       ref={formRef}
       className="agent-composer"
       data-hero={hero ? "true" : undefined}
+      data-drop-active={dropActive ? "true" : undefined}
       onSubmit={(event) => {
         event.preventDefault();
+        if (draftOwnerId !== editorDraftOwnerId) return;
         if (editorRef.current?.flushPendingChange() === false) return;
         void onSubmit(event);
       }}
+      onDragOver={handleDragOver}
+      onDragEnter={() => setDropActive(true)}
+      onDragLeave={() => setDropActive(false)}
+      onDrop={handleDrop}
     >
       {hero ? null : (
         <AgentScrollToLatestButton
@@ -2929,36 +3444,53 @@ function AgentComposer({
           {notice}
         </div>
       ) : null}
-      <div className="agent-composer-box">
+      <div className="agent-composer-box" data-stacked={attachments.length ? "true" : undefined}>
         {attachments.length ? (
           <div className="agent-composer-attachments">
-            {attachments.map((path) => (
-              <span key={path} className="agent-attachment-tile">
-                <IconFileText size={16} />
-                <span>{path.split(/[\\/]/).pop() || path}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${path.split(/[\\/]/).pop() || path}`}
-                  onClick={() => setAttachments(attachments.filter((item) => item !== path))}
-                >
-                  <IconCrossSmall size={12} aria-hidden />
-                </button>
-              </span>
-            ))}
+            {attachments.map((path) => {
+              const name = path.split(/[\\/]/).pop() || path;
+              return (
+                <AgentAttachmentTile
+                  key={path}
+                  name={name}
+                  onRemove={() => onRemoveAttachment(path)}
+                />
+              );
+            })}
           </div>
         ) : null}
         <ComposerEditor
           ref={editorRef}
-          placeholder={hero ? "Ask June anything, run / commands" : "Send a message"}
-          onChange={(text) => {
+          placeholder={hero ? "Ask Clovy anything, run / commands" : "Send a message"}
+          changeKey={editorDraftOwnerId}
+          onChange={(text, _category, changedDraftOwnerId) => {
             publishedDraftRef.current = text;
-            setDraft(text);
+            const resolvedDraftOwnerId = onEditorDraftChange(text, changedDraftOwnerId);
+            if (draftOwnerId !== editorDraftOwnerId && changedDraftOwnerId === editorDraftOwnerId) {
+              ownerTransitionHandledRef.current = true;
+              if (resolvedDraftOwnerId !== draftOwnerId) {
+                appliedDraftRevisionRef.current = draftRevision;
+                publishedDraftRef.current = draft;
+                editorRef.current?.setContent(draft, null, {
+                  focus: false,
+                  changeKey: draftOwnerId,
+                });
+              }
+              setEditorDraftOwnerId(draftOwnerId);
+            }
+          }}
+          onPendingChangePersist={(text, _category, changedDraftOwnerId) => {
+            publishedDraftRef.current = text;
+            onPendingDraftPersist(text, changedDraftOwnerId);
           }}
           onContentChange={(hasContent) => {
             setHasEditorContent(hasContent);
             onDraftContentChange(hasContent);
           }}
-          onSubmit={() => void onSubmit()}
+          onSubmit={() => {
+            if (draftOwnerId !== editorDraftOwnerId) return;
+            void onSubmit();
+          }}
         />
         <div className="agent-composer-toolbar">
           <button
@@ -2982,7 +3514,7 @@ function AgentComposer({
               data-unrestricted={safetyMode === "unrestricted" ? "true" : undefined}
               aria-haspopup="menu"
               aria-expanded={safetyOpen}
-              title="Change what June can touch"
+              title="Change what Clovy can touch"
               onClick={() => setSafetyOpen((open) => !open)}
             >
               {safetyMode === "sandboxed" ? (
@@ -3034,6 +3566,8 @@ function AgentComposer({
                     type="submit"
                     className="agent-composer-send"
                     aria-label="Steer active run"
+                    disabled={attaching}
+                    title={attaching ? "Wait for files to finish attaching" : undefined}
                   >
                     <IconArrowUp size={18} />
                   </button>
@@ -3041,7 +3575,7 @@ function AgentComposer({
                 <button
                   type="button"
                   className="agent-composer-stop"
-                  aria-label="Stop June"
+                  aria-label="Stop Clovy"
                   disabled={stopping}
                   onClick={() => void onStop()}
                 >
@@ -3052,7 +3586,7 @@ function AgentComposer({
               <button
                 type="button"
                 className="agent-composer-stop"
-                aria-label="Stop June"
+                aria-label="Stop Clovy"
                 disabled={stopping}
                 onClick={() => void onStop()}
               >
@@ -3063,8 +3597,14 @@ function AgentComposer({
                 type="submit"
                 className="agent-composer-send"
                 aria-label="Send message"
-                disabled={submitting || !hasEditorContent || Boolean(disabledReason)}
-                title={disabledReason}
+                disabled={
+                  submitting ||
+                  attaching ||
+                  draftOwnerId !== editorDraftOwnerId ||
+                  !hasEditorContent ||
+                  Boolean(disabledReason)
+                }
+                title={attaching ? "Wait for files to finish attaching" : disabledReason}
               >
                 {submitting ? <Spinner /> : <IconArrowUp size={18} />}
               </button>
@@ -3114,7 +3654,7 @@ function AgentComposer({
           role="menu"
           aria-label="Safety mode"
         >
-          <p className="agent-sandbox-menu-title">Choose what June can touch</p>
+          <p className="agent-sandbox-menu-title">Choose what Clovy can touch</p>
           {SANDBOX_OPTIONS.map((option) => {
             const value: AgentSafetyMode = option.unrestricted ? "unrestricted" : "sandboxed";
             return (
@@ -3188,7 +3728,7 @@ function AgentComposer({
         open={confirmUnrestricted}
         onClose={() => setConfirmUnrestricted(false)}
         title="Turn on unrestricted?"
-        description="June will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong."
+        description="Clovy will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong."
         footer={
           <>
             <button

@@ -3,7 +3,7 @@ use crate::{
     db::repositories::Repositories,
     domain::types::AppError,
 };
-use june_companion_protocol::{
+use clovy_companion_protocol::{
     validate_media_type, MediaChunk, MediaKind, MediaResultReference, MAX_MEDIA_BYTES,
     MAX_MEDIA_CHUNK_BYTES, MAX_MEDIA_DIMENSION_PX, MAX_MEDIA_DURATION_MS, MAX_MEDIA_REFERENCES,
 };
@@ -673,6 +673,7 @@ mod tests {
             action: "generate_image".to_string(),
             path: "/tmp/artifact".to_string(),
             original_path: None,
+            display_name: None,
             mime_type: Some(media_type.to_string()),
             size_bytes: Some(1),
             available: true,

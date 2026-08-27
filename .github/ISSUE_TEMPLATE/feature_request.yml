@@ -1,18 +1,18 @@
 name: Feature request
-description: Suggest an improvement or a new capability for June
+description: Suggest an improvement or a new capability for Clovy
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
         Ideas are welcome. If you want to talk it through first, the
-        [Telegram community](https://t.me/osjune) is a good place to start.
+        [Telegram community](https://t.me/+B4Z8KUqEsRc4ZGVh) is a good place to start.
   - type: textarea
     id: problem
     attributes:
       label: What problem would this solve
-      description: Describe the situation where June falls short today.
-      placeholder: I dictate in two languages and June always cleans up my text in English.
+      description: Describe the situation where Clovy falls short today.
+      placeholder: I dictate in two languages and Clovy always cleans up my text in English.
     validations:
       required: true
   - type: textarea

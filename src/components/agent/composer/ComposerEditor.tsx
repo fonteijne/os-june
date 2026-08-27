@@ -125,9 +125,9 @@ type PendingEditorAction =
   | { type: "insertCategory"; category: ReportCategory }
   | { type: "insertNoteReference"; noteReference: NoteReferenceInput };
 
-/** Serializes the doc to the plain string sent to June: paragraph and
+/** Serializes the doc to the plain string sent to Clovy: paragraph and
  * hard-break boundaries become newlines, the category chip contributes
- * nothing, and note reference atoms emit the stable token June resolves via
+ * nothing, and note reference atoms emit the stable token Clovy resolves via
  * the note context tool. */
 export function serializePlainText(doc: ProseMirrorNode): string {
   return doc.textBetween(0, doc.content.size, "\n", (leaf) => {

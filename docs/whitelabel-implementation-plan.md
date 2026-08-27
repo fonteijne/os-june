@@ -1,8 +1,20 @@
 # Implementation plan: Whitelabel capability
 
 **Owner:** proposed by agent, for review · **Date:** 2026-08-03 · **Status:** Phases 1-5 implemented (Phase 4's operational steps — OS Accounts OAuth client, releases repo, signing identities — are a runbook, not code; see [whitelabel-release-runbook.md](whitelabel-release-runbook.md))
-**ADR:** [0054-whitelabel-branding-as-additive-config-layer.md](adr/0054-whitelabel-branding-as-additive-config-layer.md)
+**ADR:** [0056-whitelabel-branding-as-additive-config-layer.md](adr/0056-whitelabel-branding-as-additive-config-layer.md)
 **Repos:** `os-june` (app + June API) in this fork; `os-accounts` for per-brand OAuth client + App API key registration (operational only, no `os-accounts` code change proposed here)
+
+> **Post-rebrand note:** this plan was written and implemented before the
+> repo's own June → Clovy rebrand (see ADR-0054/ADR-0055). The "Current
+> branding surface" inventory below is a snapshot from that earlier state —
+> `june-api/` is now `clovy-api/`, the `JUNE__SECTION__FIELD` figment
+> convention is now `CLOVY__SECTION__FIELD` (with an automatic `JUNE__`
+> fallback for existing deployments), and the canonical Keychain/env-var
+> names below now read `clovy` rather than `june`. Rebuilt on top of Clovy,
+> this plan's whitelabel mechanism now overrides the *canonical* Clovy
+> identity slot; it does not participate in ADR-0055's June-era
+> compatibility bridge. See [branding/README.md](../branding/README.md) and
+> [configuration.md](configuration.md) for the current names.
 
 ## Objective
 
@@ -132,7 +144,7 @@ that shapes every choice below. See "Fork-update strategy."
 
 ## Architecture: additive branding layer
 
-Full rationale in [ADR-0054](adr/0054-whitelabel-branding-as-additive-config-layer.md).
+Full rationale in [ADR-0056](adr/0056-whitelabel-branding-as-additive-config-layer.md).
 Summary:
 
 - A new `branding/<brand-id>/` directory (absent upstream, so it can never
@@ -207,7 +219,7 @@ than living only inside the architecture section:
   branch layered on top of a `main` that otherwise mirrors upstream exactly.
   Don't rebrand `main` in place — that is what makes future upstream
   merges/rebases trivial fast-forwards instead of conflict resolution.
-- House rule (load-bearing, restated from ADR-0054): brand-specific work is
+- House rule (load-bearing, restated from ADR-0056): brand-specific work is
   additive files first. Any edit that must touch a shared file is a
   single-line token substitution, never a restructure.
 - After every upstream merge: run `pnpm brand-drift:check` (Phase 5) plus

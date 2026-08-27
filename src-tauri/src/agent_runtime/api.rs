@@ -1,3 +1,7 @@
+use super::skill_identity::{
+    canonical_skill_id, canonical_skill_ids, read_skill_ids, skill_content_for_id, skill_file,
+    write_skill_ids,
+};
 use super::{
     repository::ContextSummaryReplacement, AgentItemDto, AgentItemPayload, AgentRepository,
     AgentRuntimeHost, AgentSafetyMode, MessageAttachmentPayload,
@@ -7,14 +11,28 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    fs,
+    path::Component,
     path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
+    time::{Duration, SystemTime},
 };
 use tauri::{AppHandle, Manager, State};
 
-const INSTRUCTIONS: &str = "You are June, a private personal AI assistant. Use the tools provided by the June app when they help answer the user's request. Never claim a tool succeeded unless its result confirms success. If an MCP tool returns elicitationRequired, call request_clarification with its clarificationQuestion exactly, then retry the same MCP tool after the user answers.";
+const INSTRUCTIONS: &str = "You are Clovy, a private personal AI assistant. Use the tools provided by the Clovy app when they help answer the user's request. Never claim a tool succeeded unless its result confirms success. If an MCP tool returns elicitationRequired, call request_clarification with its clarificationQuestion exactly, then retry the same MCP tool after the user answers.";
 const MAX_INLINE_VISION_BYTES: i64 = 6 * 1024 * 1024;
 const AGENT_MODEL_OUTPUT_RESERVE: i64 = 8_192;
+const MAX_STAGED_AGENT_ATTACHMENT_BYTES: usize = 50 * 1024 * 1024;
+// Composer attachments may remain recoverable across restarts. Reap only
+// abandoned UUID staging directories that have been untouched for seven days.
+const STAGED_AGENT_ATTACHMENT_TTL: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+// Eight legal 50 MiB attachments fit at once, with headroom for one composer
+// being abandoned while another begins staging.
+const MAX_STAGED_AGENT_ATTACHMENT_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_STAGED_AGENT_ATTACHMENT_DIRECTORIES: usize = 128;
+const STAGED_AGENT_ATTACHMENTS_DIR: &str = "agent-attachment-staging";
+static STAGED_AGENT_ATTACHMENTS_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -82,6 +100,18 @@ pub struct ReadArtifactRequest {
     pub path: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscardStagedAgentAttachmentsRequest {
+    pub paths: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PruneStagedAgentAttachmentsRequest {
+    pub protected_paths: Vec<String>,
+}
+
 async fn repository(app: &AppHandle) -> Result<AgentRepository, AppError> {
     Ok(AgentRepository::new(
         crate::commands::repositories(app).await?.pool,
@@ -127,6 +157,102 @@ pub async fn get_latest_agent_run(
     }
 }
 
+/// Stages a DOM-dropped attachment until the next agent run copies it into the
+/// session workspace. WKWebView exposes a dropped file's bytes, not its local
+/// filesystem path, so this command deliberately accepts Tauri's raw payload.
+#[tauri::command]
+pub fn stage_agent_attachment_bytes(
+    app: AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> Result<String, AppError> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err(AppError::new(
+            "agent_attachment_staging_invalid",
+            "Expected the dropped file's contents as a binary payload.",
+        ));
+    };
+    validate_staged_attachment_size(bytes.len())?;
+    let raw_name = request
+        .headers()
+        .get("x-file-name")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| urlencoding::decode(value).ok())
+        .map(|value| value.into_owned())
+        .unwrap_or_default();
+    let name = validate_staged_attachment_file_name(&raw_name)?;
+    let _guard = STAGED_AGENT_ATTACHMENTS_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .map_err(|_| {
+            AppError::new(
+                "agent_attachment_staging_failed",
+                "The attachment staging lock is unavailable.",
+            )
+        })?;
+    let root = staged_agent_attachments_root(&app)?;
+    prepare_staged_agent_attachments_root(&root, bytes.len() as u64)?;
+    let parent = root.join(uuid::Uuid::new_v4().to_string());
+    fs::create_dir_all(&parent).map_err(staging_error)?;
+    let destination = parent.join(name);
+    if let Err(error) = fs::write(&destination, bytes) {
+        let _ = fs::remove_dir_all(&parent);
+        return Err(staging_error(error));
+    }
+    Ok(destination.to_string_lossy().into_owned())
+}
+
+/// Removes temporary DOM-drop files after they have been copied into a session
+/// workspace. Picker paths and every path outside the staging root are ignored.
+#[tauri::command]
+pub fn discard_staged_agent_attachments(
+    app: AppHandle,
+    request: DiscardStagedAgentAttachmentsRequest,
+) -> Result<(), AppError> {
+    let _guard = STAGED_AGENT_ATTACHMENTS_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .map_err(|_| {
+            AppError::new(
+                "agent_attachment_staging_failed",
+                "The attachment staging lock is unavailable.",
+            )
+        })?;
+    let root = staged_agent_attachments_root(&app)?;
+    for path in request.paths {
+        let Some(parent) = staged_attachment_parent_for_path(&root, Path::new(&path)) else {
+            continue;
+        };
+        match fs::remove_dir_all(parent) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(staging_error(error)),
+        }
+    }
+    Ok(())
+}
+
+/// Reaps expired staging directories while preserving exact staged file paths
+/// still referenced by live, queued, or recoverable frontend state.
+#[tauri::command]
+pub fn prune_staged_agent_attachments(
+    app: AppHandle,
+    request: PruneStagedAgentAttachmentsRequest,
+) -> Result<(), AppError> {
+    let _guard = STAGED_AGENT_ATTACHMENTS_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .map_err(|_| {
+            AppError::new(
+                "agent_attachment_staging_failed",
+                "The attachment staging lock is unavailable.",
+            )
+        })?;
+    let root = staged_agent_attachments_root(&app)?;
+    fs::create_dir_all(&root).map_err(staging_error)?;
+    let protected = protected_staging_parents(&root, &request.protected_paths);
+    prune_expired_staged_agent_attachments(&root, SystemTime::now(), &protected)
+}
+
 #[tauri::command]
 pub async fn compact_agent_session(
     app: AppHandle,
@@ -165,7 +291,7 @@ pub async fn compact_agent_session(
         .filter_map(history_item)
         .collect::<Vec<_>>();
     let model = normalize_agent_model(&session.model);
-    let context_window = crate::providers::june_model_runtime_capabilities(&model)
+    let context_window = crate::providers::clovy_model_runtime_capabilities(&model)
         .await
         .context_tokens
         .unwrap_or(128_000)
@@ -215,7 +341,7 @@ pub async fn compact_agent_session(
         if !matches!(replacement, ContextSummaryReplacement::Applied(_)) {
             return Err(AppError::new(
                 "agent_compact_conflict",
-                "The conversation changed while June was compacting it. Wait for the current turn to finish, then try again.",
+                "The conversation changed while Clovy was compacting it. Wait for the current turn to finish, then try again.",
             ));
         }
     }
@@ -352,7 +478,7 @@ pub async fn branch_agent_session(
         item_ids.insert(source_item_id, branch_item_id);
     }
     let artifacts = sqlx::query::query(
-        "SELECT id, item_id, provenance, action, path, original_path, mime_type, size_bytes, available, created_at
+        "SELECT id, item_id, provenance, action, path, original_path, display_name, mime_type, size_bytes, available, created_at
          FROM agent_artifacts WHERE session_id = ? AND created_at <= ? ORDER BY created_at ASC",
     )
     .bind(&session_id)
@@ -392,8 +518,8 @@ pub async fn branch_agent_session(
         let source_item_id: Option<String> = artifact.get("item_id");
         sqlx::query::query(
             "INSERT INTO agent_artifacts
-             (id, session_id, item_id, provenance, action, path, original_path, mime_type, size_bytes, available, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             (id, session_id, item_id, provenance, action, path, original_path, display_name, mime_type, size_bytes, available, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(uuid::Uuid::new_v4().to_string())
         .bind(&branch.id)
@@ -402,6 +528,7 @@ pub async fn branch_agent_session(
         .bind(artifact.get::<String, _>("action"))
         .bind(destination.to_string_lossy().as_ref())
         .bind(artifact.get::<Option<String>, _>("original_path"))
+        .bind(artifact.get::<Option<String>, _>("display_name"))
         .bind(artifact.get::<Option<String>, _>("mime_type"))
         .bind(artifact.get::<Option<i64>, _>("size_bytes"))
         .bind(i64::from(available))
@@ -570,17 +697,16 @@ pub async fn start_agent_run(
     )
     .await?;
     let available_skills = agent_skill_catalog(&app, &repository).await?;
-    let requested_skills = request
-        .enabled_skill_ids
-        .iter()
-        .filter(|id| {
-            available_skills.iter().any(|skill| {
-                skill.get("id").and_then(Value::as_str) == Some(id.as_str())
-                    && skill.get("enabled").and_then(Value::as_bool) == Some(true)
+    let requested_skills =
+        canonical_skill_ids(request.enabled_skill_ids.iter().map(String::as_str))
+            .into_iter()
+            .filter(|id| {
+                available_skills.iter().any(|skill| {
+                    skill.get("id").and_then(Value::as_str) == Some(id.as_str())
+                        && skill.get("enabled").and_then(Value::as_bool) == Some(true)
+                })
             })
-        })
-        .cloned()
-        .collect::<Vec<_>>();
+            .collect::<Vec<_>>();
     let reasoning_effort = normalize_reasoning_effort(request.reasoning_effort.as_deref())?;
     let run = repository
         .create_run(&session.id, &model, reasoning_effort)
@@ -687,7 +813,7 @@ pub async fn cancel_agent_run(
         let Some(cancelled_run) = repository.cancel_waiting_run(&run.id).await? else {
             return Err(AppError::new(
                 "agent_waiting_cancel_conflict",
-                "This request is already resuming. Wait for June to continue before stopping it.",
+                "This request is already resuming. Wait for Clovy to continue before stopping it.",
             ));
         };
         crate::companion::cancel_computer_use_approvals_for_session(&app, &run.session_id);
@@ -1015,7 +1141,7 @@ pub(crate) async fn resolve_companion_computer_use_approval(
     app: &AppHandle,
     request_id: &str,
     stored_session_id: &str,
-    decision: june_companion_protocol::ComputerUseApprovalDecision,
+    decision: clovy_companion_protocol::ComputerUseApprovalDecision,
     origin: crate::companion::ComputerUseApprovalOrigin,
 ) -> Result<Value, AppError> {
     use sqlx::row::Row;
@@ -1046,8 +1172,8 @@ pub(crate) async fn resolve_companion_computer_use_approval(
         resolution: json!({
             "kind": "approval",
             "choice": match decision {
-                june_companion_protocol::ComputerUseApprovalDecision::Approve => "once",
-                june_companion_protocol::ComputerUseApprovalDecision::Deny => "deny",
+                clovy_companion_protocol::ComputerUseApprovalDecision::Approve => "once",
+                clovy_companion_protocol::ComputerUseApprovalDecision::Deny => "deny",
             },
             "storedSessionId": stored_session_id,
         }),
@@ -1189,7 +1315,7 @@ async fn resolve_agent_interruption_inner(
         )
     })?;
     let model = normalize_agent_model(&run.model);
-    let auto_run = crate::june_api::is_agent_auto_model(&model);
+    let auto_run = crate::clovy_api::is_agent_auto_model(&model);
     let resolved_model = resolved_model_from_usage(run.usage.as_ref());
     if auto_run && resolved_model.is_none() {
         return Err(AppError::new(
@@ -1470,7 +1596,7 @@ fn resolved_model_from_usage(usage: Option<&Value>) -> Option<&str> {
         .and_then(|usage| usage.get("resolvedModel"))
         .and_then(Value::as_str)
         .map(str::trim)
-        .filter(|model| crate::june_api::is_canonical_agent_model(model))
+        .filter(|model| crate::clovy_api::is_canonical_agent_model(model))
 }
 
 fn runtime_dispatch_is_ambiguous(error: &AppError) -> bool {
@@ -1504,7 +1630,70 @@ pub async fn list_agent_artifacts(
     app: AppHandle,
     session_id: String,
 ) -> Result<Vec<Value>, AppError> {
-    Ok(repository(&app).await?.artifacts(&session_id).await?.into_iter().map(|artifact| json!({ "id": artifact.id, "sessionId": artifact.session_id, "runId": artifact.run_id, "itemId": artifact.item_id, "name": PathBuf::from(&artifact.path).file_name().map(|v| v.to_string_lossy().into_owned()).unwrap_or_else(|| "Artifact".into()), "path": artifact.path, "mimeType": artifact.mime_type, "sizeBytes": artifact.size_bytes, "action": artifact.action, "available": artifact.available, "createdAt": artifact.created_at })).collect())
+    let repository = repository(&app).await?;
+    Ok(repository.artifacts(&session_id).await?.into_iter().map(|artifact| {
+        let name = artifact_display_name(
+            &artifact.path,
+            artifact.original_path.as_deref(),
+            &artifact.provenance,
+            artifact.display_name.as_deref(),
+        );
+        json!({ "id": artifact.id, "sessionId": artifact.session_id, "runId": artifact.run_id, "itemId": artifact.item_id, "name": name, "path": artifact.path, "mimeType": artifact.mime_type, "sizeBytes": artifact.size_bytes, "action": artifact.action, "available": artifact.available, "createdAt": artifact.created_at })
+    }).collect())
+}
+
+fn artifact_display_name(
+    path: &str,
+    original_path: Option<&str>,
+    provenance: &str,
+    persisted_name: Option<&str>,
+) -> String {
+    if let Some(name) = persisted_name {
+        return name.to_string();
+    }
+    let stored_name = PathBuf::from(path)
+        .file_name()
+        .map(|value| value.to_string_lossy().into_owned());
+    if provenance == "attachment" {
+        let original_name = original_path
+            .and_then(|value| PathBuf::from(value).file_name().map(|name| name.to_owned()))
+            .map(|value| value.to_string_lossy().into_owned());
+        if let Some(name) = stored_name
+            .as_deref()
+            .and_then(|name| copied_attachment_name(name, original_name.as_deref()))
+        {
+            return name.to_string();
+        }
+        if let Some(name) = original_name {
+            return name;
+        }
+    }
+    stored_name.unwrap_or_else(|| "Artifact".into())
+}
+
+fn copied_attachment_name<'a>(
+    stored_name: &'a str,
+    original_name: Option<&str>,
+) -> Option<&'a str> {
+    let mut name = stored_name;
+    let mut stripped = false;
+    while let Some(remainder) = strip_copy_prefix(name) {
+        stripped = true;
+        name = remainder;
+        if original_name == Some(name) {
+            break;
+        }
+    }
+    stripped.then_some(name)
+}
+
+fn strip_copy_prefix(name: &str) -> Option<&str> {
+    let uuid_prefix = name.get(..36)?;
+    let remainder = name.get(37..)?;
+    (name.as_bytes().get(36) == Some(&b'-')
+        && uuid::Uuid::parse_str(uuid_prefix).is_ok()
+        && !remainder.is_empty())
+    .then_some(remainder)
 }
 
 #[tauri::command]
@@ -1570,7 +1759,7 @@ fn unique_download_path(downloads: &Path, source: &Path) -> Result<PathBuf, AppE
         .ok_or_else(|| {
             AppError::new(
                 "agent_artifact_download_failed",
-                "The June file does not have a downloadable filename.",
+                "The Clovy file does not have a downloadable filename.",
             )
         })?;
     let candidate = downloads.join(file_name);
@@ -1636,13 +1825,16 @@ pub async fn list_agent_skills(app: AppHandle) -> Result<Vec<Value>, AppError> {
 #[tauri::command]
 pub async fn read_agent_skill(app: AppHandle, skill_id: String) -> Result<Value, AppError> {
     validate_skill_id(&skill_id)?;
+    let canonical_id = canonical_skill_id(&skill_id);
     for (root, managed) in skill_roots(&app) {
-        let path = root.join(&skill_id).join("SKILL.md");
-        if path.is_file() {
-            let content = tokio::fs::read_to_string(path)
-                .await
-                .map_err(|error| AppError::new("agent_skill_read_failed", error.to_string()))?;
-            return Ok(json!({ "content": content, "readOnly": !managed }));
+        for read_id in read_skill_ids(canonical_id) {
+            let path = skill_file(&root, read_id);
+            if path.is_file() {
+                let content = tokio::fs::read_to_string(path)
+                    .await
+                    .map_err(|error| AppError::new("agent_skill_read_failed", error.to_string()))?;
+                return Ok(json!({ "content": content, "readOnly": !managed }));
+            }
         }
     }
     Err(AppError::new(
@@ -1657,6 +1849,7 @@ pub async fn update_agent_skill(
     request: UpdateSkillRequest,
 ) -> Result<Value, AppError> {
     validate_skill_id(&request.skill_id)?;
+    let canonical_id = canonical_skill_id(&request.skill_id).to_string();
     if request.content.len() > 512 * 1024 {
         return Err(AppError::new(
             "agent_skill_too_large",
@@ -1672,36 +1865,58 @@ pub async fn update_agent_skill(
                 "Managed skill storage is unavailable.",
             )
         })?;
-    let path = root.join(&request.skill_id).join("SKILL.md");
-    if !path.is_file() {
+    if !read_skill_ids(&canonical_id)
+        .into_iter()
+        .any(|read_id| skill_file(&root, read_id).is_file())
+    {
         return Err(AppError::new(
             "agent_skill_read_only",
-            "User-global skills are read-only in June.",
+            "User-global skills are read-only in Clovy.",
         ));
     }
-    let temporary = path.with_extension("md.tmp");
-    tokio::fs::write(&temporary, request.content)
-        .await
-        .map_err(|error| AppError::new("agent_skill_write_failed", error.to_string()))?;
-    tokio::fs::rename(&temporary, &path)
-        .await
-        .map_err(|error| AppError::new("agent_skill_write_failed", error.to_string()))?;
+    write_managed_skill_content(&root, &canonical_id, &request.content).await?;
     let skill = repository(&app)
         .await?
         .skills()
         .await?
         .into_iter()
-        .find(|skill| skill.id == request.skill_id)
+        .find(|skill| skill.id == canonical_id)
         .map(|skill| skill.enabled)
         .unwrap_or(true);
-    let description = tokio::fs::read_to_string(&path)
-        .await
-        .ok()
-        .and_then(|text| skill_description(&text))
-        .unwrap_or_else(|| "June agent skill".into());
+    let description =
+        skill_description(&request.content).unwrap_or_else(|| "Clovy agent skill".into());
     Ok(
-        json!({ "id": request.skill_id, "name": request.skill_id, "description": description, "source": "managed", "enabled": skill, "editable": true }),
+        json!({ "id": canonical_id, "name": canonical_id, "description": description, "source": "managed", "enabled": skill, "editable": true }),
     )
+}
+
+async fn write_managed_skill_content(
+    root: &Path,
+    skill_id: &str,
+    content: &str,
+) -> Result<(), AppError> {
+    for write_id in write_skill_ids(skill_id) {
+        let content = skill_content_for_id(content, write_id);
+        let path = skill_file(root, write_id);
+        let parent = path.parent().ok_or_else(|| {
+            AppError::new(
+                "agent_skill_write_failed",
+                "Skill path has no parent directory.",
+            )
+        })?;
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|error| AppError::new("agent_skill_write_failed", error.to_string()))?;
+        let temporary = path.with_extension("md.tmp");
+        tokio::fs::write(&temporary, content)
+            .await
+            .map_err(|error| AppError::new("agent_skill_write_failed", error.to_string()))?;
+        if let Err(error) = tokio::fs::rename(&temporary, &path).await {
+            let _ = tokio::fs::remove_file(&temporary).await;
+            return Err(AppError::new("agent_skill_write_failed", error.to_string()));
+        }
+    }
+    Ok(())
 }
 
 fn validate_skill_id(skill_id: &str) -> Result<(), AppError> {
@@ -1727,30 +1942,41 @@ pub(crate) async fn agent_skill_catalog(
         .skills()
         .await?
         .into_iter()
-        .map(|skill| (skill.id, skill.enabled))
+        .map(|skill| (canonical_skill_id(&skill.id).to_string(), skill.enabled))
         .collect();
+    agent_skill_catalog_from_roots(skill_roots(app), &overrides).await
+}
+
+async fn agent_skill_catalog_from_roots(
+    roots: Vec<(PathBuf, bool)>,
+    overrides: &HashMap<String, bool>,
+) -> Result<Vec<Value>, AppError> {
     let mut result = Vec::new();
-    for (root, managed) in skill_roots(app) {
+    for (root, managed) in roots {
         let Ok(mut entries) = tokio::fs::read_dir(&root).await else {
             continue;
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
-            let skill_file = entry.path().join("SKILL.md");
-            if !skill_file.is_file() {
+            let stored_skill_file = entry.path().join("SKILL.md");
+            if !stored_skill_file.is_file() {
                 continue;
             }
-            let id = entry.file_name().to_string_lossy().into_owned();
+            let stored_id = entry.file_name().to_string_lossy().into_owned();
+            let id = canonical_skill_id(&stored_id).to_string();
+            if stored_id != id && skill_file(&root, &id).is_file() {
+                continue;
+            }
             if result
                 .iter()
                 .any(|value: &Value| value.get("id").and_then(Value::as_str) == Some(&id))
             {
                 continue;
             }
-            let description = tokio::fs::read_to_string(&skill_file)
+            let description = tokio::fs::read_to_string(&stored_skill_file)
                 .await
                 .ok()
                 .and_then(|text| skill_description(&text))
-                .unwrap_or_else(|| "June agent skill".into());
+                .unwrap_or_else(|| "Clovy agent skill".into());
             result.push(json!({ "id": id, "name": id, "description": description, "source": if managed { "managed" } else { "user_global" }, "enabled": overrides.get(&id).copied().unwrap_or(true), "editable": managed }));
         }
     }
@@ -1762,27 +1988,35 @@ pub async fn set_agent_skill_enabled(
     app: AppHandle,
     request: SetSkillEnabledRequest,
 ) -> Result<Value, AppError> {
+    validate_skill_id(&request.skill_id)?;
+    let canonical_id = canonical_skill_id(&request.skill_id).to_string();
     let managed_root = skill_roots(&app)
         .into_iter()
         .find(|(_, managed)| *managed)
         .map(|(root, _)| root)
-        .filter(|root| root.join(&request.skill_id).join("SKILL.md").is_file());
+        .filter(|root| {
+            read_skill_ids(&canonical_id)
+                .into_iter()
+                .any(|read_id| skill_file(root, read_id).is_file())
+        });
     let Some(managed_root) = managed_root else {
         return Err(AppError::new(
             "agent_skill_read_only",
-            "User-global skills are read-only in June.",
+            "User-global skills are read-only in Clovy.",
         ));
     };
     let skill = repository(&app)
         .await?
-        .set_skill_enabled(&request.skill_id, request.enabled, true)
+        .set_skill_enabled(&canonical_id, request.enabled, true)
         .await?;
-    let description =
-        tokio::fs::read_to_string(managed_root.join(&request.skill_id).join("SKILL.md"))
-            .await
-            .ok()
-            .and_then(|text| skill_description(&text))
-            .unwrap_or_else(|| "June agent skill".into());
+    let mut description = None;
+    for read_id in read_skill_ids(&canonical_id) {
+        if let Ok(text) = tokio::fs::read_to_string(skill_file(&managed_root, read_id)).await {
+            description = skill_description(&text);
+            break;
+        }
+    }
+    let description = description.unwrap_or_else(|| "Clovy agent skill".into());
     Ok(
         json!({ "id": skill.id, "name": skill.id, "description": description, "source": "managed", "enabled": skill.enabled, "editable": true }),
     )
@@ -1862,7 +2096,8 @@ async fn run_params(
     repository: &AgentRepository,
     request: RunParamsInput<'_>,
 ) -> Result<Value, AppError> {
-    let model_capabilities = crate::providers::june_model_runtime_capabilities(request.model).await;
+    let model_capabilities =
+        crate::providers::clovy_model_runtime_capabilities(request.model).await;
     let supports_vision = model_capabilities.supports_vision;
     let context_window = model_capabilities
         .context_tokens
@@ -1945,7 +2180,7 @@ async fn run_params(
             let entry = skill_lookup.get(name);
             let description = entry
                 .and_then(|skill| skill.get("description").and_then(Value::as_str))
-                .unwrap_or("June agent skill")
+                .unwrap_or("Clovy agent skill")
                 .to_string();
             let source = entry
                 .and_then(|skill| skill.get("source").and_then(Value::as_str))
@@ -1980,30 +2215,30 @@ async fn tool_descriptors(
     workspace: &str,
 ) -> Result<Value, AppError> {
     let mut tools = json!([
-        { "name": "search_june", "description": "Search June notes, transcripts, and dictations.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
-        { "name": "list_memories", "description": "Recall durable facts, preferences, and decisions from June's memory store. Pass projectId to include that project's memories.", "parameters": { "type": "object", "properties": { "projectId": { "type": "string" }, "includeGlobal": { "type": "boolean", "default": true }, "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 }, "offset": { "type": "integer", "minimum": 0, "default": 0 } }, "required": [], "additionalProperties": false } },
-        { "name": "save_memory", "description": "Save a durable fact, preference, or decision in June's memory store. Pass projectId when it belongs to the current project.", "parameters": { "type": "object", "properties": { "content": { "type": "string", "maxLength": 4000 }, "projectId": { "type": "string" } }, "required": ["content"], "additionalProperties": false }, "requiresApproval": true },
-        { "name": "forget_memory", "description": "Permanently forget one June memory by id when the user asks June to forget it.", "parameters": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"], "additionalProperties": false }, "requiresApproval": true },
+        { "name": "search_june", "description": "Search Clovy notes, transcripts, and dictations.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
+        { "name": "list_memories", "description": "Recall durable facts, preferences, and decisions from Clovy's memory store. Pass projectId to include that project's memories.", "parameters": { "type": "object", "properties": { "projectId": { "type": "string" }, "includeGlobal": { "type": "boolean", "default": true }, "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 }, "offset": { "type": "integer", "minimum": 0, "default": 0 } }, "required": [], "additionalProperties": false } },
+        { "name": "save_memory", "description": "Save a durable fact, preference, or decision in Clovy's memory store. Pass projectId when it belongs to the current project.", "parameters": { "type": "object", "properties": { "content": { "type": "string", "maxLength": 4000 }, "projectId": { "type": "string" } }, "required": ["content"], "additionalProperties": false }, "requiresApproval": true },
+        { "name": "forget_memory", "description": "Permanently forget one Clovy memory by id when the user asks Clovy to forget it.", "parameters": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"], "additionalProperties": false }, "requiresApproval": true },
         { "name": "generate_image", "description": "Generate an image from a text description and show it in the conversation.", "parameters": { "type": "object", "properties": { "prompt": { "type": "string" } }, "required": ["prompt"], "additionalProperties": false } },
-        { "name": "edit_image", "description": "Edit an image file in the June session workspace and show the result in the conversation.", "parameters": { "type": "object", "properties": { "sourcePath": { "type": "string" }, "instruction": { "type": "string" } }, "required": ["sourcePath", "instruction"], "additionalProperties": false } },
+        { "name": "edit_image", "description": "Edit an image file in the Clovy session workspace and show the result in the conversation.", "parameters": { "type": "object", "properties": { "sourcePath": { "type": "string" }, "instruction": { "type": "string" } }, "required": ["sourcePath", "instruction"], "additionalProperties": false } },
         { "name": "generate_video", "description": "Generate a short video from a text description and show it in the conversation.", "parameters": { "type": "object", "properties": { "prompt": { "type": "string" }, "duration": { "type": "string" }, "aspectRatio": { "type": "string" }, "audio": { "type": "boolean" } }, "required": ["prompt"], "additionalProperties": false } },
-        { "name": "get_obsidian_vault", "description": "Discover the current Obsidian vault selected in June. When the june-obsidian skill is available, load it before Obsidian note work. Call this tool before every distinct Obsidian task because the user may change or disconnect the vault while the session remains open. If connected is false, do not guess a vault path. If available is false, do not infer or reconstruct its path. A returned path is current discovery only, not write authorization; stay within that vault and use only filesystem operations allowed by the current safety mode.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
-        { "name": "start_recording", "description": "Start a visible June recording only when the user explicitly asks to begin recording now.", "parameters": { "type": "object", "properties": { "sourceMode": { "type": "string", "enum": ["microphoneOnly", "microphonePlusSystem"] } }, "required": [], "additionalProperties": false }, "requiresApproval": true },
-        { "name": "stop_recording", "description": "Stop the recording currently visible in June.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }, "requiresApproval": true },
-        { "name": "recording_status", "description": "Check whether June is currently recording and return the active recording metadata.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
-        { "name": "start_session", "description": "Start an attended June Browser use session.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
-        { "name": "close_session", "description": "Close an attended June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": false } },
-        { "name": "navigate", "description": "Navigate a June Browser use session to a URL.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "url": { "type": "string" } }, "required": ["session_id", "url"], "additionalProperties": true } },
-        { "name": "snapshot", "description": "Read the visible page and interactive references from a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
-        { "name": "screenshot", "description": "Capture a screenshot from a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
-        { "name": "click", "description": "Click an interactive reference in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "ref": { "type": "string" } }, "required": ["session_id", "ref"], "additionalProperties": true } },
-        { "name": "fill", "description": "Fill an interactive reference in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "ref": { "type": "string" }, "value": { "type": "string" } }, "required": ["session_id", "ref", "value"], "additionalProperties": true } },
-        { "name": "press", "description": "Press a key in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "key": { "type": "string" } }, "required": ["session_id", "key"], "additionalProperties": true } },
-        { "name": "back", "description": "Navigate back in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
-        { "name": "list_tabs", "description": "List tabs owned by a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
-        { "name": "open_tab", "description": "Open a task-owned tab in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "url": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
-        { "name": "switch_tab", "description": "Switch the active task-owned tab in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "tab_id": {} }, "required": ["session_id", "tab_id"], "additionalProperties": true } },
-        { "name": "close_tab", "description": "Close a task-owned tab in a June Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "tab_id": {} }, "required": ["session_id", "tab_id"], "additionalProperties": true } },
+        { "name": "get_obsidian_vault", "description": "Discover the current Obsidian vault selected in Clovy. When the clovy-obsidian skill is available, load it before Obsidian note work. Call this tool before every distinct Obsidian task because the user may change or disconnect the vault while the session remains open. If connected is false, do not guess a vault path. If available is false, do not infer or reconstruct its path. A returned path is current discovery only, not write authorization; stay within that vault and use only filesystem operations allowed by the current safety mode.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+        { "name": "start_recording", "description": "Start a visible Clovy recording only when the user explicitly asks to begin recording now.", "parameters": { "type": "object", "properties": { "sourceMode": { "type": "string", "enum": ["microphoneOnly", "microphonePlusSystem"] } }, "required": [], "additionalProperties": false }, "requiresApproval": true },
+        { "name": "stop_recording", "description": "Stop the recording currently visible in Clovy.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }, "requiresApproval": true },
+        { "name": "recording_status", "description": "Check whether Clovy is currently recording and return the active recording metadata.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+        { "name": "start_session", "description": "Start an attended Clovy Browser use session.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+        { "name": "close_session", "description": "Close an attended Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": false } },
+        { "name": "navigate", "description": "Navigate a Clovy Browser use session to a URL.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "url": { "type": "string" } }, "required": ["session_id", "url"], "additionalProperties": true } },
+        { "name": "snapshot", "description": "Read the visible page and interactive references from a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
+        { "name": "screenshot", "description": "Capture a screenshot from a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
+        { "name": "click", "description": "Click an interactive reference in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "ref": { "type": "string" } }, "required": ["session_id", "ref"], "additionalProperties": true } },
+        { "name": "fill", "description": "Fill an interactive reference in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "ref": { "type": "string" }, "value": { "type": "string" } }, "required": ["session_id", "ref", "value"], "additionalProperties": true } },
+        { "name": "press", "description": "Press a key in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "key": { "type": "string" } }, "required": ["session_id", "key"], "additionalProperties": true } },
+        { "name": "back", "description": "Navigate back in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
+        { "name": "list_tabs", "description": "List tabs owned by a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
+        { "name": "open_tab", "description": "Open a task-owned tab in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "url": { "type": "string" } }, "required": ["session_id"], "additionalProperties": true } },
+        { "name": "switch_tab", "description": "Switch the active task-owned tab in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "tab_id": {} }, "required": ["session_id", "tab_id"], "additionalProperties": true } },
+        { "name": "close_tab", "description": "Close a task-owned tab in a Clovy Browser use session.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "tab_id": {} }, "required": ["session_id", "tab_id"], "additionalProperties": true } },
         { "name": "accept_shared_tab", "description": "Accept a one-use browser tab share code supplied by the user.", "parameters": { "type": "object", "properties": { "session_id": { "type": "string" }, "share_code": { "type": "string" } }, "required": ["session_id", "share_code"], "additionalProperties": true } },
         { "name": "web_search", "description": "Search the public web.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
         { "name": "web_fetch", "description": "Fetch a public web page.", "parameters": { "type": "object", "properties": { "url": { "type": "string" } }, "required": ["url"], "additionalProperties": false } },
@@ -2015,17 +2250,17 @@ async fn tool_descriptors(
         { "name": "preview_file", "description": "Read file metadata and a bounded text preview.", "parameters": { "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"], "additionalProperties": false } },
         { "name": "search_files", "description": "Search text files.", "parameters": { "type": "object", "properties": { "query": { "type": "string" }, "path": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
         { "name": "run_shell", "description": "Run a shell command in the session workspace. Values in secretEnv must be opaque references returned by request_secret.", "parameters": { "type": "object", "properties": { "command": { "type": "string" }, "secretEnv": { "type": "object", "additionalProperties": { "type": "string" } } }, "required": ["command"], "additionalProperties": false }, "requiresApproval": true },
-        { "name": "list_skills", "description": "List available June skills.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
-        { "name": "load_skill", "description": "Load instructions for one June skill.", "parameters": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"], "additionalProperties": false } }
-        ,{ "name": "list_routines", "description": "List June routines and their schedules.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } }
-        ,{ "name": "create_routine", "description": "Create a June routine after the user has confirmed its instructions and timing.", "parameters": { "type": "object", "properties": { "name": { "type": "string" }, "prompt": { "type": "string" }, "schedule": { "type": "string", "description": "RFC 3339, every <n>m/h/d, or a five-field cron expression." }, "safetyMode": { "type": "string", "enum": ["sandboxed", "unrestricted"] } }, "required": ["prompt", "schedule", "safetyMode"], "additionalProperties": false }, "requiresApproval": true }
-        ,{ "name": "update_routine", "description": "Update an existing June routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" }, "name": { "type": "string" }, "prompt": { "type": "string" }, "schedule": { "type": "string" }, "safetyMode": { "type": "string", "enum": ["sandboxed", "unrestricted"] } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
-        ,{ "name": "pause_routine", "description": "Pause a June routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
-        ,{ "name": "resume_routine", "description": "Resume a paused June routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
-        ,{ "name": "delete_routine", "description": "Delete a June routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
+        { "name": "list_skills", "description": "List available Clovy skills.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+        { "name": "load_skill", "description": "Load instructions for one Clovy skill.", "parameters": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"], "additionalProperties": false } }
+        ,{ "name": "list_routines", "description": "List Clovy routines and their schedules.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } }
+        ,{ "name": "create_routine", "description": "Create a Clovy routine after the user has confirmed its instructions and timing.", "parameters": { "type": "object", "properties": { "name": { "type": "string" }, "prompt": { "type": "string" }, "schedule": { "type": "string", "description": "RFC 3339, every <n>m/h/d, or a five-field cron expression." }, "safetyMode": { "type": "string", "enum": ["sandboxed", "unrestricted"] } }, "required": ["prompt", "schedule", "safetyMode"], "additionalProperties": false }, "requiresApproval": true }
+        ,{ "name": "update_routine", "description": "Update an existing Clovy routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" }, "name": { "type": "string" }, "prompt": { "type": "string" }, "schedule": { "type": "string" }, "safetyMode": { "type": "string", "enum": ["sandboxed", "unrestricted"] } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
+        ,{ "name": "pause_routine", "description": "Pause a Clovy routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
+        ,{ "name": "resume_routine", "description": "Resume a paused Clovy routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
+        ,{ "name": "delete_routine", "description": "Delete a Clovy routine.", "parameters": { "type": "object", "properties": { "routineId": { "type": "string" } }, "required": ["routineId"], "additionalProperties": false }, "requiresApproval": true }
         ,{ "name": "request_clarification", "description": "Pause and ask the user a question when their answer is required to continue.", "parameters": { "type": "object", "properties": { "question": { "type": "string" }, "choices": { "type": "array", "items": { "type": "string" } } }, "required": ["question", "choices"], "additionalProperties": false }, "requiresApproval": true }
         ,{ "name": "request_secret", "description": "Securely request a secret from the user. The result is an opaque one-use reference for a safety-controlled tool, never the secret value.", "parameters": { "type": "object", "properties": { "reason": { "type": "string" } }, "required": ["reason"], "additionalProperties": false }, "requiresApproval": true }
-        ,{ "name": "computer_use", "description": "Operate the attended computer-use session through June's permission and approval broker.", "parameters": { "type": "object", "properties": { "action": { "type": "string" }, "arguments": {} }, "required": ["action"], "additionalProperties": true }, "requiresApproval": true }
+        ,{ "name": "computer_use", "description": "Operate the attended computer-use session through Clovy's permission and approval broker.", "parameters": { "type": "object", "properties": { "action": { "type": "string" }, "arguments": {} }, "required": ["action"], "additionalProperties": true }, "requiresApproval": true }
     ]);
     let subsystem = crate::agent_mcp::AgentMcpSubsystem::new(
         crate::agent_mcp::AgentMcpRepository::new(repository.pool.clone()),
@@ -2224,6 +2459,162 @@ fn session_workspace(app: &AppHandle, session_id: Option<&str>) -> Result<PathBu
         |id| root.join(id),
     ))
 }
+
+fn staged_agent_attachments_root(app: &AppHandle) -> Result<PathBuf, AppError> {
+    Ok(crate::app_paths::app_data_dir(app)
+        .map_err(|error| AppError::new("agent_attachment_staging_failed", error.to_string()))?
+        .join(STAGED_AGENT_ATTACHMENTS_DIR))
+}
+
+fn validate_staged_attachment_size(size: usize) -> Result<(), AppError> {
+    if size > MAX_STAGED_AGENT_ATTACHMENT_BYTES {
+        return Err(AppError::new(
+            "agent_attachment_staging_denied",
+            "Dropped files must be 50 MB or smaller.",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_staged_attachment_file_name(raw_name: &str) -> Result<String, AppError> {
+    let name = raw_name;
+    let is_safe_bare_name = !name.trim().is_empty()
+        && name.len() <= 255
+        && name.chars().count() <= 255
+        && !name
+            .chars()
+            .any(|character| character.is_control() || matches!(character, '/' | '\\'))
+        && matches!(
+            Path::new(name).components().next(),
+            Some(Component::Normal(_))
+        )
+        && Path::new(name).components().count() == 1;
+    if !is_safe_bare_name {
+        return Err(AppError::new(
+            "agent_attachment_staging_invalid",
+            "The dropped file does not have a usable filename.",
+        ));
+    }
+    Ok(name.to_string())
+}
+
+fn prepare_staged_agent_attachments_root(root: &Path, incoming_bytes: u64) -> Result<(), AppError> {
+    fs::create_dir_all(root).map_err(staging_error)?;
+    if count_canonical_staging_directories(root)? >= MAX_STAGED_AGENT_ATTACHMENT_DIRECTORIES {
+        return Err(AppError::new(
+            "agent_attachment_staging_denied",
+            "Clovy has too many temporary attachments. Remove attachments or try again later.",
+        ));
+    }
+    let staged_bytes = directory_bytes_without_following_symlinks(root)?;
+    if staged_bytes.saturating_add(incoming_bytes) > MAX_STAGED_AGENT_ATTACHMENT_TOTAL_BYTES {
+        return Err(AppError::new(
+            "agent_attachment_staging_denied",
+            "Clovy's temporary attachment storage is full. Remove attachments or try again later.",
+        ));
+    }
+    Ok(())
+}
+
+fn count_canonical_staging_directories(root: &Path) -> Result<usize, AppError> {
+    let mut count = 0;
+    for entry in fs::read_dir(root).map_err(staging_error)? {
+        let entry = entry.map_err(staging_error)?;
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        if !is_canonical_staging_uuid(&name) {
+            continue;
+        }
+        let metadata = fs::symlink_metadata(entry.path()).map_err(staging_error)?;
+        if metadata.file_type().is_dir() && !metadata.file_type().is_symlink() {
+            count += 1;
+        }
+    }
+    Ok(count)
+}
+
+fn protected_staging_parents(root: &Path, paths: &[String]) -> HashSet<PathBuf> {
+    paths
+        .iter()
+        .filter_map(|path| staged_attachment_parent_for_path(root, Path::new(path)))
+        .collect()
+}
+
+fn prune_expired_staged_agent_attachments(
+    root: &Path,
+    now: SystemTime,
+    protected: &HashSet<PathBuf>,
+) -> Result<(), AppError> {
+    let canonical_root = root.canonicalize().map_err(staging_error)?;
+    for entry in fs::read_dir(&canonical_root).map_err(staging_error)? {
+        let entry = entry.map_err(staging_error)?;
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        if !is_canonical_staging_uuid(&name) {
+            continue;
+        }
+        let metadata = fs::symlink_metadata(entry.path()).map_err(staging_error)?;
+        if !metadata.file_type().is_dir() || metadata.file_type().is_symlink() {
+            continue;
+        }
+        if protected.contains(&entry.path()) {
+            continue;
+        }
+        let expired = metadata
+            .modified()
+            .ok()
+            .and_then(|modified| now.duration_since(modified).ok())
+            .is_some_and(|age| age >= STAGED_AGENT_ATTACHMENT_TTL);
+        if expired {
+            fs::remove_dir_all(entry.path()).map_err(staging_error)?;
+        }
+    }
+    Ok(())
+}
+
+fn directory_bytes_without_following_symlinks(path: &Path) -> Result<u64, AppError> {
+    let mut total = 0_u64;
+    for entry in fs::read_dir(path).map_err(staging_error)? {
+        let entry = entry.map_err(staging_error)?;
+        let metadata = fs::symlink_metadata(entry.path()).map_err(staging_error)?;
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        if metadata.is_file() {
+            total = total.saturating_add(metadata.len());
+        } else if metadata.is_dir() {
+            total =
+                total.saturating_add(directory_bytes_without_following_symlinks(&entry.path())?);
+        }
+    }
+    Ok(total)
+}
+
+fn is_canonical_staging_uuid(value: &str) -> bool {
+    uuid::Uuid::parse_str(value).is_ok_and(|id| id.to_string() == value)
+}
+
+fn staged_attachment_parent_for_path(root: &Path, path: &Path) -> Option<PathBuf> {
+    let canonical_root = root.canonicalize().ok()?;
+    let canonical_path = path.canonicalize().ok()?;
+    let mut components = canonical_path
+        .strip_prefix(&canonical_root)
+        .ok()?
+        .components();
+    let parent = components.next()?.as_os_str().to_str()?;
+    is_canonical_staging_uuid(parent).then_some(())?;
+    if !matches!(components.next(), Some(Component::Normal(_))) || components.next().is_some() {
+        return None;
+    }
+    Some(canonical_root.join(parent))
+}
+
+fn staging_error(error: std::io::Error) -> AppError {
+    AppError::new("agent_attachment_staging_failed", error.to_string())
+}
+
 fn io_error(error: std::io::Error) -> AppError {
     AppError::new("agent_workspace_failed", error.to_string())
 }
@@ -2332,8 +2723,8 @@ async fn persist_attachments(
         sqlx::query::query(
             "INSERT INTO agent_artifacts (
                 id, session_id, run_id, item_id, provenance, action, path,
-                original_path, mime_type, size_bytes, available, created_at
-             ) VALUES (?, ?, ?, ?, 'attachment', 'imported', ?, ?, ?, ?, 1, ?)",
+                original_path, display_name, mime_type, size_bytes, available, created_at
+             ) VALUES (?, ?, ?, ?, 'attachment', 'imported', ?, ?, ?, ?, ?, 1, ?)",
         )
         .bind(&attachment.id)
         .bind(session_id)
@@ -2341,6 +2732,7 @@ async fn persist_attachments(
         .bind(item_id)
         .bind(&attachment.path)
         .bind(original_paths.get(index))
+        .bind(&attachment.name)
         .bind(&attachment.mime_type)
         .bind(attachment.size_bytes)
         .bind(&attachment.created_at)
@@ -2363,7 +2755,7 @@ fn message_with_attachment_context(
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "[June attachment manifest v1]\nThe following files are available locally. Use June's file tools to inspect them when needed:\n{manifest}\n\n{message}"
+        "[Clovy attachment manifest v1]\nThe following files are available locally. Use Clovy's file tools to inspect them when needed:\n{manifest}\n\n{message}"
     )
 }
 
@@ -2428,6 +2820,267 @@ fn attachment_mime_type(path: &std::path::Path) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn attachment_display_name_strips_the_internal_copy_prefix() {
+        assert_eq!(
+            artifact_display_name(
+                "/workspace/attachments/1fb34e2e-e4e7-45d7-b538-a87aefa4c8e4-Pool Day.pdf",
+                Some("/tmp/companion/content"),
+                "attachment",
+                None,
+            ),
+            "Pool Day.pdf"
+        );
+    }
+
+    #[test]
+    fn attachment_display_name_falls_back_to_the_original_path() {
+        assert_eq!(
+            artifact_display_name(
+                "/workspace/attachments/staged-content",
+                Some("/Users/andrew/Documents/Pool Day.pdf"),
+                "attachment",
+                None,
+            ),
+            "Pool Day.pdf"
+        );
+    }
+
+    #[test]
+    fn attachment_display_name_strips_copy_prefixes_from_repeated_branches() {
+        assert_eq!(
+            artifact_display_name(
+                "/workspace/artifacts/9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-1fb34e2e-e4e7-45d7-b538-a87aefa4c8e4-Pool Day.pdf",
+                Some("/Users/andrew/Documents/Pool Day.pdf"),
+                "attachment",
+                None,
+            ),
+            "Pool Day.pdf"
+        );
+    }
+
+    #[test]
+    fn attachment_display_name_preserves_a_uuid_prefixed_original_name() {
+        assert_eq!(
+            artifact_display_name(
+                "/workspace/attachments/1fb34e2e-e4e7-45d7-b538-a87aefa4c8e4-9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf",
+                Some("/Users/andrew/Documents/9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf"),
+                "attachment",
+                None,
+            ),
+            "9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf"
+        );
+    }
+
+    #[test]
+    fn attachment_display_name_prefers_the_persisted_metadata_name() {
+        let path = "/workspace/attachments/1fb34e2e-e4e7-45d7-b538-a87aefa4c8e4-9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf";
+        let persisted_name = "9bc2de72-d7b9-4f2a-ae01-cce9bacb2664-notes.pdf";
+
+        assert_eq!(
+            artifact_display_name(
+                path,
+                Some("/tmp/companion/content"),
+                "attachment",
+                Some(persisted_name),
+            ),
+            persisted_name
+        );
+    }
+
+    #[test]
+    fn generated_artifact_display_name_keeps_its_workspace_name() {
+        assert_eq!(
+            artifact_display_name(
+                "/workspace/artifacts/generated-report.pdf",
+                Some("/Users/andrew/Documents/source.pdf"),
+                "tool",
+                None,
+            ),
+            "generated-report.pdf"
+        );
+    }
+
+    #[test]
+    fn staged_attachment_file_names_must_be_safe_bare_names() {
+        for name in ["brief.pdf", "Résumé.pdf", " spaced name.txt "] {
+            assert!(
+                validate_staged_attachment_file_name(name).is_ok(),
+                "{name:?}"
+            );
+        }
+        for name in [
+            "",
+            "..",
+            "../brief.pdf",
+            "folder/brief.pdf",
+            "folder\\brief.pdf",
+            "a\n.txt",
+        ] {
+            assert!(
+                validate_staged_attachment_file_name(name).is_err(),
+                "{name:?} should be rejected"
+            );
+        }
+        assert!(validate_staged_attachment_file_name(&"a".repeat(256)).is_err());
+        assert!(validate_staged_attachment_file_name(&"é".repeat(128)).is_err());
+    }
+
+    #[test]
+    fn staged_attachment_bytes_are_limited_to_50_mib() {
+        assert!(validate_staged_attachment_size(MAX_STAGED_AGENT_ATTACHMENT_BYTES).is_ok());
+        assert!(validate_staged_attachment_size(MAX_STAGED_AGENT_ATTACHMENT_BYTES + 1).is_err());
+    }
+
+    #[test]
+    fn only_uuid_staging_parents_can_be_discarded() {
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let root = temporary.path().join(STAGED_AGENT_ATTACHMENTS_DIR);
+        let id = uuid::Uuid::new_v4();
+        let parent = root.join(id.to_string());
+        std::fs::create_dir_all(&parent).expect("staging parent");
+        let attachment = parent.join("brief.pdf");
+        std::fs::write(&attachment, b"brief").expect("staged file");
+
+        assert_eq!(
+            staged_attachment_parent_for_path(&root, &attachment),
+            Some(parent.canonicalize().expect("canonical staging parent"))
+        );
+
+        let non_staged = root.join("not-a-uuid").join("brief.pdf");
+        std::fs::create_dir_all(non_staged.parent().expect("parent")).expect("non-staged parent");
+        std::fs::write(&non_staged, b"brief").expect("non-staged file");
+        assert_eq!(staged_attachment_parent_for_path(&root, &non_staged), None);
+
+        let external = temporary.path().join("picker.pdf");
+        std::fs::write(&external, b"picker").expect("picker file");
+        assert_eq!(staged_attachment_parent_for_path(&root, &external), None);
+    }
+
+    #[test]
+    fn staging_prunes_only_expired_unprotected_uuid_directories() {
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let root = temporary.path().join(STAGED_AGENT_ATTACHMENTS_DIR);
+        fs::create_dir_all(&root).expect("staging root");
+        let expired = root.join(uuid::Uuid::new_v4().to_string());
+        let protected = root.join(uuid::Uuid::new_v4().to_string());
+        let invalid = root.join("keep-this-directory");
+        let noncanonical_uuid = root.join(uuid::Uuid::new_v4().simple().to_string());
+        fs::create_dir_all(&expired).expect("expired staging directory");
+        fs::create_dir_all(&protected).expect("protected staging directory");
+        fs::create_dir_all(&invalid).expect("invalid staging directory");
+        fs::create_dir_all(&noncanonical_uuid).expect("noncanonical UUID directory");
+        fs::write(expired.join("brief.pdf"), b"brief").expect("expired attachment");
+        let protected_attachment = protected.join("live.pdf");
+        fs::write(&protected_attachment, b"live").expect("protected attachment");
+        let external_attachment = temporary.path().join("external.pdf");
+        fs::write(&external_attachment, b"external").expect("external attachment");
+        fs::write(invalid.join("notes.txt"), b"notes").expect("invalid attachment");
+        let modified = fs::symlink_metadata(&expired)
+            .expect("expired metadata")
+            .modified()
+            .expect("modified time");
+
+        let protected_parents = protected_staging_parents(
+            &root,
+            &[
+                protected_attachment.to_string_lossy().into_owned(),
+                external_attachment.to_string_lossy().into_owned(),
+                expired
+                    .join("nested")
+                    .join("malformed.pdf")
+                    .to_string_lossy()
+                    .into_owned(),
+            ],
+        );
+        prune_expired_staged_agent_attachments(
+            &root,
+            modified + STAGED_AGENT_ATTACHMENT_TTL + Duration::from_secs(1),
+            &protected_parents,
+        )
+        .expect("prune staging");
+
+        assert!(!expired.exists());
+        assert!(protected.exists());
+        assert!(invalid.exists());
+        assert!(noncanonical_uuid.exists());
+    }
+
+    #[test]
+    fn staging_quota_allows_a_legal_eight_file_batch_and_rejects_overflow() {
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let root = temporary.path().join(STAGED_AGENT_ATTACHMENTS_DIR);
+        fs::create_dir_all(&root).expect("staging root");
+        let parent = root.join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(&parent).expect("staging directory");
+        let staged = fs::File::create(parent.join("existing.bin")).expect("staged file");
+        staged
+            .set_len(MAX_STAGED_AGENT_ATTACHMENT_TOTAL_BYTES - 8 * 50 * 1024 * 1024)
+            .expect("sparse staged file");
+
+        prepare_staged_agent_attachments_root(&root, 8 * 50 * 1024 * 1024)
+            .expect("legal batch fits");
+        assert!(prepare_staged_agent_attachments_root(&root, 8 * 50 * 1024 * 1024 + 1).is_err());
+    }
+
+    #[test]
+    fn staging_directory_count_allows_128_total_and_rejects_more() {
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let root = temporary.path().join(STAGED_AGENT_ATTACHMENTS_DIR);
+        fs::create_dir_all(&root).expect("staging root");
+        let mut canonical_directories = Vec::new();
+        for _ in 0..MAX_STAGED_AGENT_ATTACHMENT_DIRECTORIES {
+            let directory = root.join(uuid::Uuid::new_v4().to_string());
+            fs::create_dir(&directory).expect("canonical staging directory");
+            canonical_directories.push(directory);
+        }
+        fs::create_dir(root.join("not-a-staging-directory")).expect("invalid directory");
+
+        assert_eq!(
+            count_canonical_staging_directories(&root).expect("count staging directories"),
+            MAX_STAGED_AGENT_ATTACHMENT_DIRECTORIES
+        );
+        assert!(prepare_staged_agent_attachments_root(&root, 0).is_err());
+
+        fs::remove_dir(canonical_directories.pop().expect("canonical directory"))
+            .expect("remove one staging directory");
+        prepare_staged_agent_attachments_root(&root, 0)
+            .expect("one more staging directory is legal");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn staging_cleanup_does_not_follow_uuid_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let root = temporary.path().join(STAGED_AGENT_ATTACHMENTS_DIR);
+        let external = temporary.path().join("outside");
+        fs::create_dir_all(&root).expect("staging root");
+        fs::create_dir_all(&external).expect("external directory");
+        fs::write(external.join("keep.txt"), b"keep").expect("external file");
+        let link = root.join(uuid::Uuid::new_v4().to_string());
+        symlink(&external, &link).expect("uuid symlink");
+
+        prune_expired_staged_agent_attachments(
+            &root,
+            SystemTime::now() + STAGED_AGENT_ATTACHMENT_TTL + Duration::from_secs(1),
+            &HashSet::new(),
+        )
+        .expect("prune staging");
+
+        assert!(link.exists());
+        assert_eq!(
+            fs::read(external.join("keep.txt")).expect("external file"),
+            b"keep"
+        );
+        assert_eq!(
+            directory_bytes_without_following_symlinks(&root).unwrap(),
+            0
+        );
+        assert_eq!(count_canonical_staging_directories(&root).unwrap(), 0);
+    }
 
     #[test]
     fn extracts_a_concrete_model_from_persisted_usage() {
@@ -2818,9 +3471,9 @@ mod tests {
     fn resumable_configuration_excludes_replayed_input_but_keeps_policy() {
         let instructions = crate::agent_runtime::persona::append_persona_instructions(
             "Focused run policy.",
-            &crate::agent_runtime::persona::JunePersonaSettings {
-                schema_version: crate::agent_runtime::persona::JUNE_PERSONA_SCHEMA_VERSION,
-                area: crate::agent_runtime::persona::JunePersonaArea::Thinking,
+            &crate::agent_runtime::persona::ClovyPersonaSettings {
+                schema_version: crate::agent_runtime::persona::CLOVY_PERSONA_SCHEMA_VERSION,
+                area: crate::agent_runtime::persona::ClovyPersonaArea::Thinking,
                 voice: 45,
                 detail: 90,
                 initiative: 75,
@@ -2855,7 +3508,7 @@ mod tests {
             &[source.to_string_lossy().into_owned()],
             &[AttachmentMetadataInput {
                 name: "launch-brief.custom".to_string(),
-                media_type: Some("application/x-june-brief".to_string()),
+                media_type: Some("application/x-clovy-brief".to_string()),
             }],
             workspace.path(),
         )
@@ -2866,7 +3519,7 @@ mod tests {
         assert_eq!(attachments[0].name, "launch-brief.custom");
         assert_eq!(
             attachments[0].mime_type.as_deref(),
-            Some("application/x-june-brief")
+            Some("application/x-clovy-brief")
         );
         assert!(PathBuf::from(&attachments[0].path).starts_with(workspace.path()));
         assert_eq!(
@@ -2876,7 +3529,7 @@ mod tests {
             "# Brief"
         );
         let input = message_with_attachment_context("Summarize this.", &attachments);
-        assert!(input.starts_with("[June attachment manifest v1]"));
+        assert!(input.starts_with("[Clovy attachment manifest v1]"));
         assert!(input.contains("launch-brief.custom"));
         assert!(input.contains(&attachments[0].path));
         assert!(input.ends_with("Summarize this."));
@@ -2901,12 +3554,58 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn obsidian_aliases_collapse_to_one_canonical_catalog_entry() {
+        let root = tempfile::tempdir().expect("managed skill root");
+        for (skill_id, description) in [
+            ("clovy-obsidian", "Canonical instructions"),
+            ("june-obsidian", "Legacy instructions"),
+        ] {
+            let path = skill_file(root.path(), skill_id);
+            std::fs::create_dir_all(path.parent().expect("skill parent")).expect("skill directory");
+            std::fs::write(
+                path,
+                format!("---\nname: {skill_id}\ndescription: {description}\n---\n"),
+            )
+            .expect("skill file");
+        }
+        let overrides = HashMap::from([("clovy-obsidian".to_string(), false)]);
+
+        let catalog =
+            agent_skill_catalog_from_roots(vec![(root.path().to_path_buf(), true)], &overrides)
+                .await
+                .expect("skill catalog");
+
+        assert_eq!(catalog.len(), 1);
+        assert_eq!(catalog[0]["id"], "clovy-obsidian");
+        assert_eq!(catalog[0]["name"], "clovy-obsidian");
+        assert_eq!(catalog[0]["description"], "Canonical instructions");
+        assert_eq!(catalog[0]["enabled"], false);
+    }
+
+    #[tokio::test]
+    async fn canonical_obsidian_edits_are_written_to_the_rollback_alias_first() {
+        let root = tempfile::tempdir().expect("managed skill root");
+
+        write_managed_skill_content(root.path(), "clovy-obsidian", "edited instructions")
+            .await
+            .expect("dual-write skill");
+
+        for skill_id in ["clovy-obsidian", "june-obsidian"] {
+            let content = tokio::fs::read_to_string(skill_file(root.path(), skill_id))
+                .await
+                .expect("skill alias");
+            assert!(content.contains(&format!("name: {skill_id}")));
+            assert!(content.ends_with("edited instructions"));
+        }
+    }
+
     #[test]
     fn bundled_obsidian_skill_has_correct_tool_reference_and_frontmatter() {
         let skill_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("resources")
             .join("agent-skills")
-            .join("june-obsidian")
+            .join("clovy-obsidian")
             .join("SKILL.md");
         let content = std::fs::read_to_string(&skill_path)
             .unwrap_or_else(|_| panic!("skill file should exist at {}", skill_path.display()));
@@ -2918,14 +3617,15 @@ mod tests {
             !content.contains("june_obsidian.get_obsidian_vault"),
             "skill must not reference the retired june_obsidian MCP server prefix"
         );
+        assert!(content.contains("name: clovy-obsidian"));
         assert_eq!(
             skill_description(&content).as_deref(),
-            Some("Work with the Obsidian vault currently selected in June.")
+            Some("Work with the Obsidian vault currently selected in Clovy.")
         );
     }
 
     #[test]
-    fn legacy_auto_alias_uses_the_priced_june_model_id() {
+    fn legacy_auto_alias_uses_the_priced_clovy_model_id() {
         assert_eq!(
             normalize_agent_model("auto"),
             crate::providers::AUTO_GENERATION_MODEL
