@@ -16,6 +16,7 @@ import {
   type TriggerDraft,
 } from "../../lib/connectors";
 import { useConnectorPolicy } from "../../lib/connector-policy";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { useExperimentalFlags } from "../../lib/experimental-flags";
 import {
   pauseRoutine,
@@ -470,7 +471,7 @@ export function RoutineDetail({
               await pauseRoutine(routine.job_id);
             } catch (restoreError) {
               toast.error(
-                `Clovy could not restore the previous inactive state: ${messageFromError(restoreError)}`,
+                `${BRAND_NAME} could not restore the previous inactive state: ${messageFromError(restoreError)}`,
               );
             }
             throw deleteError;
@@ -603,7 +604,7 @@ export function RoutineDetail({
           ) : null}
           {routineUnrestricted(routine) ? (
             <HoverTip
-              tip="This routine runs with full access: when it fires, Clovy can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files."
+              tip={`This routine runs with full access: when it fires, ${BRAND_NAME} can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files.`}
               className="routine-meta-pill routine-meta-pill-warm"
               tabIndex={0}
             >
