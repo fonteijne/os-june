@@ -20,6 +20,7 @@ import { IconSortArrowUpDown } from "central-icons/IconSortArrowUpDown";
 import { IconTrashCan } from "central-icons/IconTrashCan";
 import type { FolderDto, NoteListItemDto } from "../../lib/tauri";
 import type { AgentSessionDto } from "../../lib/agent-runtime-contract";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import {
   type DragEvent,
   type ReactNode,
@@ -1354,7 +1355,7 @@ function FolderEmptyState({
             </button>
           </div>
           <p className="folder-empty-nudge">
-            Want Clovy to follow instructions or remember details here? Set it up in{" "}
+            Want {BRAND_NAME} to follow instructions or remember details here? Set it up in{" "}
             <button
               type="button"
               className="settings-inline-link folder-empty-nudge-link"

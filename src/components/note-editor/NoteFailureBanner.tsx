@@ -1,5 +1,6 @@
 import { IconArrowRotateClockwise } from "central-icons/IconArrowRotateClockwise";
 import { useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { isInsufficientCreditsMessage } from "../../lib/errors";
 import { TierMiniCard } from "../account/FundingNotice";
 import type { FundingTier } from "../account/FundingNotice";
@@ -109,7 +110,7 @@ export function NoteFailureBanner({
           ? audioPreserved
             ? `Your balance ran out. Your recording is saved locally, so ${topUpAction} and retry.`
             : `Your balance is too low. ${topUpLabel} to continue.`
-          : (displayMessage ?? "Clovy couldn't finish processing this note.")}
+          : (displayMessage ?? `${BRAND_NAME} couldn't finish processing this note.`)}
         {!isBalanceIssue && audioPreserved
           ? " Your recording is saved locally, so you can retry."
           : null}

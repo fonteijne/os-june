@@ -8,6 +8,7 @@ import { IconTrashCan } from "central-icons/IconTrashCan";
 import { useEffect, useRef, useState } from "react";
 
 import { noteReferenceToken } from "../agent/composer/noteReference";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { toast } from "../ui/Toaster";
 
 /** The note's top-bar actions: Ask Clovy (toggles the contextual chat panel),
@@ -49,11 +50,11 @@ export function NoteHeaderActions({
         className="note-header-ask"
         aria-expanded={askClovyOpen || undefined}
         data-working={askClovyWorking || undefined}
-        title={askClovyWorking ? "Clovy is working on your question" : undefined}
+        title={askClovyWorking ? `${BRAND_NAME} is working on your question` : undefined}
         onClick={() => onAskClovy?.()}
       >
         <IconBubble3 size={14} aria-hidden />
-        Ask Clovy
+        Ask {BRAND_NAME}
         {askClovyWorking ? <span className="note-header-ask-dot" aria-hidden /> : null}
       </button>
       {onShare ? (
@@ -113,7 +114,7 @@ function NoteOverflowMenu({
   async function handleCopyReference() {
     try {
       await navigator.clipboard.writeText(noteReferenceToken({ id: noteId, title: noteTitle }));
-      toast("Reference for Clovy copied");
+      toast(`Reference for ${BRAND_NAME} copied`);
     } catch {
       // Clipboard API can fail in restricted contexts; stay silent so retrying
       // the same menu action remains the least disruptive recovery.
@@ -143,7 +144,7 @@ function NoteOverflowMenu({
             }}
           >
             <IconReference size={14} />
-            Copy reference for Clovy
+            Copy reference for {BRAND_NAME}
           </button>
           {onExportPdf ? (
             <button

@@ -4,6 +4,7 @@ import { IconExclamationCircle } from "central-icons-filled/IconExclamationCircl
 import { IconExclamationTriangle } from "central-icons-filled/IconExclamationTriangle";
 import { IconCrossSmall } from "central-icons/IconCrossSmall";
 import { Toaster as SonnerToaster } from "sonner";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { DotSpinner } from "../DotSpinner";
 
 // The Clovy-styled wrapper around sonner's toaster. Sonner ships as an unstyled
@@ -34,7 +35,7 @@ export function Toaster() {
   return (
     <SonnerToaster
       position="top-right"
-      containerAriaLabel="Clovy notifications"
+      containerAriaLabel={`${BRAND_NAME} notifications`}
       // Clear the custom titlebar and use the same top/right inset from the
       // workspace corner.
       offset={{ top: "calc(var(--titlebar-h) + var(--sp-6))", right: "var(--sp-6)" }}
