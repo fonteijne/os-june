@@ -23,7 +23,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { BRAND_ACCENT, BRAND_ACCENT_WASH, BRAND_ID } from "./brand.generated";
 
-export type BrandId = "rose" | "clay" | "sage" | "ocean" | "plum";
+export type BrandId = "rose" | "clay" | "sage" | "ocean" | "plum" | "bonzai";
 
 export const BRAND_PRESETS: {
   id: BrandId;
@@ -36,6 +36,7 @@ export const BRAND_PRESETS: {
   { id: "rose", label: "Rose", value: "#a5655c", wash: "#9e6961" },
   { id: "ocean", label: "Ocean", value: "#3d7b9a", wash: "#467a95" },
   { id: "plum", label: "Plum", value: "#965d84", wash: "#8f6380" },
+  { id: "bonzai", label: "Bonzai", value: "#0000d2", wash: "#2d2db5" },
 ];
 
 const STORAGE_KEY = "os-clovy:brand";
