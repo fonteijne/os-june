@@ -65,6 +65,7 @@ decision. See "When to add an ADR" in [AGENTS.md](../AGENTS.md).
 - [adr/0053](adr/0053-companion-computer-use-approvals-are-one-shot.md) - linked companions may approve one exact Computer use interruption under the desktop policy ceiling, with a short-lived one-shot permit
 - [adr/0054](adr/0054-clovy-presentation-retains-june-era-technical-identities.md) - Clovy is the product name while shipped June-era bundle, storage, API, update, and tool identities remain stable
 - [adr/0055](adr/0055-clovy-technical-identity-migrates-through-a-compatibility-bridge.md) - supersedes ADR-0054: Clovy becomes canonical through idempotent migration and rollback-safe aliases while immutable OS identities preserve existing installs
+- [adr/0054-whitelabel-branding-as-additive-config-layer](adr/0054-whitelabel-branding-as-additive-config-layer.md) - **numbering collision, not yet reconciled:** an earlier, still-open whitelabel PR independently claimed 0054 for a different decision before this file existed on `main`; that PR renumbers its own copy to 0056 on merge — whitelabel branding lives in an additive `branding/` config/asset layer with build-time composition, never in-place rebrand edits, to keep upstream merges conflict-free
 
 ## Enforceable rules (spec/)
 
@@ -141,6 +142,7 @@ Per-repo config the engineering skills read before acting (see the
 - [private-connectors-implementation-plan.md](private-connectors-implementation-plan.md) — implementation plan for private connectors phases (Phases 1-2 local mode implemented; see [adr/0016](adr/0016-private-connectors-local-mode.md))
 - [private-connectors-threat-model.md](private-connectors-threat-model.md) — local-mode threat model: the source of truth for all connector privacy copy (what OpenSoftware can and cannot see, the trust surface, agent protections, the known runtime limitation)
 - [configuration.md](configuration.md) — env + config reference (desktop client + Clovy API)
+- [whitelabel-implementation-plan.md](whitelabel-implementation-plan.md) — proposed plan to enable whitelabel branding (app identity, icons, UI copy, backend copy, per-brand OS Accounts/updater identity) while keeping fork updates from upstream `os-june` conflict-free; superseded by the updated plan and [ADR-0056](adr/0056-whitelabel-branding-as-additive-config-layer.md) on the still-open whitelabel PR, not yet merged into this branch
 - [auto-model-rollout.md](auto-model-rollout.md) — canary, enablement, and rollback steps for automatic private model routing
 - [development.md](development.md) — local development: quick start, running against staging or an ephemeral Phala CVM, local data, permissions, agent skills, verification commands
 - [os-accounts-login.md](os-accounts-login.md) — Login with Open Software: PKCE, keychain, account gates
