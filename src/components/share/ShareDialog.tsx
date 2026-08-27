@@ -267,7 +267,7 @@ export function ShareDialog({
       });
       createdShareId = created.shareId;
       const createdInvite = created.invites[0];
-      if (!createdInvite) throw new Error("Clovy returned no share link.");
+      if (!createdInvite) throw new Error(`${BRAND_NAME} returned no share link.`);
       const materialB64 = toBase64Url(storedMaterial);
       await shareKeySave({
         shareId: created.shareId,
