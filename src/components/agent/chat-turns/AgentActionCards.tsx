@@ -161,8 +161,7 @@ export function AgentCliAccessCard({
       {BRAND_NAME} wants write access to the state folders of your coding CLIs (Claude Code, Codex,
       Gemini, opencode) so they stay logged in and can save their work in sandboxed sessions. Those
       folders configure software that also runs outside {BRAND_NAME}'s sandbox. Enabling turns on
-      "Agent CLI
-      access" in Settings and restarts the sandboxed runtime.
+      "Agent CLI access" in Settings and restarts the sandboxed runtime.
     </p>
   );
 
@@ -409,9 +408,9 @@ export function ApprovalPart({
         >
           {outcomeUnconfirmed ? (
             <p>
-              The connection closed before {BRAND_NAME} could confirm the response. This approval
-              is no longer actionable, but it may have already been applied. Check the agent
-              activity before retrying.
+              The connection closed before {BRAND_NAME} could confirm the response. This approval is
+              no longer actionable, but it may have already been applied. Check the agent activity
+              before retrying.
             </p>
           ) : (
             <p>This approval is no longer pending. {BRAND_NAME} did not approve anything.</p>

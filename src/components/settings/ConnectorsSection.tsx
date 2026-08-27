@@ -79,8 +79,7 @@ const LINEAR_FULL_ACCESS_BUNDLES = [
   "linear_write",
 ] as const satisfies readonly ConnectorScopeBundle[];
 
-const NOTION_CONNECT_DIALOG_DESCRIPTION =
-  `You'll sign in to Notion and approve ${BRAND_NAME}'s access in your browser. ${BRAND_NAME} reads pages and workspace content for briefs and search, and creates or updates pages only with your approval.`;
+const NOTION_CONNECT_DIALOG_DESCRIPTION = `You'll sign in to Notion and approve ${BRAND_NAME}'s access in your browser. ${BRAND_NAME} reads pages and workspace content for briefs and search, and creates or updates pages only with your approval.`;
 
 const NOTION_CONNECT_DIALOG_TITLE = "Connect Notion";
 

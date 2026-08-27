@@ -3356,8 +3356,8 @@ function VeniceApiKeyRow({
       <div className="settings-row-info">
         <h3 className="settings-row-title">Venice API key</h3>
         <p className="settings-row-description">
-          Use your own key for Venice models so {BRAND_NAME} credits are not used. Stored locally and sent
-          only for Venice requests. For least privilege, use an inference-only key.
+          Use your own key for Venice models so {BRAND_NAME} credits are not used. Stored locally
+          and sent only for Venice requests. For least privilege, use an inference-only key.
         </p>
         {configured ? (
           <p className="settings-row-description settings-row-substatus">Key saved.</p>

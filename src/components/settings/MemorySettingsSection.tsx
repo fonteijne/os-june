@@ -237,8 +237,8 @@ export function MemorySettingsSection({
             ) : null}
           </h2>
           <p className="settings-group-description">
-            Everything {BRAND_NAME} has remembered, across every project. Search, filter by
-            project, edit, or delete.
+            Everything {BRAND_NAME} has remembered, across every project. Search, filter by project,
+            edit, or delete.
           </p>
           <div className="settings-card memory-manager-card">
             <div className="memory-manager-toolbar">
@@ -357,7 +357,9 @@ export function MemoryRows({
                   {memory.content}
                 </button>
                 <p className="memory-meta">
-                  <span>{memory.source === "agent" ? `Added by ${BRAND_NAME}` : "Added by you"}</span>
+                  <span>
+                    {memory.source === "agent" ? `Added by ${BRAND_NAME}` : "Added by you"}
+                  </span>
                   <span className="metadata-dot" aria-hidden />
                   <span>{formatMemoryDate(memory.createdAt)}</span>
                   {project && memory.folderId ? (
