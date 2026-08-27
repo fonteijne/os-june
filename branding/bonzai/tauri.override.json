@@ -1,0 +1,99 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Bonzai",
+  "identifier": "com.iobonzai.bonzai",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Bonzai",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 900,
+        "minHeight": 620,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "dragDropEnabled": false
+      },
+      {
+        "label": "hud",
+        "url": "/hud.html",
+        "title": "Bonzai Dictation",
+        "width": 124,
+        "height": 32,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
+        "focusable": false,
+        "skipTaskbar": true,
+        "shadow": true,
+        "visible": false
+      },
+      {
+        "label": "agent-hud",
+        "url": "/agent-hud.html",
+        "title": "Bonzai Agents",
+        "width": 240,
+        "height": 48,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
+        "focusable": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": false
+      },
+      {
+        "label": "meeting-hud",
+        "url": "/meeting-hud.html",
+        "title": "Bonzai Recording",
+        "width": 76,
+        "height": 76,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
+        "focusable": false,
+        "skipTaskbar": true,
+        "shadow": true,
+        "visible": false
+      }
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": ["iobonzai"],
+          "appLink": false
+        }
+      ],
+      "desktop": {
+        "schemes": ["iobonzai"]
+      }
+    },
+    "updater": {
+      "pubkey": "REPLACE_WITH_A_BRAND_OWNED_KEY_FROM_tauri_signer_generate",
+      "endpoints": [
+        "https://github.com/REPLACE_WITH_BRAND_ORG/REPLACE_WITH_RELEASES_REPO/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "icon": [
+      "../branding/bonzai/icons/32x32.png",
+      "../branding/bonzai/icons/128x128.png",
+      "../branding/bonzai/icons/128x128@2x.png",
+      "../branding/bonzai/icons/icon.png"
+    ]
+  }
+}

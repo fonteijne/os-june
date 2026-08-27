@@ -1,0 +1,16 @@
+{
+  "$comment": "Bonzai — colors distilled from www.iobonzai.com's own stylesheet and primary CTA button (background: linear-gradient(#0000d2,#0000d2) — i.e. a flat #0000D2 fill, the same primary blue as iO's own site, since iO Bonzai ships on iO's shared design system). Icons here are solid-swatch placeholders, not Bonzai's real mark — see branding/README.md step 4 to generate a real icon set from an actual Bonzai logo SVG before shipping.",
+  "id": "bonzai",
+  "productName": "Bonzai",
+  "identifier": "com.iobonzai.bonzai",
+  "accent": "#0000D2",
+  "accentWash": "#2d2db5",
+  "supportText": "the Bonzai team",
+  "deepLinkScheme": "iobonzai",
+  "windowTitles": {
+    "main": "Bonzai",
+    "hud": "Bonzai Dictation",
+    "agentHud": "Bonzai Agents",
+    "meetingHud": "Bonzai Recording"
+  }
+}
