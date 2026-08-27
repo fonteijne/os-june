@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import type { AgentChatPart, AgentChatTurn } from "../../../lib/agent-chat-runtime";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 
 export const TURN_ACTION_TIP_DELAY_MS = 450;
 
@@ -59,7 +60,7 @@ export function SecretPart({
     >
       <div className="agent-action-card-body">
         <label htmlFor={inputId}>Secret required</label>
-        <p>{part.reason || "Clovy needs a secret before it can continue."}</p>
+        <p>{part.reason || `${BRAND_NAME} needs a secret before it can continue.`}</p>
         <input
           id={inputId}
           className="dialog-input"

@@ -18,6 +18,7 @@ import {
   type AgentSessionRenamedDetail,
   type AgentSessionsChangedDetail,
 } from "../../lib/agent-events";
+import { BRAND_NAME } from "../../lib/brand.generated";
 
 export type AgentPanel = "chat" | "skills";
 
@@ -54,13 +55,13 @@ export const SANDBOX_OPTIONS = [
     unrestricted: false,
     icon: <IconShieldCheck size={16} aria-hidden />,
     title: "Sandboxed",
-    description: "Clovy can read your files but only change its own workspace.",
+    description: `${BRAND_NAME} can read your files but only change its own workspace.`,
   },
   {
     unrestricted: true,
     icon: <IconShieldCrossed size={16} aria-hidden />,
     title: "Unrestricted",
-    description: "Clovy can change any file your account can.",
+    description: `${BRAND_NAME} can change any file your account can.`,
   },
 ] as const;
 
@@ -147,7 +148,7 @@ export const AGENT_SHORTCUTS: AgentShortcut[] = [
     key: "find-file",
     icon: <IconMagnifyingGlass size={18} />,
     title: "Find a file",
-    description: "Describe what you remember; Clovy tracks it down.",
+    description: `Describe what you remember; ${BRAND_NAME} tracks it down.`,
     prompt:
       "Find <a file I half-remember> on my computer and tell me where it is. If several candidates match, list them with paths and dates.",
     action: "prefill",
@@ -178,11 +179,11 @@ export const AGENT_SHORTCUTS: AgentShortcut[] = [
  * across launches. Exported so tests can match "any greeting".
  */
 export const HERO_GREETINGS = [
-  "What can Clovy do for you?",
+  `What can ${BRAND_NAME} do for you?`,
   "What should we work on?",
-  "Where should Clovy start?",
-  "What can Clovy take off your plate?",
-] as const;
+  `Where should ${BRAND_NAME} start?`,
+  `What can ${BRAND_NAME} take off your plate?`,
+];
 
 export const HERO_GREETING_INDEX_KEY = "clovy:agent:hero-greeting";
 

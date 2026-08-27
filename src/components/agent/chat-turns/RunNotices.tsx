@@ -1,4 +1,5 @@
 import type { AgentChatPart } from "../../../lib/agent-chat-runtime";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 
 export function ContextOverflowNoticePart() {
   return (
@@ -31,9 +32,9 @@ export function UpstreamProviderFailureNoticePart({
 }) {
   const message =
     kind === "tool"
-      ? "A tool Clovy used could not finish this request."
+      ? `A tool ${BRAND_NAME} used could not finish this request.`
       : kind === "runtime"
-        ? "Clovy stopped unexpectedly."
+        ? `${BRAND_NAME} stopped unexpectedly.`
         : "The model service could not finish this request.";
   return (
     <div className="agent-system-notice">

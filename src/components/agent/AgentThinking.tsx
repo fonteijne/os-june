@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { BRAND_NAME } from "../../lib/brand.generated";
 
 // Framer transforms require same-shape numeric values, so this mirrors the
 // 2px --sp-px token rather than passing that CSS variable into the mixer.
@@ -41,7 +42,7 @@ export function AgentThinking({
         >
           {variant === "typing-bubble" ? (
             <>
-              <span className="visually-hidden">Clovy is typing</span>
+              <span className="visually-hidden">{BRAND_NAME} is typing</span>
               <span className="agent-typing-dots" aria-hidden="true">
                 <span />
                 <span />

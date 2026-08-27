@@ -66,6 +66,7 @@ import {
 } from "../../lib/tauri";
 import { shouldBlockTextOnFunding } from "../../lib/account-gate";
 import { dispatchAgentSessionStatus, dispatchAgentSessionsChanged } from "../../lib/agent-events";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { useExperimentalFlags } from "../../lib/experimental-flags";
 import {
@@ -324,7 +325,7 @@ function artifactView(artifact: AgentArtifactDto): AgentArtifact {
   return {
     name: artifact.name,
     path: artifact.path,
-    rootLabel: "Clovy workspace",
+    rootLabel: `${BRAND_NAME} workspace`,
     size: artifact.sizeBytes,
   };
 }
@@ -3166,7 +3167,7 @@ export function AgentWorkspace({
           if (!compacting) setCompactOpen(false);
         }}
         title="Compact context?"
-        description="Clovy will replace older conversation turns with one visible summary and keep recent turns unchanged."
+        description={`${BRAND_NAME} will replace older conversation turns with one visible summary and keep recent turns unchanged.`}
         footer={
           <>
             <button
@@ -3461,7 +3462,7 @@ function AgentComposer({
         ) : null}
         <ComposerEditor
           ref={editorRef}
-          placeholder={hero ? "Ask Clovy anything, run / commands" : "Send a message"}
+          placeholder={hero ? `Ask ${BRAND_NAME} anything, run / commands` : "Send a message"}
           changeKey={editorDraftOwnerId}
           onChange={(text, _category, changedDraftOwnerId) => {
             publishedDraftRef.current = text;
@@ -3514,7 +3515,7 @@ function AgentComposer({
               data-unrestricted={safetyMode === "unrestricted" ? "true" : undefined}
               aria-haspopup="menu"
               aria-expanded={safetyOpen}
-              title="Change what Clovy can touch"
+              title={`Change what ${BRAND_NAME} can touch`}
               onClick={() => setSafetyOpen((open) => !open)}
             >
               {safetyMode === "sandboxed" ? (
@@ -3575,7 +3576,7 @@ function AgentComposer({
                 <button
                   type="button"
                   className="agent-composer-stop"
-                  aria-label="Stop Clovy"
+                  aria-label={`Stop ${BRAND_NAME}`}
                   disabled={stopping}
                   onClick={() => void onStop()}
                 >
@@ -3586,7 +3587,7 @@ function AgentComposer({
               <button
                 type="button"
                 className="agent-composer-stop"
-                aria-label="Stop Clovy"
+                aria-label={`Stop ${BRAND_NAME}`}
                 disabled={stopping}
                 onClick={() => void onStop()}
               >
@@ -3654,7 +3655,7 @@ function AgentComposer({
           role="menu"
           aria-label="Safety mode"
         >
-          <p className="agent-sandbox-menu-title">Choose what Clovy can touch</p>
+          <p className="agent-sandbox-menu-title">Choose what {BRAND_NAME} can touch</p>
           {SANDBOX_OPTIONS.map((option) => {
             const value: AgentSafetyMode = option.unrestricted ? "unrestricted" : "sandboxed";
             return (
@@ -3728,7 +3729,7 @@ function AgentComposer({
         open={confirmUnrestricted}
         onClose={() => setConfirmUnrestricted(false)}
         title="Turn on unrestricted?"
-        description="Clovy will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong."
+        description={`${BRAND_NAME} will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong.`}
         footer={
           <>
             <button
