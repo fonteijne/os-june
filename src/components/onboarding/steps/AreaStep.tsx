@@ -11,6 +11,7 @@ import {
   saveOnboardingArea,
   type OnboardingArea,
 } from "../../../lib/onboarding";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import { StepActions, StepCard } from "../StepChrome";
 
 const AREA_PRESENTATION: Record<
@@ -61,7 +62,7 @@ export function AreaStep({ onContinue }: { onContinue: (area: OnboardingArea) =>
       className="onboarding-card-moods onboarding-card-areas"
     >
       <fieldset className="onboarding-mood-grid onboarding-area-grid">
-        <legend className="visually-hidden">Choose where Clovy should help first</legend>
+        <legend className="visually-hidden">Choose where {BRAND_NAME} should help first</legend>
         {ONBOARDING_AREAS.map((area) => {
           const active = area === selected;
           const { label, description, icon: Icon } = AREA_PRESENTATION[area];
