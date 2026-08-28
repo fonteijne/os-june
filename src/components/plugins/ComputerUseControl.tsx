@@ -5,6 +5,7 @@ import { IconLock } from "central-icons/IconLock";
 import { IconStop } from "central-icons/IconStop";
 import { IconTelevision } from "central-icons/IconTelevision";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import {
   COMPUTER_USE_STATUS_CHANGED_EVENT,
@@ -272,10 +273,10 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
           <HoverTip
             tip={
               <>
-                macOS will ask for Accessibility so Clovy can inspect and operate the target app,
-                and Screen Recording so Clovy can understand what is visible. Clovy sends only
-                captures needed for the current task to your selected model. Captures are never
-                analytics.
+                macOS will ask for Accessibility so {BRAND_NAME} can inspect and operate the target
+                app, and Screen Recording so {BRAND_NAME} can understand what is visible.{" "}
+                {BRAND_NAME} sends only captures needed for the current task to your selected model.
+                Captures are never analytics.
               </>
             }
             width={360}
@@ -336,7 +337,7 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
             tone="info"
             icon={<IconExclamationCircle size={16} />}
             eyebrow="Temporarily unavailable"
-            body={status.error || "Computer use is paused for this Clovy or macOS version."}
+            body={status.error || `Computer use is paused for this ${BRAND_NAME} or macOS version.`}
           />
         ) : null}
 
@@ -347,7 +348,7 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
             eyebrow="Bundled driver unavailable"
             body={
               status.error ||
-              "This build does not contain the pinned Computer use driver. Reinstall or update Clovy."
+              `This build does not contain the pinned Computer use driver. Reinstall or update ${BRAND_NAME}.`
             }
           />
         ) : null}
@@ -366,13 +367,13 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
                     {nextPermission === "accessibility" ? (
                       <p>
                         Open System Settings, find <strong>Clovy Computer Use Driver</strong>, and
-                        turn it on. Then return to Clovy. This page updates automatically.
+                        turn it on. Then return to {BRAND_NAME}. This page updates automatically.
                       </p>
                     ) : (
                       <p>
-                        Open System Settings, find <strong>Clovy</strong>, and turn it on. macOS
-                        assigns Screen recording to Clovy itself. Then return here. This page
-                        updates automatically.
+                        Open System Settings, find <strong>{BRAND_NAME}</strong>, and turn it on.
+                        macOS assigns Screen recording to {BRAND_NAME} itself. Then return here.
+                        This page updates automatically.
                       </p>
                     )}
                   </div>
@@ -388,11 +389,12 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
                 <div className="computer-use-permission-helper">
                   <div className="computer-use-permission-helper-copy">
                     <strong>
-                      {nextPermission === "accessibility" ? "Driver" : "Clovy"} is not in the list?
+                      {nextPermission === "accessibility" ? "Driver" : BRAND_NAME} is not in the
+                      list?
                     </strong>
                     <p>
-                      Drag {nextPermission === "accessibility" ? "the helper" : "Clovy"} below into
-                      the open System Settings list, then turn it on.
+                      Drag {nextPermission === "accessibility" ? "the helper" : BRAND_NAME} below
+                      into the open System Settings list, then turn it on.
                     </p>
                   </div>
                   <button
@@ -400,7 +402,7 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
                     type="button"
                     className="computer-use-permission-drag-card"
                     aria-label={`Drag ${
-                      nextPermission === "accessibility" ? "Clovy Computer Use Driver" : "Clovy"
+                      nextPermission === "accessibility" ? "Clovy Computer Use Driver" : BRAND_NAME
                     } to the open System Settings list`}
                     onClick={() => void openPermissionSettings(nextPermission)}
                   >
@@ -409,7 +411,9 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
                     </span>
                     <span className="computer-use-permission-drag-copy">
                       <strong>
-                        {nextPermission === "accessibility" ? "Clovy Computer Use Driver" : "Clovy"}
+                        {nextPermission === "accessibility"
+                          ? "Clovy Computer Use Driver"
+                          : BRAND_NAME}
                       </strong>
                       <span>Drag into System Settings</span>
                     </span>

@@ -20,6 +20,9 @@ pub struct OsPlatformIssueReportSink {
     project: String,
     label: String,
     reward_asset: String,
+    /// Whitelabel brand name (`JUNE__BRAND__NAME`), prefixed onto every
+    /// generated issue title. Defaults to "June".
+    brand_name: String,
 }
 
 /// fellow's `ApiResponse` envelope — same shape as ours.
@@ -121,8 +124,14 @@ impl IssueCreateDestination {
 
 impl OsPlatformIssueReportSink {
     /// `None` when the tracker isn't configured — the caller falls through
-    /// to the structured log sink.
-    pub fn from_config(http: reqwest::Client, config: &IssueReportsConfig) -> Option<Self> {
+    /// to the structured log sink. `brand_name` is the whitelabel identity
+    /// (`config.brand.name`, defaulting to "June") prefixed onto every
+    /// generated issue title.
+    pub fn from_config(
+        http: reqwest::Client,
+        config: &IssueReportsConfig,
+        brand_name: &str,
+    ) -> Option<Self> {
         let api_url = config.os_platform_api_url.trim();
         let api_key = config.os_platform_api_key.trim();
         let (org, project) = normalize_destination(
@@ -140,6 +149,7 @@ impl OsPlatformIssueReportSink {
             project,
             label: config.os_platform_label.trim().to_string(),
             reward_asset: config.os_platform_reward_asset.trim().to_string(),
+            brand_name: brand_name.to_string(),
         })
     }
 
@@ -515,7 +525,7 @@ fn normalize_destination(org: &str, project: &str) -> Option<(String, String)> {
 impl IssueReportSink for OsPlatformIssueReportSink {
     async fn deliver(&self, report: IssueReport) -> Result<IssueReportDelivery, DomainError> {
         let transfers = self.attach_report_files(&report).await;
-        let mut entries = issue_create_entries(&report);
+        let mut entries = issue_create_entries(&report, &self.brand_name);
         // A dropped attachment must leave a trace the team can act on: name the
         // Open Software failures in the issue body instead of only logging them.
         if !transfers.unattached_names.is_empty() {
@@ -600,7 +610,7 @@ fn report_line_content(line: &str) -> &str {
 /// app's report form opens with a canned intro and field labels; the first
 /// line with actual content wins. The full description is always in the
 /// body.
-fn issue_title(description: &str) -> String {
+fn issue_title(description: &str, brand_name: &str) -> String {
     let first_line = description
         .lines()
         .map(str::trim)
@@ -614,7 +624,7 @@ fn issue_title(description: &str) -> String {
                 )
         })
         .unwrap_or("(no description)");
-    prefixed_issue_title(first_line)
+    prefixed_issue_title(first_line, brand_name)
 }
 
 /// Title from the diagnosis the report model already wrote. The report
@@ -625,10 +635,11 @@ fn diagnosis_issue_title(diagnosis: &str) -> Option<String> {
     diagnosis.lines().find_map(parse_issue_heading)
 }
 
-fn prefixed_issue_title(summary: &str) -> String {
+fn prefixed_issue_title(summary: &str, brand_name: &str) -> String {
     let summary = summary.trim();
-    let mut title = String::with_capacity(ISSUE_TITLE_MAX_CHARS + 16);
-    title.push_str("Clovy report: ");
+    let mut title = String::with_capacity(ISSUE_TITLE_MAX_CHARS + brand_name.len() + 16);
+    title.push_str(brand_name);
+    title.push_str(" report: ");
     for (count, ch) in summary.chars().enumerate() {
         if count >= ISSUE_TITLE_MAX_CHARS {
             title.push('…');
@@ -639,7 +650,7 @@ fn prefixed_issue_title(summary: &str) -> String {
     title
 }
 
-fn issue_create_entries(report: &IssueReport) -> Vec<IssueCreateEntry> {
+fn issue_create_entries(report: &IssueReport, brand_name: &str) -> Vec<IssueCreateEntry> {
     let mut single_diagnosis_title = None;
     if let Some(diagnosis) = report.agent_diagnosis.as_deref() {
         let split_issues = split_agent_diagnosis(diagnosis);
@@ -649,7 +660,7 @@ fn issue_create_entries(report: &IssueReport) -> Vec<IssueCreateEntry> {
                 .into_iter()
                 .enumerate()
                 .map(|(index, issue)| IssueCreateEntry {
-                    title: prefixed_issue_title(&issue.title),
+                    title: prefixed_issue_title(&issue.title, brand_name),
                     body_markdown: split_issue_body(report, &issue, index + 1, total),
                 })
                 .collect();
@@ -669,8 +680,8 @@ fn issue_create_entries(report: &IssueReport) -> Vec<IssueCreateEntry> {
 
     vec![IssueCreateEntry {
         title: single_diagnosis_title.map_or_else(
-            || issue_title(&report.description),
-            |title| prefixed_issue_title(&title),
+            || issue_title(&report.description, brand_name),
+            |title| prefixed_issue_title(&title, brand_name),
         ),
         body_markdown: issue_body(report),
     }]
@@ -926,7 +937,7 @@ mod issue_title_tests {
     fn title_prefers_the_what_happened_line() {
         let description = "I want to report an issue with June.\n\nWhat happened: recorder freezes on pause\n\nWhat I expected:\n";
         assert_eq!(
-            issue_title(description),
+            issue_title(description, "Clovy"),
             "Clovy report: recorder freezes on pause"
         );
     }
@@ -936,7 +947,7 @@ mod issue_title_tests {
         let description =
             "I want to report an issue with June.\n\nWhat happened:\n\nIt crashed twice today.";
         assert_eq!(
-            issue_title(description),
+            issue_title(description, "Clovy"),
             "Clovy report: It crashed twice today."
         );
     }
@@ -944,7 +955,7 @@ mod issue_title_tests {
     #[test]
     fn title_falls_back_for_free_form_reports() {
         assert_eq!(
-            issue_title("The recorder freezes\nwhen I pause it"),
+            issue_title("The recorder freezes\nwhen I pause it", "Clovy"),
             "Clovy report: The recorder freezes"
         );
     }
@@ -1024,7 +1035,7 @@ mod issue_title_tests {
             platform: Some("macos".to_string()),
         };
 
-        let entries = issue_create_entries(&report);
+        let entries = issue_create_entries(&report, "Clovy");
 
         assert_eq!(entries.len(), 2);
         assert_eq!(
@@ -1071,7 +1082,7 @@ mod issue_title_tests {
             platform: None,
         };
 
-        let entries = issue_create_entries(&report);
+        let entries = issue_create_entries(&report, "Clovy");
 
         assert_eq!(entries.len(), 2);
         assert_eq!(
@@ -1129,7 +1140,7 @@ mod issue_title_tests {
             platform: None,
         };
 
-        let entries = issue_create_entries(&report);
+        let entries = issue_create_entries(&report, "Clovy");
 
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].title, "Clovy report: The recorder freezes");
@@ -1170,7 +1181,7 @@ mod issue_title_tests {
             platform: None,
         };
 
-        let entries = issue_create_entries(&report);
+        let entries = issue_create_entries(&report, "Clovy");
 
         assert_eq!(entries.len(), 1);
         assert_eq!(
@@ -1202,7 +1213,7 @@ mod issue_title_tests {
             platform: None,
         };
 
-        let entries = issue_create_entries(&report);
+        let entries = issue_create_entries(&report, "Clovy");
 
         assert_eq!(entries.len(), 1);
         assert_eq!(
@@ -1299,7 +1310,7 @@ mod os_platform_tests {
     }
 
     fn sink_with_config(config: &IssueReportsConfig) -> OsPlatformIssueReportSink {
-        OsPlatformIssueReportSink::from_config(reqwest::Client::new(), config)
+        OsPlatformIssueReportSink::from_config(reqwest::Client::new(), config, "Clovy")
             .expect("configured sink")
     }
 
@@ -1355,12 +1366,14 @@ mod os_platform_tests {
         let mut incomplete = config("https://fellow.test");
         incomplete.os_platform_api_key = String::new();
         assert!(
-            OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &incomplete).is_none()
+            OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &incomplete, "June")
+                .is_none()
         );
         assert!(
             OsPlatformIssueReportSink::from_config(
                 reqwest::Client::new(),
-                &IssueReportsConfig::default()
+                &IssueReportsConfig::default(),
+                "June"
             )
             .is_none()
         );
@@ -1372,7 +1385,7 @@ mod os_platform_tests {
             os_platform_api_key: "osk_test".to_string(),
             ..Default::default()
         };
-        let sink = OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config)
+        let sink = OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "Clovy")
             .expect("default Clovy issue report destination plus API key is configured");
 
         assert_eq!(sink.api_url, "https://app.opensoftware.co/api");
@@ -1395,8 +1408,9 @@ mod os_platform_tests {
                 os_platform_project: project.to_string(),
                 ..Default::default()
             };
-            let sink = OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config)
-                .expect("legacy June issue report destination should remap");
+            let sink =
+                OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "June")
+                    .expect("legacy June issue report destination should remap");
 
             assert_eq!(sink.org, "june");
             assert_eq!(sink.project, "bug-reports");
@@ -1411,7 +1425,7 @@ mod os_platform_tests {
             os_platform_project: "june-team/june".to_string(),
             ..Default::default()
         };
-        let sink = OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config)
+        let sink = OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "June")
             .expect("matching legacy org/project destination should normalize");
 
         assert_eq!(sink.org, "june-team");
@@ -1426,7 +1440,10 @@ mod os_platform_tests {
             ..Default::default()
         };
 
-        assert!(OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config).is_none());
+        assert!(
+            OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "June")
+                .is_none()
+        );
     }
 
     #[test]
@@ -1437,7 +1454,10 @@ mod os_platform_tests {
             ..Default::default()
         };
 
-        assert!(OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config).is_none());
+        assert!(
+            OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "June")
+                .is_none()
+        );
     }
 
     #[test]
@@ -1448,7 +1468,10 @@ mod os_platform_tests {
             ..Default::default()
         };
 
-        assert!(OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config).is_none());
+        assert!(
+            OsPlatformIssueReportSink::from_config(reqwest::Client::new(), &config, "June")
+                .is_none()
+        );
     }
 
     #[tokio::test]

@@ -2,6 +2,7 @@ import { IconChevronRightSmall } from "central-icons/IconChevronRightSmall";
 import { IconCrossSmall } from "central-icons/IconCrossSmall";
 import type { CSSProperties } from "react";
 import type { AgentSessionStatusDetail } from "../../lib/agent-events";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import type { ClovyUpdate } from "../../lib/updater";
 import { ClovyMark } from "../../components/brand/ClovyLogo";
 import { Spinner } from "../../components/ui/Spinner";
@@ -98,7 +99,7 @@ function UpdateRelaunchCard({
         type="button"
         className="update-relaunch-card"
         disabled={relaunching}
-        aria-label={`Relaunch to update to Clovy ${payload.version}`}
+        aria-label={`Relaunch to update to ${BRAND_NAME} ${payload.version}`}
         onClick={onRelaunch}
       >
         {/* One motion cue per card: while relaunching the mark slot swaps to the

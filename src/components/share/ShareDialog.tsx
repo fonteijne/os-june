@@ -6,6 +6,7 @@ import { IconEyeSlash } from "central-icons/IconEyeSlash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { writeText as writeClipboardText } from "@tauri-apps/plugin-clipboard-manager";
 
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { describeShareError, isShareNotFoundError } from "../../lib/errors";
 import {
   buildLinkShareFragment,
@@ -266,7 +267,7 @@ export function ShareDialog({
       });
       createdShareId = created.shareId;
       const createdInvite = created.invites[0];
-      if (!createdInvite) throw new Error("Clovy returned no share link.");
+      if (!createdInvite) throw new Error(`${BRAND_NAME} returned no share link.`);
       const materialB64 = toBase64Url(storedMaterial);
       await shareKeySave({
         shareId: created.shareId,
@@ -388,7 +389,7 @@ export function ShareDialog({
         onClose={handleClose}
         disableBackdropClose={busy}
         title={`Share ${itemNoun}`}
-        description={`Anyone with the link${requiresPasscode ? " and passcode" : ""} can view an encrypted snapshot of "${item.title || `Untitled ${itemNoun}`}".${requiresPasscode ? " Clovy never stores the passcode." : ""}`}
+        description={`Anyone with the link${requiresPasscode ? " and passcode" : ""} can view an encrypted snapshot of "${item.title || `Untitled ${itemNoun}`}".${requiresPasscode ? ` ${BRAND_NAME} never stores the passcode.` : ""}`}
         width={480}
         className="share-dialog"
         footer={
@@ -431,7 +432,7 @@ export function ShareDialog({
                     Require a passcode
                   </span>
                   <span className="share-option-description">
-                    Clovy never stores the passcode. Send it separately.
+                    {BRAND_NAME} never stores the passcode. Send it separately.
                   </span>
                 </div>
                 <Switch

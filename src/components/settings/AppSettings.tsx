@@ -76,6 +76,7 @@ import { APP_COMMIT_HASH, APP_VERSION } from "../../app/build-info";
 import type { ReportCategory } from "../agent/composer/reportCategory";
 import { getStoredTheme, setStoredTheme, type ThemePreference } from "../../lib/theme";
 import { BRAND_PRESETS, getStoredBrand, setStoredBrand, type BrandId } from "../../lib/brand";
+import { BRAND_NAME, BRAND_SUPPORT_TEXT } from "../../lib/brand.generated";
 import {
   FONT_SCALE_PRESETS,
   setStoredFontScale,
@@ -1737,7 +1738,7 @@ export function AppSettings({
           <>
             <SettingsPageHeader
               title="General"
-              blurb="Your account and everyday Clovy preferences."
+              blurb={`Your account and everyday ${BRAND_NAME} preferences.`}
             />
             <AccountSettingsSection
               account={account}
@@ -1767,7 +1768,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="appearance-heading"
               title="Appearance"
-              blurb="Choose the theme, accent color, text size, and date format Clovy uses."
+              blurb={`Choose the theme, accent color, text size, and date format ${BRAND_NAME} uses.`}
             />
             <div className="settings-card">
               <div className="settings-rows">
@@ -1873,7 +1874,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="shortcuts-heading"
               title="Shortcuts"
-              blurb="Set the keyboard shortcuts that start dictation and control Clovy."
+              blurb={`Set the keyboard shortcuts that start dictation and control ${BRAND_NAME}.`}
             />
             {helperUnavailable ? (
               <InlineNotice
@@ -1888,7 +1889,7 @@ export function AppSettings({
                 actions={
                   updateReadyToRelaunch && onRelaunch ? (
                     <button type="button" className="btn btn-secondary" onClick={onRelaunch}>
-                      Relaunch Clovy
+                      Relaunch {BRAND_NAME}
                     </button>
                   ) : undefined
                 }
@@ -2019,8 +2020,8 @@ export function AppSettings({
               title="Audio"
               blurb={
                 capabilities.platform === "windows"
-                  ? "Control how Clovy captures microphone audio on this device."
-                  : "Control how Clovy captures meeting and system audio."
+                  ? `Control how ${BRAND_NAME} captures microphone audio on this device.`
+                  : `Control how ${BRAND_NAME} captures meeting and system audio.`
               }
             />
             <div className="settings-card">
@@ -2139,7 +2140,7 @@ export function AppSettings({
           <>
             <SettingsPageHeader
               title="Models"
-              blurb="Choose the models Clovy uses for voice, text, image, and video."
+              blurb={`Choose the models ${BRAND_NAME} uses for voice, text, image, and video.`}
             />
             <section
               className="settings-group settings-models-group"
@@ -2149,7 +2150,7 @@ export function AppSettings({
                 Voice
               </h2>
               <p className="settings-group-description">
-                Choose the model Clovy uses for note transcription and dictation.
+                Choose the model {BRAND_NAME} uses for note transcription and dictation.
               </p>
               {showingPartitionModels ? (
                 <p className="settings-models-profile-note">
@@ -2235,7 +2236,7 @@ export function AppSettings({
                 Text
               </h2>
               <p className="settings-group-description">
-                Choose the model Clovy uses for generated notes and agent responses.
+                Choose the model {BRAND_NAME} uses for generated notes and agent responses.
               </p>
               {showingPartitionModels ? (
                 <p className="settings-models-profile-note">
@@ -2279,7 +2280,7 @@ export function AppSettings({
                       <div className="settings-row-info">
                         <span className="settings-row-title">Auto preference</span>
                         <span className="settings-row-description">
-                          Choose how Clovy balances model quality and usage cost.
+                          Choose how {BRAND_NAME} balances model quality and usage cost.
                         </span>
                         {providerSettings.veniceApiKeyConfigured ? (
                           <span className="settings-row-description settings-row-substatus">
@@ -2481,7 +2482,7 @@ export function AppSettings({
                 if (!switched) throw new Error("venice_model_switch_failed");
               }}
               title="Auto does not use your Venice API key"
-              description={`Notes and chat are billed to Clovy credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? "a Venice model"} to use your key for notes and new chats.`}
+              description={`Notes and chat are billed to ${BRAND_NAME} credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? "a Venice model"} to use your key for notes and new chats.`}
               confirmLabel={`Use ${veniceKeySwitchTarget?.name ?? "a Venice model"}`}
               cancelLabel="Keep Auto"
             />
@@ -2495,7 +2496,7 @@ export function AppSettings({
                   Image and video
                 </h2>
                 <p className="settings-group-description">
-                  Choose the models Clovy uses when you ask it to generate an image or video.
+                  Choose the models {BRAND_NAME} uses when you ask it to generate an image or video.
                 </p>
                 {showingPartitionModels ? (
                   <p className="settings-models-profile-note">
@@ -2639,7 +2640,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="about-heading"
               title="About"
-              blurb="Version, release channel, and other details about this copy of Clovy."
+              blurb={`Version, release channel, and other details about this copy of ${BRAND_NAME}.`}
             />
             <div className="settings-card">
               <div className="settings-rows">
@@ -2675,7 +2676,7 @@ export function AppSettings({
                       <div className="settings-row-info">
                         <h3 className="settings-row-title">Updates</h3>
                         <p className="settings-row-description">
-                          Check whether a newer version of Clovy is available.
+                          Check whether a newer version of {BRAND_NAME} is available.
                         </p>
                       </div>
                       <div className="settings-row-control">
@@ -2779,8 +2780,8 @@ export function AppSettings({
                     <div className="settings-row-info">
                       <h3 className="settings-row-title">Report an issue</h3>
                       <p className="settings-row-description">
-                        Describe the problem, attach files if you have them, and send the report to
-                        the Clovy team.
+                        Describe the problem, attach files if you have them, and send the report to{" "}
+                        {BRAND_SUPPORT_TEXT}.
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2849,7 +2850,7 @@ export function AppSettings({
                       <h3 className="settings-row-title">Browser use</h3>
                       <p className="settings-row-description">
                         Enable Browser use on this install while the public feature remains off.
-                        Turning it off applies fully after Clovy restarts.
+                        Turning it off applies fully after {BRAND_NAME} restarts.
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2870,10 +2871,10 @@ export function AppSettings({
                       <p className="settings-row-description">
                         {experimentalFlags.companion_pairing ===
                         experimentalFlags.companionPairingEnabled
-                          ? "Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after Clovy restarts."
+                          ? `Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after ${BRAND_NAME} restarts.`
                           : experimentalFlags.companionPairingEnabled
-                            ? "Companion pairing remains available until Clovy restarts. It is saved as off for the next launch."
-                            : "Companion pairing is saved as on and will become available after Clovy restarts."}
+                            ? `Companion pairing remains available until ${BRAND_NAME} restarts. It is saved as off for the next launch.`
+                            : `Companion pairing is saved as on and will become available after ${BRAND_NAME} restarts.`}
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2997,22 +2998,22 @@ function StartupSettingsSection() {
         Startup
       </h2>
       <p className="settings-group-description">
-        Dictation shortcuts and meeting detection only work while Clovy is running.
+        Dictation shortcuts and meeting detection only work while {BRAND_NAME} is running.
       </p>
       <div className="settings-card">
         <div className="settings-rows">
           <div className="settings-row">
             <div className="settings-row-info">
-              <h3 className="settings-row-title">Open Clovy at login</h3>
+              <h3 className="settings-row-title">Open {BRAND_NAME} at login</h3>
               <p className="settings-row-description">
-                Start Clovy automatically when you sign in to your computer.
+                Start {BRAND_NAME} automatically when you sign in to your computer.
               </p>
             </div>
             <div className="settings-row-control">
               <Switch
                 checked={enabled === true}
                 disabled={saving || enabled === undefined}
-                aria-label="Open Clovy at login"
+                aria-label={`Open ${BRAND_NAME} at login`}
                 onCheckedChange={(next) => void toggle(next)}
               />
             </div>
@@ -3355,8 +3356,8 @@ function VeniceApiKeyRow({
       <div className="settings-row-info">
         <h3 className="settings-row-title">Venice API key</h3>
         <p className="settings-row-description">
-          Use your own key for Venice models so Clovy credits are not used. Stored locally and sent
-          only for Venice requests. For least privilege, use an inference-only key.
+          Use your own key for Venice models so {BRAND_NAME} credits are not used. Stored locally
+          and sent only for Venice requests. For least privilege, use an inference-only key.
         </p>
         {configured ? (
           <p className="settings-row-description settings-row-substatus">Key saved.</p>

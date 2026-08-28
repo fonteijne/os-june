@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import {
   listMemories,
   memorySettings,
@@ -200,7 +201,7 @@ export function ProjectSettingsDialog({
         <DialogField
           label="Instructions"
           htmlFor="project-instructions"
-          hint="Clovy follows these in every session started in this project."
+          hint={`${BRAND_NAME} follows these in every session started in this project.`}
         >
           <textarea
             id="project-instructions"
@@ -237,7 +238,7 @@ export function ProjectSettingsDialog({
               </h3>
               <p className="settings-row-description">
                 {memoryEnabled
-                  ? "Clovy can save and use memories in this project."
+                  ? `${BRAND_NAME} can save and use memories in this project.`
                   : "Memory is turned off in Settings > Memory."}
               </p>
             </div>

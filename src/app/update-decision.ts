@@ -1,6 +1,7 @@
 // DownloadEvent is owned by the IPC boundary (lib/updater.ts); re-exported here
 // so existing importers keep working without app/ reaching back up into lib/.
 import type { DownloadEvent } from "../lib/updater";
+import { BRAND_NAME } from "../lib/brand.generated";
 export type { DownloadEvent };
 
 export type UpdatePromptPayload<TUpdate> = {
@@ -15,7 +16,7 @@ export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
 // The manual-check success status. Shared so the reporter and the auto-dismiss
 // effect that matches on it (App), plus the dev demo, can't drift apart.
-export const UP_TO_DATE_STATUS = "Clovy is up to date.";
+export const UP_TO_DATE_STATUS = `${BRAND_NAME} is up to date.`;
 
 export type UpdateStatusDisplayState = {
   status: string | null;

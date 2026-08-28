@@ -63,7 +63,12 @@ through the bridge release.
 
 Non-secret (usually left to `config.toml`): `CLOVY__SERVER__HOST` / `PORT`,
 `CLOVY__OS_ACCOUNTS__API_URL`, `CLOVY__LOCAL_DEV__ENABLED` / `BEARER_TOKEN` /
-`USER_ID`, `CLOVY__UPSTREAMS__*__BASE_URL`.
+`USER_ID`, `CLOVY__UPSTREAMS__*__BASE_URL`, `CLOVY__BRAND__NAME` /
+`SUPPORT_TEXT` (whitelabel identity — see
+[whitelabel-implementation-plan.md](whitelabel-implementation-plan.md); both
+default to today's Clovy strings when unset. New keys, so unlike the rest of
+this section they have no `JUNE__` legacy alias — no released deployment ever
+set a `JUNE__BRAND__*` value).
 
 Companion APNs configuration also needs
 `CLOVY__COMPANION__APNS_TEAM_ID`, `CLOVY__COMPANION__APNS_KEY_ID`,
@@ -83,3 +88,4 @@ June-era `JUNE__*` variables remain lower-precedence compatibility inputs.
 - **OS Accounts token contract:** `iss` `https://accounts.opensoftware.co`, `aud` `open-software-apps`, `jwks_refresh_secs` 300, `jwks_miss_min_backoff_secs` 5.
 - **Pricing:** one `[pricing."<model_id>"]` table per priced model (unit, credits, provider, model_type, capabilities, ...). A model with no pricing entry is rejected at the boundary; the live Venice catalog extends this at boot (see [ADR-0007](adr/0007-model-capability-source-of-truth.md)).
 - **Attestation / issue reports:** the TEE trust-center URL + the fixed os-platform destination (`open-software` / `june`).
+- **Brand:** `name` "Clovy", `support_text` "the Clovy team" — prefixed onto generated issue-report titles/text; a whitelabel deployment overrides both via `CLOVY__BRAND__NAME` / `CLOVY__BRAND__SUPPORT_TEXT`.

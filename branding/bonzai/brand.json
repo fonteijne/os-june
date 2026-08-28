@@ -1,0 +1,16 @@
+{
+  "$comment": "Bonzai — colors distilled from www.iobonzai.com's own stylesheet and primary CTA button (background: linear-gradient(#0000d2,#0000d2) — i.e. a flat #0000D2 fill, the same primary blue as iO's own site, since iO Bonzai ships on iO's shared design system). Icons here are the real bonsai-tree mark from the site's own favicon.svg (250x250 source, decoded and resized with `pnpm tauri icon` per branding/README.md step 4, which also produced icon.icns/icon.ico) on the site's own #00000f dark tile — a genuine likeness, but still upscaled from a 250px source rather than a real vector master. Before shipping: get a proper vector source (SVG/AI) from Bonzai directly and regenerate.",
+  "id": "bonzai",
+  "productName": "Bonzai",
+  "identifier": "com.iobonzai.bonzai",
+  "accent": "#0000D2",
+  "accentWash": "#2d2db5",
+  "supportText": "the Bonzai team",
+  "deepLinkScheme": "iobonzai",
+  "windowTitles": {
+    "main": "Bonzai",
+    "hud": "Bonzai Dictation",
+    "agentHud": "Bonzai Agents",
+    "meetingHud": "Bonzai Recording"
+  }
+}

@@ -2,6 +2,7 @@ import { IconCheckmark2 } from "central-icons-filled/IconCheckmark2";
 import { IconCodeAssistant } from "central-icons/IconCodeAssistant";
 import { IconFolder1 } from "central-icons/IconFolder1";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { useScrollFade } from "../../lib/use-scroll-fade";
 import {
@@ -91,7 +92,7 @@ export function ImportClaudeProjectsDialog({
       open={open}
       onClose={onClose}
       title="Add projects from Claude Code"
-      description="Choose project folders to add to Clovy. Your files stay where they are."
+      description={`Choose project folders to add to ${BRAND_NAME}. Your files stay where they are.`}
       leading={<IconCodeAssistant size={16} />}
       width={600}
       className="claude-projects-dialog"
@@ -142,7 +143,7 @@ export function ImportClaudeProjectsDialog({
             <IconCheckmark2 size={20} />
             <div>
               <strong>Everything is already here</strong>
-              <p>All available Claude Code projects have been added to Clovy.</p>
+              <p>All available Claude Code projects have been added to {BRAND_NAME}.</p>
             </div>
           </div>
         ) : null}

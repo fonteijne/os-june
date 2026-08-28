@@ -1,0 +1,27 @@
+{
+  "src/components/account/AccountSettings.tsx": [
+    "? `Local mode is active. ${BRAND_NAME} uses your local Clovy API without OpenSoftware sign-in or billing.`",
+    "? \"Requests use your local Clovy API. No OpenSoftware account is used.\""
+  ],
+  "src/components/onboarding/steps/SignInStep.tsx": [
+    "<span>Join the Clovy community on Telegram</span>"
+  ],
+  "src/components/plugins/ComputerUseControl.tsx": [
+    "Open System Settings, find <strong>Clovy Computer Use Driver</strong>, and",
+    "nextPermission === \"accessibility\" ? \"Clovy Computer Use Driver\" : BRAND_NAME",
+    "? \"Clovy Computer Use Driver\""
+  ],
+  "src/components/referral/ReferralNudge.tsx": [
+    "{/* The same flat Clovy mark used at first sign-in, reprised at"
+  ],
+  "src/components/settings/AppSettings.tsx": [
+    "Join us in the Clovy community on Telegram at{\" \"}",
+    "Clovy&apos;s server runs in a confidential VM. See exactly what code is",
+    "? `Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after ${BRAND_NAME} restarts.`"
+  ],
+  "src/components/settings/LinkedDevicesSection.tsx": [
+    "alt=\"Clovy Companion pairing code\"",
+    "<p>In Clovy Companion, choose Enter pairing code, then type or paste this code.</p>",
+    "return \"Scan this code in Clovy Companion\";"
+  ]
+}

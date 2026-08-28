@@ -18,6 +18,7 @@ import {
 } from "react";
 import type { NoteListItemDto } from "../../lib/tauri";
 import { useDismiss } from "../../lib/use-dismiss";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { useForcedEmptyStates } from "../../lib/empty-states-demo";
 import { primaryShiftShortcutLabel } from "../../lib/platform";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -245,7 +246,7 @@ export const NotesList = forwardRef<NotesListHandle, NotesListProps>(function No
           label="Create your first note"
           icon={<IconNoteText size={28} />}
           title="Capture your first meeting"
-          description="Record a meeting, a phone call, or a half-formed thought. Clovy transcribes it and writes the note for you."
+          description={`Record a meeting, a phone call, or a half-formed thought. ${BRAND_NAME} transcribes it and writes the note for you.`}
           action={
             <button type="button" className="primary-action primary-solid" onClick={onCreateNote}>
               <IconPlusMedium size={13} />

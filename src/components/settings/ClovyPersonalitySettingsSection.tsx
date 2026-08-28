@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import {
   closestOnboardingMood,
   ONBOARDING_MOODS,
@@ -57,7 +58,8 @@ export function ClovyPersonalitySettingsSection() {
         setLoaded(true);
       })
       .catch((cause) => {
-        if (!cancelled) setError(messageFromError(cause, "Unable to load Clovy's personality."));
+        if (!cancelled)
+          setError(messageFromError(cause, `Unable to load ${BRAND_NAME}'s personality.`));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -107,7 +109,7 @@ export function ClovyPersonalitySettingsSection() {
             setArea(persisted.area);
             setMood(persisted.mood);
           }
-          setError(messageFromError(cause, "Unable to save Clovy's personality."));
+          setError(messageFromError(cause, `Unable to save ${BRAND_NAME}'s personality.`));
           setStatus(undefined);
         }
       }
@@ -123,13 +125,13 @@ export function ClovyPersonalitySettingsSection() {
         Personality
       </h2>
       <p className="settings-group-description">
-        Choose the voice Clovy uses in Home and new agent sessions.
+        Choose the voice {BRAND_NAME} uses in Home and new agent sessions.
       </p>
       {loading ? (
         <div className="settings-card settings-personality-loading" aria-busy="true">
           <span className="settings-personality-skeleton settings-personality-skeleton-short" />
           <span className="settings-personality-skeleton" />
-          <span className="visually-hidden">Loading Clovy's personality</span>
+          <span className="visually-hidden">Loading {BRAND_NAME}'s personality</span>
         </div>
       ) : !loaded ? (
         <div className="settings-card settings-personality-load-error">
@@ -147,7 +149,7 @@ export function ClovyPersonalitySettingsSection() {
       ) : (
         <div className="settings-card settings-personality-card">
           <fieldset className="settings-personality-grid">
-            <legend className="visually-hidden">Choose Clovy's personality</legend>
+            <legend className="visually-hidden">Choose {BRAND_NAME}'s personality</legend>
             {ONBOARDING_MOODS.map((optionMood) => {
               const selected = optionMood === mood;
               const presentation = ONBOARDING_MOOD_PRESENTATION[optionMood];
@@ -183,7 +185,7 @@ export function ClovyPersonalitySettingsSection() {
             aria-live="polite"
             aria-atomic="true"
           >
-            <span className="settings-personality-preview-speaker">Clovy</span>
+            <span className="settings-personality-preview-speaker">{BRAND_NAME}</span>
             <p className="settings-personality-preview-greeting shimmer">
               {ONBOARDING_MOOD_PRESENTATION[mood].greeting}
             </p>

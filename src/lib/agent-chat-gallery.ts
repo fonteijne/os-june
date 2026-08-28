@@ -3,6 +3,7 @@ import {
   type AgentChatTurn,
   UPSTREAM_PROVIDER_FAILURE_NOTICE_BODY,
 } from "./agent-chat-runtime";
+import { BRAND_NAME } from "./brand.generated";
 
 // A hand-built catalog of every agent response part type and every status it can
 // render in. Used by the dev-tools response gallery (window.__agentGallery) so we
@@ -175,7 +176,7 @@ export function buildAgentChatGallery(): AgentChatGallerySection[] {
             type: "image",
             status: "error",
             prompt: "a fox reading a book",
-            error: "Clovy returned an image it can't display.",
+            error: `${BRAND_NAME} returned an image it can't display.`,
           },
         ]),
       ],

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import {
   modelIsPrivate,
   modelSupportsTools,
@@ -569,7 +570,7 @@ export function ComposerModelPopover({
       <p className="agent-composer-model-title">Suggested</p>
       {veniceApiKeyConfigured && model.id === AUTO_MODEL_ID ? (
         <p className="agent-composer-model-auto-note">
-          Auto is billed to Clovy credits and does not use your Venice API key.
+          Auto is billed to {BRAND_NAME} credits and does not use your Venice API key.
         </p>
       ) : null}
       <div className="agent-composer-model-menu" role="listbox" aria-label="Suggested text models">
@@ -856,16 +857,16 @@ export function heroPrivacyFootnote(
   model: VeniceModelDto | undefined,
   badge: ModelPrivacyBadge | undefined,
 ): string {
-  if (!model) return "Clovy runs locally.";
+  if (!model) return `${BRAND_NAME} runs locally.`;
   switch (badge?.mode) {
     case "e2ee":
-      return `Clovy runs locally. Calls to ${model.name} are end-to-end encrypted.`;
+      return `${BRAND_NAME} runs locally. Calls to ${model.name} are end-to-end encrypted.`;
     case "private":
-      return `Clovy runs locally. Calls to ${model.name} are private.`;
+      return `${BRAND_NAME} runs locally. Calls to ${model.name} are private.`;
     case "anonymous":
-      return `Clovy runs locally. Calls to ${model.name} are anonymized.`;
+      return `${BRAND_NAME} runs locally. Calls to ${model.name} are anonymized.`;
     default:
-      return `Clovy runs locally. You're running ${model.name}.`;
+      return `${BRAND_NAME} runs locally. You're running ${model.name}.`;
   }
 }
 
@@ -933,8 +934,7 @@ export function PrivacyModeBadge({ badge }: { badge?: ModelPrivacyBadge }) {
 // recorded mode, so the session — not the runtime's current state — is the
 // honest unit to label.
 export function UnrestrictedBadge() {
-  const description =
-    "This session runs without the file sandbox: Clovy can change any file your account can. Sandboxed sessions keep their jail and run alongside on a separate, jailed runtime.";
+  const description = `This session runs without the file sandbox: ${BRAND_NAME} can change any file your account can. Sandboxed sessions keep their jail and run alongside on a separate, jailed runtime.`;
   return (
     <HoverTip
       tip={description}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fallbackDictationCapabilities } from "../../lib/platform";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { osAccountsCancelLogin, osAccountsLogin } from "../../lib/tauri";
 import type { AccountStatus } from "../../lib/tauri";
 import { ClovyAppTile } from "../brand/ClovyLogo";
@@ -32,7 +33,7 @@ export function AccountStatusFailure({ message, onRetry }: AccountStatusFailureP
     <div className="welcome-screen">
       <div className="welcome-card">
         <ClovyAppTile className="welcome-brand-mark" />
-        <h1 className="welcome-title">Clovy could not finish starting</h1>
+        <h1 className="welcome-title">{BRAND_NAME} could not finish starting</h1>
         <p className="welcome-subtitle">{message}</p>
         <div className="welcome-providers">
           <BrandPrimaryButton disabled={retrying} onClick={() => void handleRetry()}>
@@ -87,7 +88,7 @@ export function AccountGate({ account, loading, onAccountChanged }: Props) {
     <div className="welcome-screen">
       <div className="welcome-card">
         <ClovyAppTile className="welcome-brand-mark" />
-        <h1 className="welcome-title">Welcome to Clovy</h1>
+        <h1 className="welcome-title">Welcome to {BRAND_NAME}</h1>
         <p className="welcome-subtitle">{subtitle}</p>
 
         {account.configured ? (

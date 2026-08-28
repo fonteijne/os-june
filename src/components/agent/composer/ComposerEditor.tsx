@@ -3,6 +3,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Fragment, Slice, type Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { closeHistory } from "@tiptap/pm/history";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 import {
@@ -565,7 +566,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         attributes: {
           class: "agent-composer-editor",
           role: "textbox",
-          "aria-label": "Message Clovy",
+          "aria-label": `Message ${BRAND_NAME}`,
           "aria-multiline": "true",
         },
         handleScrollToSelection: (view) => {

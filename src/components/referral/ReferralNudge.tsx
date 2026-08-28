@@ -1,6 +1,7 @@
 import { IconCrossMedium } from "central-icons/IconCrossMedium";
 import { useEffect, useState } from "react";
 import type { ReferralNudgeMoment } from "../../lib/referral-nudge";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { ClovyMark } from "../brand/ClovyLogo";
 
 export type { ReferralNudgeMoment };
@@ -23,18 +24,18 @@ export const OPEN_REFERRAL_DIALOG_EVENT = "clovy:open-referral-dialog";
 const MOMENT_COPY: Record<ReferralNudgeMoment, { title: string; body: string }> = {
   meetings: {
     title: "Five meetings, all captured",
-    body: "Know someone who lives in meetings? They get a free month of Clovy, and when they subscribe, so do you.",
+    body: `Know someone who lives in meetings? They get a free month of ${BRAND_NAME}, and when they subscribe, so do you.`,
   },
   agent: {
     title: "Give a month, get a month",
-    body: "Share Clovy with a friend. They get a free month, and when they subscribe, so do you.",
+    body: `Share ${BRAND_NAME} with a friend. They get a free month, and when they subscribe, so do you.`,
   },
   dictation: {
     title: "Twenty-five dictations in",
-    body: "Know someone who types too much? They get a free month of Clovy, and when they subscribe, so do you.",
+    body: `Know someone who types too much? They get a free month of ${BRAND_NAME}, and when they subscribe, so do you.`,
   },
   feedback: {
-    title: "Glad you're enjoying Clovy",
+    title: `Glad you're enjoying ${BRAND_NAME}`,
     body: "Share it with a friend. They get a free month, and when they subscribe, so do you.",
   },
 };

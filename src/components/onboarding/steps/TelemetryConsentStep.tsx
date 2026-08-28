@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import { dispatchP3aSettingsChanged, TELEMETRY_INFO_URL } from "../../../lib/p3a";
 import { setP3aEnabled } from "../../../lib/tauri";
 import { Switch } from "../../ui/Switch";
@@ -25,7 +26,7 @@ export function TelemetryConsentStep({ onContinue }: { onContinue: () => void })
 
   return (
     <StepCard
-      title="Help improve Clovy"
+      title={`Help improve ${BRAND_NAME}`}
       subtitle="Optional and off by default. Change it anytime in Settings."
       wide
       className="onboarding-card-privacy"

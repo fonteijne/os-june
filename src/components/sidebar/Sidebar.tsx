@@ -46,7 +46,8 @@ import {
 import { createPortal } from "react-dom";
 import { markAgentNewSessionPending } from "../agent/session-persistence";
 import { CategoryIcon } from "../agent/composer/CategoryIcon";
-import { ClovyMark, ClovyWordmark } from "../brand/ClovyLogo";
+import { BrandWordmark } from "../brand/BrandWordmark";
+import { ClovyMark } from "../brand/ClovyLogo";
 import { AccountAvatar, accountDisplayName } from "../account/AccountAvatar";
 import { type ReportCategory, reportCategoryDef } from "../agent/composer/reportCategory";
 import {
@@ -58,6 +59,7 @@ import {
   type AgentSessionRenamedDetail,
   type AgentSessionsChangedDetail,
 } from "../../lib/agent-events";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { errorCode, messageFromError } from "../../lib/errors";
 import { LEGACY_NOTE_DND_MIME, NOTE_DND_MIME } from "../../lib/dnd";
 import { useDismiss } from "../../lib/use-dismiss";
@@ -1117,8 +1119,8 @@ export function Sidebar({
     >
       {inSettings ? null : (
         <header className="sidebar-header">
-          <a className="sidebar-brand" href="#" aria-label="Clovy">
-            <ClovyWordmark className="sidebar-brand-mark" label="Clovy" variant="mono" />
+          <a className="sidebar-brand" href="#" aria-label={BRAND_NAME}>
+            <BrandWordmark className="sidebar-brand-mark" />
           </a>
           {recordingStatus ? (
             <SidebarRecordingIndicator
@@ -1961,7 +1963,8 @@ function ReferralDialog({
           </span>
           <p className="referral-hero-title">Give a month, get a month</p>
           <p className="referral-hero-copy">
-            Share Clovy with a friend. They get a free month, and when they subscribe, so do you.
+            Share {BRAND_NAME} with a friend. They get a free month, and when they subscribe, so do
+            you.
           </p>
         </div>
         <div className="referral-panel">

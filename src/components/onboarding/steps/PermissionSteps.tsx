@@ -5,6 +5,7 @@ import { IconMicrophone } from "central-icons/IconMicrophone";
 import { IconTextIndicator } from "central-icons/IconTextIndicator";
 import { IconVolumeFull } from "central-icons/IconVolumeFull";
 import type { OnboardingArea } from "../../../lib/onboarding";
+import { BRAND_NAME } from "../../../lib/brand.generated";
 import { fallbackDictationCapabilities } from "../../../lib/platform";
 import { dictationHelperCommand, openPrivacySettings } from "../../../lib/tauri";
 import { StepActions, StepCard } from "../StepChrome";
@@ -26,28 +27,28 @@ const PERMISSION_COPY: Record<
   }
 > = {
   work: {
-    subtitle: "This lets Clovy take meeting notes, hear dictation, and type for you.",
+    subtitle: `This lets ${BRAND_NAME} take meeting notes, hear dictation, and type for you.`,
     microphone: "Hears your dictation and the meetings you choose to record.",
     accessibility: "Puts your words where you're typing, in any app.",
     systemAudio: "Hears the other people on calls so your meeting notes include everyone.",
   },
   personal: {
-    subtitle: "This lets Clovy hear voice notes, type for you, and capture a call when you choose.",
+    subtitle: `This lets ${BRAND_NAME} hear voice notes, type for you, and capture a call when you choose.`,
     microphone: "Hears voice notes, reflections, and anything you'd rather say than type.",
     accessibility: "Puts dictated messages and notes into other apps.",
-    systemAudio: "Only used when you ask Clovy to capture a call.",
+    systemAudio: `Only used when you ask ${BRAND_NAME} to capture a call.`,
   },
   thinking: {
-    subtitle: "This lets Clovy hear rough ideas, type drafts, and capture a conversation.",
+    subtitle: `This lets ${BRAND_NAME} hear rough ideas, type drafts, and capture a conversation.`,
     microphone: "Hears you talk through an idea or dictate a draft.",
     accessibility: "Puts your spoken draft into the app you're working in.",
-    systemAudio: "Only used when you ask Clovy to capture a call.",
+    systemAudio: `Only used when you ask ${BRAND_NAME} to capture a call.`,
   },
   play: {
-    subtitle: "This lets Clovy hear your ideas, type for you, and capture a role-play.",
+    subtitle: `This lets ${BRAND_NAME} hear your ideas, type for you, and capture a role-play.`,
     microphone: "Hears characters, dialogue, and stories you'd rather speak aloud.",
     accessibility: "Puts dialogue and ideas into the app you're using.",
-    systemAudio: "Only used when you ask Clovy to capture a call.",
+    systemAudio: `Only used when you ask ${BRAND_NAME} to capture a call.`,
   },
 };
 
@@ -164,7 +165,7 @@ export function PermissionsStep({
 
   return (
     <StepCard
-      title="Let Clovy listen and type"
+      title={`Let ${BRAND_NAME} listen and type`}
       subtitle={
         macLikePlatform
           ? copy.subtitle
@@ -188,8 +189,8 @@ export function PermissionsStep({
               ? "No microphone found. Connect one, choose it in Windows sound settings, then try again."
               : micDenied
                 ? macLikePlatform
-                  ? "Turned off in System Settings. Flip the toggle and Clovy will notice."
-                  : "Turned off in Windows settings. Flip the toggle and Clovy will notice."
+                  ? `Turned off in System Settings. Flip the toggle and ${BRAND_NAME} will notice.`
+                  : `Turned off in Windows settings. Flip the toggle and ${BRAND_NAME} will notice.`
                 : copy.microphone
           }
           onAllow={
@@ -224,11 +225,11 @@ export function PermissionsStep({
               title="System audio"
               detail={
                 systemAudioDenied
-                  ? "Turned off in System Settings. Flip the toggle and Clovy will notice."
+                  ? `Turned off in System Settings. Flip the toggle and ${BRAND_NAME} will notice.`
                   : systemAudioUnsupported
                     ? "Needs macOS 14.2 or later."
                     : systemAudioUnavailable
-                      ? "Allowed. Restart Clovy to finish turning it on."
+                      ? `Allowed. Restart ${BRAND_NAME} to finish turning it on.`
                       : systemAudioStatus === "probing"
                         ? "Waiting for macOS. Approve the prompt when it appears."
                         : copy.systemAudio

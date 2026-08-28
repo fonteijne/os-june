@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { toast } from "../ui/Toaster";
 import { hasLiveSubscription } from "../../lib/account-gate";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { errorCode } from "../../lib/errors";
 import {
   MAX_GRANT_HOSTED_POLL_TIMEOUT_MS,
@@ -66,7 +67,7 @@ export function AccountSettings({ account, loading, onAccountChanged, onRefresh 
         <h1 className="settings-title">Account</h1>
         <p className="settings-description">
           {account.localDev
-            ? "Local mode is active. Clovy uses your local Clovy API without OpenSoftware sign-in or billing."
+            ? `Local mode is active. ${BRAND_NAME} uses your local Clovy API without OpenSoftware sign-in or billing.`
             : "Sign in with OpenSoftware to use your shared identity and balance across the network."}
         </p>
       </header>

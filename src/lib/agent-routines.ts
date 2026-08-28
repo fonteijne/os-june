@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { BRAND_NAME } from "./brand.generated";
 import { memorySettings } from "./tauri";
 
 export type RoutineJob = {
@@ -197,7 +198,7 @@ export async function routineCreationPrompt(
   options?: { unrestricted?: boolean },
 ) {
   return [
-    "Create a new Clovy routine for me.",
+    `Create a new ${BRAND_NAME} routine for me.`,
     `Here is what it should do: ${description.trim()}`,
     options?.unrestricted
       ? "I chose unrestricted mode for this routine."

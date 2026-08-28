@@ -22,6 +22,7 @@ import {
   setAgentSoundsEnabled,
   type AgentSoundsChangedDetail,
 } from "../../lib/agent-sound-settings";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { Dialog } from "../ui/Dialog";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
@@ -126,7 +127,7 @@ export function AgentSettingsSection({
         <SettingsPageHeader
           id="agent-heading"
           title="Agent"
-          blurb="Configure Clovy's personality and local agent experience."
+          blurb={`Configure ${BRAND_NAME}'s personality and local agent experience.`}
         />
         <ClovyPersonalitySettingsSection />
       </section>
@@ -136,7 +137,7 @@ export function AgentSettingsSection({
           Experience
         </h2>
         <p className="settings-group-description">
-          Control how Clovy keeps you informed while she works.
+          Control how {BRAND_NAME} keeps you informed while she works.
         </p>
         <div className="settings-card">
           <div className="settings-rows">
@@ -206,7 +207,7 @@ export function AgentSettingsSection({
           Skills
         </h2>
         <p className="settings-group-description">
-          Choose which skills Clovy can load during a session.
+          Choose which skills {BRAND_NAME} can load during a session.
         </p>
         <div className="settings-card">
           <div className="settings-rows">
@@ -248,7 +249,7 @@ export function AgentSettingsSection({
         open={Boolean(editingSkill)}
         onClose={() => setEditingSkill(undefined)}
         title={editingSkill ? `Edit ${editingSkill.name}` : "Edit skill"}
-        description="Update the managed instructions Clovy loads for this skill."
+        description={`Update the managed instructions ${BRAND_NAME} loads for this skill.`}
         footer={
           <>
             <button

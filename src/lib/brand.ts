@@ -21,8 +21,9 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import { BRAND_ACCENT, BRAND_ACCENT_WASH, BRAND_ID } from "./brand.generated";
 
-export type BrandId = "rose" | "clay" | "sage" | "ocean" | "plum";
+export type BrandId = "rose" | "clay" | "sage" | "ocean" | "plum" | "bonzai";
 
 export const BRAND_PRESETS: {
   id: BrandId;
@@ -35,6 +36,7 @@ export const BRAND_PRESETS: {
   { id: "rose", label: "Rose", value: "#a5655c", wash: "#9e6961" },
   { id: "ocean", label: "Ocean", value: "#3d7b9a", wash: "#467a95" },
   { id: "plum", label: "Plum", value: "#965d84", wash: "#8f6380" },
+  { id: "bonzai", label: "Bonzai", value: "#0000d2", wash: "#2d2db5" },
 ];
 
 const STORAGE_KEY = "os-clovy:brand";
@@ -149,14 +151,43 @@ function syncDockIcon(id: BrandId, delayMs = 0) {
   }, delayMs);
 }
 
+// Whitelabel default (BRAND_ID !== "clovy", src/lib/brand.generated.ts): with
+// no accent explicitly picked yet, seed --brand/--brand-wash from the
+// brand's own configured color instead of Clovy's sage preset. Deliberately
+// CSS-only — it skips syncDockIcon, since theme_icon.rs only knows Clovy's
+// five named presets and would otherwise silently overwrite the correctly
+// bundled whitelabel dock icon (Phase 1's tauri.override.json bundle.icon)
+// with Clovy's own sage-colored one. Once a whitelabel user explicitly picks
+// one of the five presets from Settings, the normal applyBrand path takes
+// over, dock-icon sync included — a known limitation, not fixed here (see
+// branding/README.md).
+function hasExplicitStoredBrand(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function seedWhitelabelDefaultAccent(): boolean {
+  if (BRAND_ID === "clovy" || hasExplicitStoredBrand()) return false;
+  const root = document.documentElement.style;
+  root.setProperty("--brand", BRAND_ACCENT);
+  root.setProperty("--brand-wash", BRAND_ACCENT_WASH);
+  return true;
+}
+
 export function initBrand() {
+  if (seedWhitelabelDefaultAccent()) return;
   applyBrand(getStoredBrand());
 }
 
 // Secondary windows (HUDs): apply the stored accent on load and keep it in
 // sync when the main window changes it.
 export function subscribeBrand(): Promise<UnlistenFn> {
-  applyBrandVar(getStoredBrand());
+  if (!seedWhitelabelDefaultAccent()) {
+    applyBrandVar(getStoredBrand());
+  }
   if (!inTauri()) return Promise.resolve(() => {});
   return import("@tauri-apps/api/event").then(({ listen }) =>
     listen<BrandId>(ACCENT_EVENT, (event) => applyBrandVar(event.payload, { animate: true })),

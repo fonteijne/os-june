@@ -6,7 +6,10 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "postinstall": "node scripts/select-brand.mjs",
+    "predev": "node scripts/select-brand.mjs",
     "dev": "vite --host 127.0.0.1",
+    "select-brand": "node scripts/select-brand.mjs",
     "tauri": "tauri",
     "tauri:dev": "node scripts/tauri-dev.mjs",
     "tauri:build": "node scripts/tauri-build.mjs",
@@ -17,6 +20,7 @@
     "computer-use:prepare": "node scripts/prepare-cua-driver.mjs",
     "computer-use:self-test": "node scripts/computer-use-self-test.mjs",
     "computer-use:self-test:live": "node scripts/computer-use-self-test.mjs --live",
+    "prebuild": "node scripts/select-brand.mjs",
     "build": "tsc && vite build",
     "test": "vitest run --configLoader=runner",
     "test:coverage": "vitest run --configLoader=runner --coverage",
@@ -31,6 +35,8 @@
     "extension:build": "pnpm --filter clovy-extension build",
     "check": "biome check .",
     "check:write": "biome check --write .",
+    "brand-drift:check": "node scripts/check-brand-drift.mjs",
+    "brand-drift:update": "node scripts/check-brand-drift.mjs --update-allowlist",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p extension"
   },

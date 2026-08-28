@@ -36,7 +36,15 @@ const DEFAULT_LOOPBACK_PORT: u16 = 8765;
 // user's credits for note transcription / generation / dictation work.
 const OAUTH_SCOPES: &str = "profile:read profile:write billing:read billing:write credits:spend";
 // Clovy's OS Accounts token store. Keep this app-scoped so Clovy does not
-// touch credentials written by other Open Software apps on startup.
+// touch credentials written by other Open Software apps on startup. The
+// canonical identity is compiled per-build like OS_ACCOUNTS_CLIENT_ID below
+// (env_or_build_trimmed_or in keychain_services_for_build), so a whitelabel
+// build can register its own keychain service instead of Clovy's own. The
+// legacy (June-era) identity is never brand-overridden — a whitelabel build
+// still runs the same compatibility-bridge read against it
+// (credential_compat), which is harmless: a fresh whitelabel install has
+// never had a June-era entry to find (docs/whitelabel-implementation-plan.md,
+// Phase 4; ADR-0056).
 const KEYCHAIN_SERVICE: &str = "co.opensoftware.clovy.accounts";
 const DEV_KEYCHAIN_SERVICE: &str = "co.opensoftware.clovy-dev.accounts";
 const LEGACY_KEYCHAIN_SERVICE: &str = "co.opensoftware.june.accounts";
@@ -460,6 +468,19 @@ fn env_or_build_trimmed(key: &str, build_value: Option<&'static str>) -> String 
         build_value.map(str::trim).unwrap_or_default().to_string()
     } else {
         runtime_value
+    }
+}
+
+/// Like `env_or_build_trimmed`, but falls back to `default` instead of an
+/// empty string — for values (like a keychain service id) that must never be
+/// empty, unlike OS Accounts' own url/client-id fields, whose emptiness is
+/// how `Config::configured()` detects "not configured".
+fn env_or_build_trimmed_or(key: &str, build_value: Option<&'static str>, default: &str) -> String {
+    let value = env_or_build_trimmed(key, build_value);
+    if value.is_empty() {
+        default.to_string()
+    } else {
+        value
     }
 }
 
@@ -1988,7 +2009,7 @@ async fn store_tokens(account: &StoredAccount) -> Result<(), AppError> {
 async fn store_platform_tokens(json: String) -> Result<(), AppError> {
     let (service, legacy_service) = keychain_services();
     tokio::task::spawn_blocking(move || {
-        crate::credential_compat::set_password(service, legacy_service, KEYCHAIN_USER, &json)
+        crate::credential_compat::set_password(&service, legacy_service, KEYCHAIN_USER, &json)
     })
     .await
     .map_err(|e| AppError::new("keychain_write_failed", e.to_string()))?
@@ -2029,7 +2050,7 @@ async fn load_tokens() -> Option<TokenPair> {
 async fn load_platform_tokens() -> Option<StoredAccount> {
     let (service, legacy_service) = keychain_services();
     let raw = tokio::task::spawn_blocking(move || {
-        crate::credential_compat::get_password(service, legacy_service, KEYCHAIN_USER)
+        crate::credential_compat::get_password(&service, legacy_service, KEYCHAIN_USER)
             .ok()
             .flatten()
     })
@@ -2042,7 +2063,7 @@ async fn load_platform_tokens() -> Option<StoredAccount> {
 async fn load_platform_account_for_logout() -> Result<Option<StoredAccount>, AppError> {
     let (service, legacy_service) = keychain_services();
     let raw = tokio::task::spawn_blocking(move || {
-        crate::credential_compat::get_password(service, legacy_service, KEYCHAIN_USER)
+        crate::credential_compat::get_password(&service, legacy_service, KEYCHAIN_USER)
     })
     .await
     .map_err(|error| AppError::new("keychain_read_failed", error.to_string()))?
@@ -2080,7 +2101,7 @@ async fn clear_tokens() {
 async fn clear_platform_tokens() {
     let (service, legacy_service) = keychain_services();
     let _ = tokio::task::spawn_blocking(move || {
-        let _ = crate::credential_compat::delete_password(service, legacy_service, KEYCHAIN_USER);
+        let _ = crate::credential_compat::delete_password(&service, legacy_service, KEYCHAIN_USER);
     })
     .await;
 }
@@ -2088,18 +2109,35 @@ async fn clear_platform_tokens() {
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 async fn clear_platform_tokens() {}
 
-fn keychain_services() -> (&'static str, &'static str) {
+fn keychain_services() -> (String, &'static str) {
     keychain_services_for_build(cfg!(debug_assertions), use_prod_accounts_tokens())
 }
 
-fn keychain_services_for_build(
-    debug_assertions: bool,
-    use_prod: bool,
-) -> (&'static str, &'static str) {
+/// The canonical (first) identity is compiled per-build like
+/// OS_ACCOUNTS_CLIENT_ID (env_or_build_trimmed_or), so a whitelabel build can
+/// register its own keychain service. The legacy (second) identity is always
+/// Clovy's own June-era compatibility value — never brand-overridden, since
+/// it exists purely for credential_compat's rollback-safe bridge against
+/// *this product's* pre-Clovy installs, which a whitelabel brand never had.
+fn keychain_services_for_build(debug_assertions: bool, use_prod: bool) -> (String, &'static str) {
     if debug_assertions && !use_prod {
-        (DEV_KEYCHAIN_SERVICE, LEGACY_DEV_KEYCHAIN_SERVICE)
+        (
+            env_or_build_trimmed_or(
+                "OS_CLOVY_DEV_KEYCHAIN_SERVICE",
+                option_env!("OS_CLOVY_DEV_KEYCHAIN_SERVICE"),
+                DEV_KEYCHAIN_SERVICE,
+            ),
+            LEGACY_DEV_KEYCHAIN_SERVICE,
+        )
     } else {
-        (KEYCHAIN_SERVICE, LEGACY_KEYCHAIN_SERVICE)
+        (
+            env_or_build_trimmed_or(
+                "OS_CLOVY_KEYCHAIN_SERVICE",
+                option_env!("OS_CLOVY_KEYCHAIN_SERVICE"),
+                KEYCHAIN_SERVICE,
+            ),
+            LEGACY_KEYCHAIN_SERVICE,
+        )
     }
 }
 
@@ -2485,7 +2523,7 @@ mod tests {
     fn release_builds_use_the_production_keychain_service() {
         assert_eq!(
             keychain_services_for_build(false, false),
-            (KEYCHAIN_SERVICE, LEGACY_KEYCHAIN_SERVICE)
+            (KEYCHAIN_SERVICE.to_string(), LEGACY_KEYCHAIN_SERVICE)
         );
     }
 
@@ -2493,7 +2531,10 @@ mod tests {
     fn debug_builds_use_a_separate_keychain_service_by_default() {
         assert_eq!(
             keychain_services_for_build(true, false),
-            (DEV_KEYCHAIN_SERVICE, LEGACY_DEV_KEYCHAIN_SERVICE)
+            (
+                DEV_KEYCHAIN_SERVICE.to_string(),
+                LEGACY_DEV_KEYCHAIN_SERVICE
+            )
         );
     }
 
@@ -2501,7 +2542,19 @@ mod tests {
     fn debug_builds_can_opt_into_the_production_keychain_service() {
         assert_eq!(
             keychain_services_for_build(true, true),
-            (KEYCHAIN_SERVICE, LEGACY_KEYCHAIN_SERVICE)
+            (KEYCHAIN_SERVICE.to_string(), LEGACY_KEYCHAIN_SERVICE)
+        );
+    }
+
+    #[test]
+    fn keychain_service_falls_back_to_default_when_env_and_build_are_unset() {
+        // The compiled option_env! value is baked in at build time and can't be
+        // unset from a test, but env_or_build_trimmed_or's fallback path is
+        // exercised directly here — mirrors how a default build (no
+        // OS_CLOVY_KEYCHAIN_SERVICE set anywhere) resolves.
+        assert_eq!(
+            env_or_build_trimmed_or("OS_CLOVY_KEYCHAIN_SERVICE_TEST_UNSET", None, "fallback"),
+            "fallback"
         );
     }
 

@@ -6,6 +6,7 @@ import { IconCloudySun } from "central-icons/IconCloudySun";
 import { IconEmail1 } from "central-icons/IconEmail1";
 import { IconNewspaper } from "central-icons/IconNewspaper";
 import { IconSunrise } from "central-icons/IconSunrise";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import type { ConnectorScopeBundle, ConnectorTriggerKind, RoutineTrustMode } from "../../lib/tauri";
 
 /** The event trigger a connector template subscribes instead of (or on top
@@ -74,7 +75,7 @@ export const ROUTINE_TEMPLATES: RoutineTemplate[] = [
   {
     id: "memory-tidy",
     name: "Memory tidy",
-    description: "A weekly pass over Clovy's memory to merge duplicates and drop stale facts.",
+    description: `A weekly pass over ${BRAND_NAME}'s memory to merge duplicates and drop stale facts.`,
     prompt:
       "Review your memories from the past week. Consolidate duplicates, flag anything stale or contradictory, and summarize what you changed.",
     schedule: "0 18 * * 0",

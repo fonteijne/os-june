@@ -3,6 +3,7 @@ import { AccountGate, AccountStatusFailure } from "../components/account/Account
 import { OnboardingFlow } from "../components/onboarding/OnboardingFlow";
 import { Spinner } from "../components/ui/Spinner";
 import { applyAutostartDefaultOnce } from "../lib/autostart";
+import { BRAND_NAME } from "../lib/brand.generated";
 import { hasCompletedAnyOnboardingVersion, markOnboardingComplete } from "../lib/onboarding";
 import type { AccountStatus } from "../lib/tauri";
 import { handleTitlebarPointerDown } from "./app-helpers";
@@ -40,8 +41,8 @@ export function renderAppAccountGate({
           onPointerDown={handleTitlebarPointerDown}
         />
         <div className="welcome-screen welcome-screen-loading">
-          <Spinner size="lg" aria-label="Starting Clovy" />
-          <p>Starting Clovy...</p>
+          <Spinner size="lg" aria-label={`Starting ${BRAND_NAME}`} />
+          <p>Starting {BRAND_NAME}...</p>
         </div>
       </main>
     );

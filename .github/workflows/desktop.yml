@@ -88,7 +88,11 @@ jobs:
 
   # Biome enforces JS/TS/JSON/CSS formatting + linting for src/ and scripts/.
   # `pnpm check` fails on formatting drift, lint errors, and banned imports
-  # (the icons-central-only spec bans lucide via noRestrictedImports).
+  # (the icons-central-only spec bans lucide via noRestrictedImports). The
+  # brand-drift check (Phase 5, docs/whitelabel-implementation-plan.md) rides
+  # along in the same job: it fails when a curated high-visibility surface
+  # gains a new literal "June" string that should route through
+  # src/lib/brand.generated.ts instead — see scripts/check-brand-drift.mjs.
   # Keep it in hosted PR CI because it is cheap and catches style drift before
   # review. The slower frontend typecheck + Vitest job is local signoff by
   # default; add `run-frontend-ci` to force the hosted job.
@@ -114,6 +118,9 @@ jobs:
 
       - name: Biome check
         run: pnpm check
+
+      - name: Brand drift check
+        run: pnpm brand-drift:check
 
   # Decides whether the macOS Rust job has anything to test. macOS minutes
   # bill at 10x Linux, and most changes here are frontend-only — `cargo test`

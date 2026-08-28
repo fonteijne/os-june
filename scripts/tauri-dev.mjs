@@ -106,12 +106,14 @@ async function resolveApiPort() {
 }
 
 const REPLAY_ONBOARDING_FLAG = "--replay-onboarding";
+const BRAND_FLAG_PREFIX = "--brand=";
 const platformConfigs = {
   darwin: "src-tauri/tauri.macos.conf.json",
   win32: "src-tauri/tauri.windows.conf.json",
 };
 
 let replayOnboarding = false;
+let brandId = process.env.BRAND;
 const tauriArgs = [];
 const rawUserArgs = process.argv.slice(2);
 const userArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
@@ -119,6 +121,8 @@ const userArgs = rawUserArgs[0] === "--" ? rawUserArgs.slice(1) : rawUserArgs;
 for (const arg of userArgs) {
   if (arg === REPLAY_ONBOARDING_FLAG) {
     replayOnboarding = true;
+  } else if (arg.startsWith(BRAND_FLAG_PREFIX)) {
+    brandId = arg.slice(BRAND_FLAG_PREFIX.length);
   } else {
     tauriArgs.push(arg);
   }
@@ -130,6 +134,23 @@ const hasConfigOverride = tauriArgs.some(
 );
 if (config && !hasConfigOverride) {
   tauriArgs.unshift("--config", config);
+}
+
+// Whitelabel override (docs/whitelabel-implementation-plan.md, ADR-0056): an
+// additive branding/<brand-id>/tauri.override.json merges on top of the
+// platform config via Tauri's native --config merge. Unset BRAND (the
+// default) means this block is a no-op and `pnpm tauri:dev` behaves exactly
+// as it does today.
+if (brandId) {
+  const brandConfigPath = resolve(ROOT_DIR, "branding", brandId, "tauri.override.json");
+  if (!existsSync(brandConfigPath)) {
+    console.error(
+      `BRAND=${brandId} was requested but ${brandConfigPath} does not exist. See branding/README.md.`,
+    );
+    process.exit(1);
+  }
+  console.error(`Using whitelabel brand "${brandId}" (${brandConfigPath}).`);
+  tauriArgs.push("--config", brandConfigPath);
 }
 
 const frontendPort = await resolveFrontendPort();
@@ -150,8 +171,19 @@ const devConfigPath = resolve(scriptDir, "..", "src-tauri", ".tauri.dev.generate
 writeFileSync(
   devConfigPath,
   JSON.stringify({
-    productName: devAppIdentity.productName,
-    identifier: devAppIdentity.identifier,
+    // Only override the identifier when this branch actually matched the
+    // per-agent-worktree naming convention (claude/JUN-123, codex/JUN-123) —
+    // devAppIdentityForBranch always returns productName "Clovy" and only
+    // suffixes the identifier for a matching branch, falling back to the
+    // plain base identifier otherwise. Pushing this unconditionally as the
+    // LAST --config would silently clobber a --brand override's
+    // productName/identifier (this overlay wins on every merge, brand
+    // override included) even though its own purpose — keeping parallel
+    // agent worktrees from colliding — doesn't apply on a non-JUN-numbered
+    // branch like a whitelabel feature branch.
+    ...(devAppIdentity.identifier !== "co.opensoftware.june"
+      ? { productName: devAppIdentity.productName, identifier: devAppIdentity.identifier }
+      : {}),
     build: { devUrl: `http://127.0.0.1:${frontendPort}` },
   }),
 );
@@ -174,6 +206,12 @@ const child = spawn(tauri.command, [...tauri.args, "dev", ...tauriArgs], {
     ...(developerDir ? { DEVELOPER_DIR: developerDir } : {}),
     OS_CLOVY_DEV_APP_NAME: devAppIdentity.productName,
     ...(replayOnboarding ? { VITE_CLOVY_REPLAY_ONBOARDING: "1" } : {}),
+    // Propagate --brand=<id> to the beforeDevCommand chain (Vite's predev
+    // hook runs scripts/select-brand.mjs, which only reads BRAND from the
+    // environment — it has no CLI flag of its own). Without this, a
+    // `--brand=<id>` flag applied the Tauri config override correctly but
+    // silently left the frontend's brand.generated.ts on Clovy defaults.
+    ...(brandId ? { BRAND: brandId } : {}),
   },
   shell: false,
   stdio: "inherit",

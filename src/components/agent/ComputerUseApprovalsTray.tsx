@@ -2,6 +2,7 @@ import { IconChevronDownSmall } from "central-icons/IconChevronDownSmall";
 import { IconStop } from "central-icons/IconStop";
 import { IconTelevision } from "central-icons/IconTelevision";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BRAND_NAME } from "../../lib/brand.generated";
 import { messageFromError } from "../../lib/errors";
 import { useScrollFade } from "../../lib/use-scroll-fade";
 import {
@@ -24,9 +25,9 @@ function approvalHeading(pending: PendingComputerUseApprovalDto[]) {
   const targetApps = [
     ...new Set(pending.map((item) => item.targetApp.trim()).filter((target) => target.length > 0)),
   ];
-  if (targetApps.length === 1) return `Clovy wants to use ${targetApps[0]}`;
-  if (targetApps.length > 1) return `Clovy wants to use ${targetApps.length} apps`;
-  return "Clovy wants to use an app";
+  if (targetApps.length === 1) return `${BRAND_NAME} wants to use ${targetApps[0]}`;
+  if (targetApps.length > 1) return `${BRAND_NAME} wants to use ${targetApps.length} apps`;
+  return `${BRAND_NAME} wants to use an app`;
 }
 
 /** Always-mounted decision surface for the app-owned Computer use broker.
