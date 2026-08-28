@@ -36,7 +36,16 @@ struct ShareRateLimiterInner {
 /// shard at a time outside the request path. The table tracks at most 100,000
 /// keys; once full, unknown keys fail closed instead of evicting an active
 /// counter that an attacker could deliberately reset.
+///
+/// `pub` (not `pub(crate)`) is required: `benches/share_rate_limiter.rs`
+/// depends on this crate the same way an external consumer would and calls
+/// `with_capacity`/`allow` directly. That bench target is gated behind the
+/// `benchmark` feature (see `make benchmark-share-rate-limiter`), so a plain
+/// `cargo clippy --all-targets` never compiles it and flags this whole impl
+/// as `unreachable_pub` — confirmed a false positive by rerunning clippy
+/// with `--features benchmark`, where the warning disappears.
 #[derive(Clone)]
+#[allow(unreachable_pub)]
 pub struct ShareRateLimiter {
     inner: Arc<ShareRateLimiterInner>,
 }
@@ -47,6 +56,7 @@ impl Default for ShareRateLimiter {
     }
 }
 
+#[allow(unreachable_pub)]
 impl ShareRateLimiter {
     #[doc(hidden)]
     pub fn with_capacity(capacity: usize) -> Self {
