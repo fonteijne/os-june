@@ -78,6 +78,15 @@ Trying a brand needs nothing beyond this repo's normal first-time setup — see
    only four placeholder PNGs (`32x32`, `128x128`, `128x128@2x`, `icon.png`)
    as solid swatches; a shippable build additionally needs `icon.icns`
    (macOS) and `icon.ico` (Windows), which `tauri icon` also produces.
+   The `branding/bonzai` fixture's icon has no vector source (its mark is a
+   raster decoded from a partner favicon), so it's built by
+   `branding/bonzai/icons/_src/build-icon.py` instead — a small, documented
+   Pillow script that composites the mark onto a macOS Big-Sur-style squircle
+   (matching `src-tauri/icons/themed/_src/icon.template.svg`'s recipe: rounded
+   tile, soft shadow, inset mark with its own drop shadow) before handing the
+   result to `tauri icon`. Prefer a real vector source and this step's plain
+   `tauri icon --icon ...svg` form for a new brand; fall back to that script's
+   pattern only when a brand's own mark is raster-only.
 5. Generate a brand-owned updater keypair with `pnpm tauri signer generate`
    and put the public half in `tauri.override.json`'s
    `plugins.updater.pubkey`; keep the private half out of git (CI secret).
@@ -95,7 +104,7 @@ Trying a brand needs nothing beyond this repo's normal first-time setup — see
    never joins ADR-0055's June-era compatibility bridge, since a whitelabel
    install has no legacy June-era state of its own to migrate.
 
-## A note on icon path resolution — and why `pnpm tauri:dev` won't show it
+## A note on icon *and Dock name* resolution — and why `pnpm tauri:dev` won't show either
 
 `tauri.override.json`'s `bundle.icon` paths are written relative to
 `src-tauri/` (matching how the base `tauri.conf.json` and the existing
@@ -136,6 +145,35 @@ would fix the dev-mode case too, but needs a new Rust dependency
 (`image`, to re-encode the already-decoded default icon back to PNG bytes)
 and native `objc2`/AppKit code that can't be compiled or tested from a
 Linux sandbox — a real follow-up, not done here.
+
+**The Dock/Cmd-Tab *name* has the same "trust `tauri:build`, not
+`tauri:dev`" caveat, for a related but distinct reason.** `tauri.override.json`'s
+`productName` does reach `tauri::generate_context!()` — the config merge
+chain is correct (`scripts/tauri-dev.mjs` pushes the platform config, then
+the brand override, then a dev-identity overlay that deliberately
+contributes `{}` for a non-isolated-worktree branch, so it never clobbers a
+brand's `productName`) and nothing in this codebase ever calls an AppKit API
+to *rename* the running process. The compiled binary's own file name (see
+`src-tauri/Cargo.toml`'s `[[bin]] name = "os-june"`, a pre-rebrand leftover)
+doesn't match either "Clovy" or a brand's `productName`, which rules out the
+raw binary name as what the Dock is displaying. That combination — a config
+chain that's provably correct on paper, plus a Dock name that matches
+neither the base config's compile-time default nor the raw binary — points
+at **macOS's own Launch Services/Dock cache**, not a code bug: an unbundled
+`tauri dev` process is not code-signed and has no fresh `Info.plist` for
+Launch Services to re-read on every launch, so a stale name (often the
+plain "Clovy" default from an earlier unbranded `pnpm tauri:dev` run at the
+same executable path) can stick in the Dock across brand switches until
+that cache is invalidated. If a brand's Dock name looks stale after
+switching `--brand=<id>`, fully quit the dev app first, then relaunch; if it
+still looks stale, `killall Dock` (harmless — it just restarts the Dock
+process) forces macOS to drop cached app identities. As with the icon,
+**`pnpm tauri:build -- --brand=<id>` is the authoritative check** — a real
+signed `.app` bundle's name is read fresh from its own `Info.plist` and
+doesn't share dev's unbundled-process cache behavior. This is untested from
+this repo's Linux dev sandbox (no macOS to run the built app on) — if you
+hit this and the above doesn't resolve it, that's a real follow-up worth
+filing, not a known-and-accepted limitation the way the dev-mode icon is.
 
 ## Guarding against brand drift (Phase 5)
 
