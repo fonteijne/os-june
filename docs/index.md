@@ -107,6 +107,7 @@ Per-repo config the engineering skills read before acting (see the
 - [companion-privacy.md](companion-privacy.md) - relay-visible metadata and data that remains end-to-end encrypted
 - [companion-revocation.md](companion-revocation.md) - online and future-connection revocation behavior
 - [companion-development.md](companion-development.md) - local relay, desktop, iPhone, and iPad development workflow
+- [bonzai-model-routing-prd.md](bonzai-model-routing-prd.md) — PRD (fork-only): route all inference through Bonzai, this fork's LiteLLM deployment; per-project Bonzai keys for client spend attribution, closed inference egress, no OS Accounts or Clovy credits, and the upstream-mergeability contract
 - [browser-computer-use-prd.md](browser-computer-use-prd.md) — PRD: Browser use + Computer use plugins (JUN-278); extension in the user's browser + routines-only managed browser, phase-2 computer use
 - [release-extension.md](release-extension.md) - Chrome Web Store publisher setup, RC review gate, stable promotion, and recovery runbook
 - [computer-use-cua-driver-spike.md](computer-use-cua-driver-spike.md) — spike (JUN-288): run the bundled cua-driver outside the write jail as a broker-owned, separately-signed daemon (recommended on identity/lifecycle grounds; a fully relocated daemon does start in-jail, up to the TCC gate); pinning + installer-never-runs confirmed
