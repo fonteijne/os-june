@@ -17,10 +17,11 @@ presents which project it belongs to.
 
 The change is shaped so that upstream Clovy releases keep merging cleanly.
 That constraint is a first-class requirement, not a preference, and it
-follows the doctrine already set by
-[ADR-0054](adr/0054-whitelabel-branding-as-additive-config-layer.md): brand-
-and fork-specific behavior lives in additive files, and any edit to a shared
-file is the narrowest possible substitution.
+follows the doctrine already set by the
+[whitelabel branding ADR](adr/0054-whitelabel-branding-as-additive-config-layer.md)
+(renumbering to 0056 on merge): brand- and fork-specific behavior lives in
+additive files, and any edit to a shared file is the narrowest possible
+substitution.
 
 This PRD closes an open question named in
 [whitelabel-implementation-plan.md](whitelabel-implementation-plan.md): who
@@ -286,8 +287,9 @@ Accounts does not orphan existing notes or projects.
 
 ## 8. Fork maintenance contract
 
-This section is a deliverable, not commentary. It extends ADR-0054's
-doctrine from branding to provider routing.
+This section is a deliverable, not commentary. It extends the whitelabel
+additive-layer doctrine from branding to provider routing, and is recorded as
+[ADR-0058](adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md).
 
 - **Add the `upstream` remote.** It does not exist today — `git remote -v`
   shows only `origin` — a gap `whitelabel-implementation-plan.md` also
@@ -403,8 +405,8 @@ Phases 1 and 2 are the risky ones; 4 is the one the feature is named for.
    — sever or keep? **Recommendation:** cut unless in active use; both are
    Clovy-API-hosted and add egress surface for features a single-operator
    fork may not need.
-3. **Where does the Bonzai base URL live** — build-time env (per ADR-0054's
-   config-layer pattern) or a runtime setting? **Recommendation:** build-time
+3. **Where does the Bonzai base URL live** — build-time env (per the
+   whitelabel config-layer pattern) or a runtime setting? **Recommendation:** build-time
    env with a runtime override for development, matching how OS Accounts
    config already works.
 4. **Whose whisper model?** LiteLLM offers several transcription backends.
@@ -436,14 +438,20 @@ word, per the existing CONTEXT.md entry.
 Two decisions here meet the AGENTS.md bar (hard to reverse, surprising
 without context, a real trade-off) and should be recorded:
 
-- **Bonzai is the only inference egress, enforced at the HTTP chokepoints.**
-  The trade-off is losing web search, image, video, and computer use.
-- **Bonzai routing follows ADR-0054's additive-layer doctrine, applied to
-  provider dispatch.** Records the touched-line budget and why interleaved
-  branching is rejected, so a future contributor does not "tidy" the
-  prologues into something unmergeable.
+- [ADR-0057](adr/0057-bonzai-is-the-only-inference-egress.md) — **Bonzai is
+  the only inference egress, enforced at the HTTP chokepoints.** Records the
+  host allowlist and CI egress test, the split between closed inference
+  egress and governed tool egress, and the trade-off of losing web search,
+  image, video, and computer use.
+- [ADR-0058](adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md)
+  — **Bonzai routing lives in an additive provider layer with a touched-line
+  budget.** Extends the whitelabel additive-layer doctrine to provider
+  dispatch, and records why interleaved branching is rejected so a future
+  contributor does not "tidy" the prologues into something unmergeable.
 
-Numbering note: `docs/adr/` currently has **two** ADRs numbered 0054
-(`0054-clovy-presentation-retains-june-era-technical-identities.md` and
-`0054-whitelabel-branding-as-additive-config-layer.md`). Next free number is
-**0056**.
+Numbering note: `docs/adr/` carries an unreconciled collision on 0054
+(`0054-clovy-presentation-retains-june-era-technical-identities.md`, which
+ADR-0055 supersedes, and `0054-whitelabel-branding-as-additive-config-layer.md`,
+which renumbers itself to **0056** when its still-open PR merges, per
+[docs/index.md](index.md)). 0056 is therefore spoken for, and these ADRs take
+**0057** and **0058**.
