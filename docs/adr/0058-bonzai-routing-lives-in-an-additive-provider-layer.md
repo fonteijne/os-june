@@ -138,3 +138,29 @@ two reasons:
   commits, so the topology has diverged. The touched-line discipline matters
   more than the branch shape and applies either way. Revisit if merge cost
   turns out worse than this ADR predicts.
+
+## Addendum - branch topology decided (2026-09-04)
+
+The "Alternatives considered" entry above deferred the question of whether
+Bonzai work lives on `main` or on a long-lived branch. It is now decided in
+favour of the deferred option: **a long-lived `bonzai-main` branch**, per the
+whitelabel plan's house rule.
+
+`main` stays a clean upstream mirror carrying no Bonzai code. Upstream syncs
+into `main`; `main` merges into `bonzai-main`; feature branches PR into
+`bonzai-main`. `bonzai-main` is never merged back into `main`.
+
+The reason is diagnostic rather than aesthetic: keeping the mirror clean
+means a conflict during the upstream sync is always upstream's doing, and a
+conflict during integration is always ours. Collapsing both onto one branch
+would make every conflict ambiguous, which is precisely the signal the
+conflict canary exists to provide.
+
+The concern recorded above - that this fork's `main` already carried fork
+commits - turned out to be smaller than assumed. `main` was upstream plus one
+docs-only commit (`4f352dd docs: propose whitelabel enablement plan (#1)`),
+with nothing on upstream that `main` lacked, so `bonzai-main` branched from a
+near-pristine mirror.
+
+Topology, sync runbook, ledger, and post-merge checklist:
+[UPSTREAM.md](../../UPSTREAM.md).

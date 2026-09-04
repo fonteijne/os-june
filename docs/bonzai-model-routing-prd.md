@@ -373,8 +373,10 @@ budget.
 
 ## 13. Rollout
 
-1. **Phase 0 — fork hygiene.** Add the `upstream` remote, `UPSTREAM.md`, and
-   the conflict canary. Do this first, while divergence is zero.
+1. **Phase 0 — fork hygiene.** Done: `upstream` remote added, `bonzai-main`
+   branched from `main`, [UPSTREAM.md](../UPSTREAM.md) written, and the
+   conflict canary landed. Both merge steps dry-run clean at the current
+   heads. See [bonzai-implementation-plan.md](bonzai-implementation-plan.md).
 2. **Phase 1 — the guard.** Egress allowlist at both HTTP chokepoints plus
    the CI test. Landing this before any routing means every later phase is
    verified by construction.
@@ -393,14 +395,14 @@ Phases 1 and 2 are the risky ones; 4 is the one the feature is named for.
 
 ## 14. Open decisions
 
-1. **Does Bonzai live on `main` or a long-lived branch?**
-   `whitelabel-implementation-plan.md` sets a house rule: keep brand work on
-   a `whitelabel/<brand-id>` branch over a `main` that mirrors upstream
-   exactly, so upstream merges stay fast-forwards. This fork is already 2
-   commits ahead on `main` with branding in place. **Recommendation:** accept
-   the deviation and treat this fork's `main` as the Bonzai line, but hold
-   the additive-layer discipline regardless — the branch topology matters
-   less than the touched-line budget.
+1. ~~**Does Bonzai live on `main` or a long-lived branch?**~~ **Decided:** a
+   long-lived `bonzai-main` branch, following the whitelabel plan's house
+   rule. `main` stays a clean upstream mirror carrying no Bonzai code;
+   upstream syncs into `main`, `main` merges into `bonzai-main`, and feature
+   branches PR into `bonzai-main`. `bonzai-main` is never merged back into
+   `main`, so a conflict during the upstream sync is always upstream's doing
+   and a conflict during integration is always ours. Topology, sync runbook,
+   and ledger live in [UPSTREAM.md](../UPSTREAM.md).
 2. **Shares and companion pairing** (`/v1/shares`, `/v1/companion/pairings`)
    — sever or keep? **Recommendation:** cut unless in active use; both are
    Clovy-API-hosted and add egress surface for features a single-operator
