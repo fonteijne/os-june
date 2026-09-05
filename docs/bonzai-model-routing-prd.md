@@ -55,9 +55,11 @@ Not for: upstream Clovy users. Nothing here is proposed for `os-clovy`.
 
 ## 4. Goals
 
-1. **Inference egress is closed.** Every model call — chat, note
-   transcription, dictation, dictation cleanup, note generation — reaches
-   Bonzai and no other host. Enforced structurally, not by convention.
+1. **Inference egress is closed.** Every model call that ships in beta —
+   agent chat, note transcription, note generation — reaches Bonzai and no
+   other host. Enforced structurally, not by convention. Dictation is out of
+   beta scope (see non-goals) but is covered by the same boundary when it
+   returns.
 2. **Per-project attribution.** Each project carries a Bonzai key; work done
    in that project is billed to that key inside LiteLLM.
 3. **Clovy credits are never spent.** No OS Accounts authorize/charge call
@@ -80,6 +82,15 @@ Explicitly out of scope, and switched off rather than rerouted:
   path is an async job queue with per-request live quoting.
 - **Computer use and browser use.** Clovy-side orchestration with no gateway
   equivalent.
+- **Dictation, for the beta.** Postponed to a post-beta phase and shipped
+  **disabled**. Dictation is latency-critical — a short phrase round-trips in
+  a few hundred milliseconds — and that budget depends entirely on which
+  whisper backend Bonzai routes to, which is not yet decided. Shipping it on
+  an unvalidated backend would make the fork feel broken in its most
+  latency-sensitive surface. Disabled means the kill switch is off, not that
+  the code is removed: the surface is large (25 Rust files, 53 frontend
+  files), so deletion would blow the touched-line budget for no benefit.
+  Note transcription is unaffected — it tolerates seconds, not milliseconds.
 - **Automatic key management.** No key creation, rotation, or budget
   administration from inside Clovy. LiteLLM's own UI owns that lifecycle.
 - **Per-operation keys.** A separate key for transcription versus chat is a
@@ -179,8 +190,8 @@ client-side model policy is needed.
 | Operation | Today | Bonzai target |
 | --- | --- | --- |
 | Note transcription | `/v1/notes/transcribe` | `/v1/audio/transcriptions` |
-| Dictation | `/v1/dictate` | `/v1/audio/transcriptions` |
-| Dictation cleanup | `/v1/dictate/cleanup` | `/v1/chat/completions` |
+| Dictation | `/v1/dictate` | **disabled in beta** (post-beta: `/v1/audio/transcriptions`) |
+| Dictation cleanup | `/v1/dictate/cleanup` | **disabled in beta** (post-beta: `/v1/chat/completions`) |
 | Note generation | `/v1/notes/generate` | `/v1/chat/completions` |
 | Agent chat | `/v1/chat/completions` | `/v1/chat/completions` |
 | Model catalog | `/v1/models` | `/v1/models` (per key) |
@@ -297,11 +308,12 @@ additive-layer doctrine from branding to provider routing, and is recorded as
   works only while merges stay trivial; a CI canary and post-divergence
   merges both need a real remote. `open-software-network/os-clovy` is
   publicly reachable anonymously, so no credentials are required.
-- **One dispatch prologue per operation.** Roughly seven functions
-  (`transcribe_saved_audio`, `generate_note_from_transcript`,
-  `dictate_transcribe`, dictation cleanup, the agent chat route, and the
-  disabled paths), each a three-line early return into `bonzai::`. Target
-  budget: **under 40 touched lines** in files upstream also edits.
+- **One dispatch prologue per operation.** For beta:
+  `transcribe_saved_audio`, `generate_note_from_transcript`, and the agent
+  chat route, plus the disabled paths — each a three-line early return into
+  `bonzai::`. `dictate_transcribe` and dictation cleanup gain theirs
+  post-beta. Target budget: **under 40 touched lines** in files upstream also
+  edits.
 - **Never interleave.** No `if bonzai` branches threaded through function
   bodies. A prologue at the top of a function merges cleanly when upstream
   edits the body below it; an interleaved branch does not.
@@ -353,6 +365,7 @@ budget.
 
 - 100% of inference requests in a session reach the Bonzai host; zero reach
   any other host. Measured by the egress test, not by sampling.
+- Zero requests on the dictation paths, since the capability is off in beta.
 - Zero OS Accounts requests over an app session.
 - Zero authorize/charge calls.
 - Per-project spend in LiteLLM reconciles to the projects worked in.
@@ -368,7 +381,7 @@ budget.
 | A stdio MCP server exfiltrates data | stdio disabled in v1; allowlist governs HTTP servers |
 | A key is pasted into the wrong project, billing the wrong client | Show the key's owning project prominently; probe on paste; no silent fallback |
 | `local_dev_enabled()` restricted to debug builds upstream | Own named no-account mode rather than a dependency on the dev flag |
-| Transcription quality differs from Venice's tuned path | Validate whisper-class model quality on real meeting audio before cutover |
+| Transcription quality differs from Venice's tuned path | Validate whisper-class model quality on real meeting audio before cutover; dictation, where latency matters most, is deferred out of beta entirely |
 | Keys in keychain are per-device; a new device needs re-entry | Accepted. Manual key management is a stated requirement |
 
 ## 13. Rollout
@@ -382,14 +395,18 @@ budget.
    verified by construction.
 3. **Phase 2 — Bonzai provider, chat paths.** `PROVIDER_BONZAI`, the
    `bonzai/` module, global key, note generation and agent chat.
-4. **Phase 3 — transcription and dictation.** The two paths with no existing
-   escape hatch. Validate quality on real audio.
+4. **Phase 3 — note transcription.** The path with no existing escape hatch.
+   Validate quality on real meeting audio. Dictation is disabled here rather
+   than ported.
 5. **Phase 4 — per-project keys.** Thread the project id to the resolution
    seam; keychain storage; project detail UI; per-key model lists.
 6. **Phase 5 — severance.** Disable web/image/video/computer use. No-account
    mode. Cut P3A and issue reports.
 7. **Phase 6 — MCP policy.** Allowlisted `streamable_http` servers to restore
    search where wanted.
+8. **Post-beta — dictation.** Choose and benchmark a whisper backend against
+   the latency budget, port `dictate_transcribe` and cleanup, then flip the
+   kill switch on. Gated on measured latency, not on the code compiling.
 
 Phases 1 and 2 are the risky ones; 4 is the one the feature is named for.
 
@@ -440,11 +457,13 @@ word, per the existing CONTEXT.md entry.
 Two decisions here meet the AGENTS.md bar (hard to reverse, surprising
 without context, a real trade-off) and should be recorded:
 
-- [ADR-0057](adr/0057-bonzai-is-the-only-inference-egress.md) — **Bonzai is
-  the only inference egress, enforced at the HTTP chokepoints.** Records the
-  host allowlist and CI egress test, the split between closed inference
-  egress and governed tool egress, and the trade-off of losing web search,
-  image, video, and computer use.
+- [ADR-0059](adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md)
+  — **Bonzai egress is enforced by a build-time allowlist at every client
+  site plus a source-level guard.** Supersedes
+  [ADR-0057](adr/0057-bonzai-is-the-only-inference-egress.md): the allowlist
+  is compiled in and not derivable from runtime config, enforcement covers
+  all eight client construction sites, and the split between closed inference
+  egress and governed tool egress is retained.
 - [ADR-0058](adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md)
   — **Bonzai routing lives in an additive provider layer with a touched-line
   budget.** Extends the whitelabel additive-layer doctrine to provider

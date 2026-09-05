@@ -1,9 +1,21 @@
 ---
-status: accepted
+status: superseded
 date: 2026-09-03
+superseded_by: 0059
 ---
 
 # Bonzai is the only inference egress, enforced at the HTTP chokepoints
+
+> **Superseded by**
+> [ADR-0059](0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md)
+> (2026-09-04). The decision below - that all inference terminates at
+> Bonzai and that the guarantee must be structural - still holds. Its
+> *mechanism* was wrong in three ways found while writing the
+> implementation plan: there are eight client construction sites rather
+> than one, a runtime check cannot catch a client an upstream merge
+> introduces, and an allowlist derived from runtime configuration
+> validates nothing. Read ADR-0059 for the enforcement that ships; this
+> file is retained for the reasoning it records.
 
 ## Context
 
