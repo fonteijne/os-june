@@ -164,3 +164,53 @@ scope changes with a feature flag, and should not require superseding an ADR.
 - **Allow a runtime override with a confirmation prompt.** Rejected: a prompt
   is a policy, and this ADR exists because policies do not survive contact
   with an automated merge.
+
+## Addendum - the inventory was sixteen sites, not eight (2026-09-05)
+
+Correction 1 above named eight client construction sites. Implementing the
+guard found **sixteen**, across eight files rather than two. The eight this
+ADR missed:
+
+| Site | Location | Used for |
+| --- | --- | --- |
+| `probe_local_generation_endpoint` | `providers/mod.rs:1120` | probing a user's local endpoint |
+| `venice_verify_http_client()` | `providers/mod.rs:1517` | verifying a Venice BYOK key |
+| `video_download_client_builder()` | `video_download_url.rs:56` | pinned video downloads |
+| `live_server_reachable()` | `clovy_api.rs:5856` | a test-only reachability probe |
+| Notion hosted-MCP client | `connectors/notion.rs:142` | Notion connector traffic |
+| `connectors::oauth::http_client()` | `connectors/oauth.rs:55` | connector OAuth |
+| `os_accounts::http_client()` | `os_accounts.rs:1289` | OS Accounts |
+| `companion_http_client()` | `companion/mod.rs:2272` | the companion relay |
+
+Implementing it also widened what the guard looks for. The decision above
+names `reqwest::Client::new()` and `reqwest::Client::builder()`; the guard as
+shipped also rejects `Client::default()`, `ClientBuilder::new()`, and
+`ClientBuilder::default()`, which are equivalents an idiomatic upstream commit
+could plausibly use. It does not catch a client reached through an alias or a
+function pointer, and does not try to: the threat is an upstream merge writing
+ordinary `reqwest`, not evasion from inside this repo.
+
+The correction strengthens the argument rather than weakening it. An
+inventory compiled by hand was wrong by a factor of two within two days of
+being written, which is precisely why the decision is a source-level guard
+and not a list of call sites someone maintains.
+
+Counted as touched lines the number is **22**, not sixteen: six sites carry
+an `.unwrap_or_else(|_| reqwest::Client::new())` fallback on its own line,
+and that fallback constructs a client too. With the two lines that call the
+startup validation from the Tauri setup hook, Phase 1 spends **24**.
+
+**Consequence for the budget.** ADR-0058 sets a budget of under 40 touched
+lines in shared files, and
+[bonzai-implementation-plan.md](../bonzai-implementation-plan.md) estimated
+Phase 1 at ~13 of it on the strength of the eight-site figure. At 24 the beta
+total projects to **~48 / 40**. The overrun is not logic leaking out of
+`bonzai/` - every one of the 22 is a single-token substitution to a guarded
+constructor, and there is no smaller form that still leaves the guard
+crate-wide. It is an estimate that rested on a wrong count.
+
+This addendum records the overrun rather than resolving it: ADR-0058 requires
+that its budget be revised in a superseding ADR rather than quietly exceeded,
+and that decision is due before Phase 5. Narrowing the guard's scope to buy
+the lines back is not an option on the table - a guard that reads only the
+files we already know about is the failure mode Correction 2 exists to close.

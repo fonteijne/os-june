@@ -100,10 +100,14 @@ After every `main` -> `bonzai-main` merge:
 - [ ] `make verify` (adds `cargo clippy --all-targets`, which the narrower
       targets skip - green from `cargo test` + `pnpm test` alone is **not**
       CI-green)
-- [ ] **The egress allowlist test** - the guarantee in
-      [ADR-0057](docs/adr/0057-bonzai-is-the-only-inference-egress.md) is
-      exactly what an upstream merge can silently reopen, so this is the
-      check that matters most here
+- [ ] **The egress guard** - `cargo test --manifest-path src-tauri/Cargo.toml
+      --test bonzai_egress_guard`. The guarantee in
+      [ADR-0059](docs/adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md)
+      (superseding ADR-0057) is exactly what an upstream merge can silently
+      reopen, so this is the check that matters most here. A failure names the
+      file and line of the new client; route it through
+      `crate::bonzai::egress::guarded_builder()` or `guarded_client()` and
+      decide what it is for. Never add an exemption
 - [ ] The ledger below still matches reality; update it in the same commit if
       a prologue moved
 - [ ] A red gate that is not your bug: check
@@ -134,9 +138,35 @@ separately:
 
 | File | Lines | What | Why here and not in `bonzai/` |
 | --- | ---: | --- | --- |
-| _(none yet)_ | 0 | Phase 0 is additive only | - |
+| `src-tauri/src/clovy_api.rs` | 7 | `reqwest::Client::{builder,new}()` -> `bonzai::egress::guarded_{builder,client}()` at `http_client`, `agent_http_client`, `local_http_client`, and a test probe | A client has to be constructed where it is used; only the constructor moves |
+| `src-tauri/src/agent_mcp.rs` | 5 | Same substitution at the five MCP client sites | As above |
+| `src-tauri/src/providers/mod.rs` | 3 | Same substitution at the local-endpoint probe and the Venice key verifier | As above |
+| `src-tauri/src/os_accounts.rs` | 2 | Same substitution at `http_client` | As above |
+| `src-tauri/src/connectors/oauth.rs` | 2 | Same substitution at `http_client` | As above |
+| `src-tauri/src/connectors/notion.rs` | 1 | Same substitution at the hosted-MCP client | As above |
+| `src-tauri/src/companion/mod.rs` | 1 | Same substitution at `companion_http_client` | As above |
+| `src-tauri/src/video_download_url.rs` | 1 | Same substitution at `video_download_client_builder` | As above |
+| `src-tauri/src/lib.rs` | 2 | `bonzai::setup()` first in the Tauri setup hook, so a build pointed at a host it may not reach refuses to start | The setup hook is the only place startup order is decided |
 
-**Running total: 0 / 40.**
+**Running total: 24 / 40.** `pub mod bonzai;` in `lib.rs` is an appended
+symbol at a distinct location, so it is tracked here and not counted.
+
+Every one of the 22 substitution lines is a single-token change:
+`reqwest::Client::builder()` becomes
+`crate::bonzai::egress::guarded_builder()`, and `reqwest::Client::new()`
+becomes `crate::bonzai::egress::guarded_client()`. No function is
+restructured and no conditional is threaded through a body, so an upstream
+edit anywhere else in these functions still merges cleanly.
+
+**The budget is projected to be exceeded.** ADR-0059 estimated eight client
+sites and the plan budgeted Phase 1 at ~13 lines on that basis; the real
+inventory is sixteen sites and 22 lines (see the 2026-09-05 addendum to
+ADR-0059), which puts the beta total at roughly **48 / 40**. Per ADR-0058 the
+budget is to be revised in a superseding ADR rather than quietly exceeded,
+and that decision is due before Phase 5. Reducing the guard's scope to buy
+the lines back is not an option: a guard that reads only the files we already
+know about cannot see the client an upstream merge adds, which is the whole
+reason it exists.
 
 ### Additive files (no merge risk)
 
@@ -148,6 +178,11 @@ separately:
 | `docs/bonzai-implementation-plan.md` | The implementation plan |
 | `docs/adr/0057-bonzai-is-the-only-inference-egress.md` | ADR |
 | `docs/adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md` | ADR |
+| `docs/adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md` | ADR |
+| `src-tauri/src/bonzai/mod.rs` | Module root and the startup validation |
+| `src-tauri/src/bonzai/egress.rs` | The compiled allowlist, `assert_allowed`, and the only permitted client constructors |
+| `src-tauri/src/bonzai/config.rs` | Base URL resolution, checked against the allowlist |
+| `src-tauri/tests/bonzai_egress_guard.rs` | The source-level CI guard |
 
 `docs/index.md` is shared and gains one row per document. Index rows are
 append-only single lines and conflict trivially, so they are exempt from the

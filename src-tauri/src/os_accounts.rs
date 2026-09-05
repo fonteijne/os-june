@@ -1286,14 +1286,14 @@ fn missing_code_error() -> AppError {
 
 fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
             .tcp_keepalive(Some(Duration::from_secs(30)))
             .user_agent("clovy/0.1")
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 

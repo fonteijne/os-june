@@ -43,8 +43,8 @@ renaming it in both places.
 | Phase | Status | Exit criterion | Evidence / blocker |
 | --- | --- | --- | --- |
 | 0 - fork hygiene | **done** | `upstream` remote, `bonzai-main`, ledger, canary all exist | Canary dry-ran clean at `main` `693a125` / `upstream/main` `8fed7ac` |
-| 1 - the egress guard | **not started** | No path reaches a non-allowlisted host without failing CI | Next up. Unblocked - open question 3 resolved in ADR-0059 |
-| 2 - Bonzai provider, chat paths | **not started** | Agent chat and note generation reach Bonzai only | Depends on Phase 1 |
+| 1 - the egress guard | **done** | No path reaches a non-allowlisted host without failing CI | `bonzai/{mod,egress,config}.rs` + `tests/bonzai_egress_guard.rs`; all 16 client sites routed; guard verified to fail on a reintroduced raw client |
+| 2 - Bonzai provider, chat paths | **not started** | Agent chat and note generation reach Bonzai only | Next up. Unblocked - Phase 1 done |
 | 3 - note transcription | **not started** | Note transcription reaches Bonzai at acceptable quality | Needs the whisper backend choice (open question 1) |
 | 4 - per-project keys | **not started** | Spend in LiteLLM reconciles to the project worked in | Depends on Phase 2 |
 | 5 - severance | **not started** | Zero OS Accounts and Clovy API requests in a session | Includes the dictation kill switch |
@@ -60,10 +60,13 @@ The full analysis moved into
 [ADR-0059](adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md),
 which supersedes ADR-0057. Three things it settles that this plan depends on:
 
-- **Eight client construction sites**, not one: `http_client()`
-  (`clovy_api.rs:3768`), `agent_http_client()` (`:3782`), `local_http_client()`
-  (`:3809`), and five `reqwest::Client` constructions in `agent_mcp.rs`
-  (`:626`, `:689`, `:762`, `:966`, `:2688`).
+- **Sixteen client construction sites** across eight files, not one - and
+  not the eight ADR-0059 originally inventoried. Three in `clovy_api.rs`
+  (`http_client()`, `agent_http_client()`, `local_http_client()`) plus a
+  test probe, five in `agent_mcp.rs`, two in `providers/mod.rs`, and one each
+  in `os_accounts.rs`, `connectors/oauth.rs`, `connectors/notion.rs`,
+  `companion/mod.rs`, and `video_download_url.rs`. See the 2026-09-05
+  addendum to ADR-0059 for the corrected table and what the miss cost.
 - **Two-part enforcement**: a runtime `assert_allowed(&url)` in the request
   helpers, plus a source-level CI guard that fails if a raw `reqwest` client
   is constructed outside `bonzai/egress.rs`. The second is what catches a
@@ -168,9 +171,9 @@ Neither mechanism is sufficient alone, so both ship:
    call sites we already know about, and a new upstream client would bypass
    it entirely.
 
-The source-level guard is the load-bearing half. Note that it will fail the
-moment it lands, because five construction sites already exist; part of
-Phase 1 is routing those through the guarded constructor.
+The source-level guard is the load-bearing half. It failed the moment it
+landed, because sixteen construction sites already existed; routing those
+through the guarded constructor was the bulk of Phase 1.
 
 ### Base URL and allowlist (open question 3, resolved)
 
@@ -253,21 +256,32 @@ Estimated against the budget:
 
 | Phase | Edits in existing blocks | Running total |
 | --- | ---: | ---: |
-| 1 - egress guard | ~13 | 13 |
-| 2 - chat paths | ~8 | 21 |
-| 3 - note transcription | ~4 | 25 |
-| 4 - per-project keys | ~4 | 29 |
-| 5 - severance (incl. dictation kill switch) | ~7 | 36 |
-| 6 - MCP policy | ~1 | 37 |
-| **Beta total** | | **~37 / 40** |
-| Post-beta - dictation | ~6 | 43 |
+| 1 - egress guard | **24 (actual)** | 24 |
+| 2 - chat paths | ~8 | 32 |
+| 3 - note transcription | ~4 | 36 |
+| 4 - per-project keys | ~4 | 40 |
+| 5 - severance (incl. dictation kill switch) | ~7 | 47 |
+| 6 - MCP policy | ~1 | 48 |
+| **Beta total** | | **~48 / 40** |
+| Post-beta - dictation | ~6 | 54 |
 
-Beta lands at roughly 37 of 40. Deferring dictation buys back the headroom
-that Phase 3 would otherwise have spent on two extra prologues - but note
-that turning dictation on afterwards **exceeds the budget**. That is a real
-signal, not an accounting quirk: either dictation's prologues get folded into
-`bonzai/` more aggressively when the time comes, or the budget is revisited
-in a superseding ADR. It should not be quietly exceeded.
+**Beta no longer fits.** Phase 1 was estimated at ~13 against ADR-0059's
+inventory of eight client sites; the real inventory is sixteen sites and 22
+substitution lines, plus two lines wiring startup validation into the Tauri
+setup hook. Beta now projects to roughly 48 of 40, and the budget is crossed
+inside Phase 4 rather than after the beta.
+
+The overrun is an estimate error, not logic leaking out of `bonzai/`. Each of
+the 22 is a single-token substitution to a guarded constructor, which is the
+narrowest form ADR-0058 asks for, and there is no smaller form that leaves
+the guard crate-wide. Narrowing the guard to the files we already know about
+would buy the lines back by reopening the exact hole ADR-0059's correction 2
+exists to close, so it is not on the table.
+
+ADR-0058 requires the budget be revised in a superseding ADR rather than
+quietly exceeded. **That decision is due before Phase 5** - the last point at
+which it can be made ahead of the spend rather than after it. The same
+paragraph applies with more force to dictation, which now projects to 54.
 
 ## Phasing
 
@@ -286,23 +300,55 @@ in a superseding ADR. It should not be quietly exceeded.
 
 ### Phase 1 - the egress guard
 
-**Status: not started.** Next up.
+**Status: done.**
 
-Lands **before** any routing, so every later phase is verified by
+Landed **before** any routing, so every later phase is verified by
 construction.
 
-**Additive:** `bonzai/egress.rs`, `bonzai/config.rs`, `bonzai/mod.rs`; a
-`src-tauri/tests/` case for the source-level guard.
+**Additive:** `bonzai/mod.rs` (module root plus the startup validation),
+`bonzai/egress.rs` (the compiled allowlist, `assert_allowed`, and the only
+permitted client constructors), `bonzai/config.rs` (base URL resolution,
+checked against the allowlist), and `src-tauri/tests/bonzai_egress_guard.rs`
+for the source-level guard.
 
-**Shared:** the five client constructors route through
-`bonzai::egress::guarded_client()`; `assert_allowed` in the request helpers.
+**Shared:** all sixteen client construction sites route through
+`bonzai::egress::guarded_builder()` / `guarded_client()` - 22 lines, because
+six sites carry an `.unwrap_or_else(|_| reqwest::Client::new())` fallback on
+its own line; plus two lines calling `bonzai::setup()` first in the Tauri
+setup hook. 24 in total; see the budget note above, which this phase
+overruns.
 
-**Verify:** a request to a non-allowlisted host returns `egress_blocked`, not
-a network error; the source-level guard fails when a raw
-`reqwest::Client::new()` is reintroduced; `cargo test`.
+**Two decisions taken while implementing**, both recorded because a reader
+will otherwise expect what this plan originally said:
 
-**Exit:** no code path can reach a host outside the allowlist without failing
-CI.
+- **`assert_allowed` is not yet wired into upstream's request helpers.** The
+  plan named `post_json`, `post_multipart`, `authed_send`, the agent proxy,
+  and the MCP request sites. Those helpers today carry traffic to Clovy API,
+  OS Accounts, Notion, and user-configured local endpoints - none of which
+  are on a Bonzai allowlist. Asserting there now would fail-close the entire
+  app and leave phases 2 to 4 undevelopable. `assert_allowed` therefore
+  guards `bonzai::config::base_url()` (configuration is a subject of the
+  policy, per ADR-0059) and will guard the Bonzai request helpers as each
+  arrives - `chat.rs` in Phase 2, `audio.rs` in Phase 3 - all of them
+  additive. Closing the *existing* paths is Phase 5's severance work, which
+  is where it was always scheduled.
+- **`https` is required for every destination, including loopback.**
+  ADR-0059 says the scheme is checked alongside the host, with no carve-out.
+  A development build additionally allows `localhost`, `127.0.0.1`, and
+  `[::1]` as hosts, but a plaintext local gateway is unreachable by design.
+  If Phase 2 needs one, that is an ADR amendment, not a code tweak.
+
+**Verified:** the guard passes with all sixteen sites routed, and fails with
+the offending file and line when a raw `reqwest::Client::new()` is
+reintroduced (checked against a temporary edit to `updates.rs`); unit tests
+cover plaintext rejection, suffix and wildcard rejection
+(`api-v2.bonzai.iodigital.com.attacker.example` is refused), case and
+trailing-dot normalisation, and that the `egress_blocked` message never
+carries the URL's path or query; the full `cargo test --lib` suite is green
+at 1475 passed.
+
+**Exit:** met - no code path can reach a host outside the allowlist without
+failing CI.
 
 ### Phase 2 - Bonzai provider, chat paths
 

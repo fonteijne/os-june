@@ -470,8 +470,8 @@ without context, a real trade-off) and should be recorded:
   site plus a source-level guard.** Supersedes
   [ADR-0057](adr/0057-bonzai-is-the-only-inference-egress.md): the allowlist
   is compiled in and not derivable from runtime config, enforcement covers
-  all eight client construction sites, and the split between closed inference
-  egress and governed tool egress is retained.
+  every client construction site in the native shell, and the split between
+  closed inference egress and governed tool egress is retained.
 - [ADR-0058](adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md)
   — **Bonzai routing lives in an additive provider layer with a touched-line
   budget.** Extends the whitelabel additive-layer doctrine to provider
