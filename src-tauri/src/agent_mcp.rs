@@ -623,7 +623,7 @@ async fn discover_oauth_metadata(
     endpoint: &str,
 ) -> Result<(OAuthResourceMetadata, OAuthAuthorizationServerMetadata), AgentMcpError> {
     let resource_url = secure_oauth_url(endpoint)?;
-    let client = reqwest::Client::builder()
+    let client = crate::bonzai::egress::guarded_builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|_| AgentMcpError::Transport)?;
@@ -686,7 +686,7 @@ async fn register_oauth_client(
         .registration_endpoint
         .as_deref()
         .ok_or(AgentMcpError::Protocol)?;
-    let response = reqwest::Client::new()
+    let response = crate::bonzai::egress::guarded_client()
         .post(endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .json(&OAuthRegistrationRequest {
@@ -759,7 +759,7 @@ async fn exchange_oauth_code(
     if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
         form.push(("client_secret", secret));
     }
-    let response = reqwest::Client::new()
+    let response = crate::bonzai::egress::guarded_client()
         .post(&auth.token_endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .form(&form)
@@ -963,7 +963,7 @@ async fn refresh_oauth_bundle(
     if let Some(client_secret) = bundle.oauth.get("client_secret") {
         form.push(("client_secret", client_secret.as_str()));
     }
-    let response = reqwest::Client::new()
+    let response = crate::bonzai::egress::guarded_client()
         .post(token_endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .form(&form)
@@ -2685,7 +2685,7 @@ async fn start_http_session(
     server: &McpServerDefinition,
     secrets: &McpSecretBundle,
 ) -> Result<HttpMcpSession, AgentMcpError> {
-    let client = reqwest::Client::builder()
+    let client = crate::bonzai::egress::guarded_builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|_| AgentMcpError::Transport)?;

@@ -3767,7 +3767,7 @@ fn body_model_accepts_venice_api_key(body: &serde_json::Value) -> bool {
 
 fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
@@ -3775,13 +3775,13 @@ fn http_client() -> &'static reqwest::Client {
             .user_agent(concat!("clovy/", env!("CARGO_PKG_VERSION")))
             .default_headers(app_version_headers())
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
 fn agent_http_client() -> &'static reqwest::Client {
     AGENT_HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(AGENT_HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
@@ -3789,7 +3789,7 @@ fn agent_http_client() -> &'static reqwest::Client {
             .user_agent(concat!("clovy-agent/", env!("CARGO_PKG_VERSION")))
             .default_headers(app_version_headers())
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
@@ -3808,14 +3808,14 @@ pub(crate) fn app_version_headers() -> reqwest::header::HeaderMap {
 /// host the user pointed their local model at.
 fn local_http_client() -> &'static reqwest::Client {
     LOCAL_HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(AGENT_HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
             .tcp_keepalive(Some(Duration::from_secs(30)))
             .user_agent(concat!("clovy-agent/", env!("CARGO_PKG_VERSION")))
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
@@ -5853,7 +5853,7 @@ mod live_local_tests {
     /// True when the live endpoint answers `GET {base}/models`. Used to skip
     /// gracefully instead of failing when no server is running.
     async fn live_server_reachable(base_url: &str) -> bool {
-        let Ok(client) = reqwest::Client::builder()
+        let Ok(client) = crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(Duration::from_secs(3))
             .build()

@@ -53,7 +53,7 @@ pub fn video_download_client_builder(
     // no hop can bypass the validation and address pinning above. If a provider
     // later needs CDN redirects, validate, resolve, and pin every hop before
     // following it.
-    Ok(reqwest::Client::builder()
+    Ok(crate::bonzai::egress::guarded_builder()
         .no_proxy()
         .redirect(reqwest::redirect::Policy::none())
         .resolve_to_addrs(socket_host, validated_addrs))

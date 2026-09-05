@@ -2269,7 +2269,7 @@ where
 }
 
 fn companion_http_client() -> Result<reqwest::Client, AppError> {
-    reqwest::Client::builder()
+    crate::bonzai::egress::guarded_builder()
         .timeout(Duration::from_secs(15))
         .default_headers(crate::clovy_api::app_version_headers())
         .build()

@@ -6,6 +6,7 @@ pub mod agent_recorder;
 pub mod agent_runtime;
 pub mod app_paths;
 pub mod audio;
+pub mod bonzai;
 pub mod browser;
 mod browser_broker;
 pub mod claude_projects;
@@ -451,6 +452,8 @@ pub fn run() {
         .manage(connectors::ConnectFlow::default())
         .manage(connectors::NotionConnectFlow::default())
         .setup(|app| {
+            // Refuse to start if this build points where it may not send.
+            bonzai::setup();
             browser::setup_on_app_start();
             agent_runtime::tools::seed_bundled_skills(app.handle());
             setup_app_menu(app)?;

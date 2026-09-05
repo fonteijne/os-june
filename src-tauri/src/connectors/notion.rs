@@ -139,7 +139,7 @@ fn http_client() -> Result<&'static reqwest::Client, AppError> {
             // ambient process proxy variables that could redirect credentials.
             // This means proxy-required networks are intentionally unsupported
             // until Clovy has an explicit trusted-proxy connector setting.
-            reqwest::Client::builder()
+            crate::bonzai::egress::guarded_builder()
                 .no_proxy()
                 .redirect(reqwest::redirect::Policy::none())
                 .connect_timeout(HTTP_CONNECT_TIMEOUT)
