@@ -386,10 +386,18 @@ budget.
 
 ## 13. Rollout
 
-1. **Phase 0 — fork hygiene.** Done: `upstream` remote added, `bonzai-main`
-   branched from `main`, [UPSTREAM.md](../UPSTREAM.md) written, and the
-   conflict canary landed. Both merge steps dry-run clean at the current
-   heads. See [bonzai-implementation-plan.md](bonzai-implementation-plan.md).
+**Live status for every phase below lives in the
+[implementation plan's status board](bonzai-implementation-plan.md#phase-status),
+which is the single source of truth.** This section describes the sequence and
+why it is ordered this way; it deliberately carries no status of its own, so
+the two documents cannot drift apart.
+
+**Beta is phases 1 to 6.** Phase 0 is groundwork; the dictation phase is
+post-beta by decision.
+
+1. **Phase 0 — fork hygiene.** The `upstream` remote, the `bonzai-main`
+   trunk, [UPSTREAM.md](../UPSTREAM.md), and the conflict canary. First
+   because it is cheapest while divergence from upstream is near zero.
 2. **Phase 1 — the guard.** Egress allowlist at both HTTP chokepoints plus
    the CI test. Landing this before any routing means every later phase is
    verified by construction.

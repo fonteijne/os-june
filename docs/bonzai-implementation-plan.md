@@ -26,6 +26,34 @@ is unaffected. Key lifecycle
 (create, rotate, revoke, budget) stays in LiteLLM's own UI. Per-operation
 keys and spend readback are deferred.
 
+## Phase status
+
+**This table is the single source of truth for phase status.** The PRD
+describes the sequence and the intent; execution state lives here, so the two
+documents cannot disagree. Each phase section below repeats its status inline;
+if a heading and this table ever differ, the table is wrong until someone
+checks which is right.
+
+Vocabulary: `not started` | `in progress` | `done` | `blocked` | `deferred`.
+
+Row labels match the phase headings below **exactly**, so the board and the
+sections can be diffed mechanically rather than by eye. Renaming a phase means
+renaming it in both places.
+
+| Phase | Status | Exit criterion | Evidence / blocker |
+| --- | --- | --- | --- |
+| 0 - fork hygiene | **done** | `upstream` remote, `bonzai-main`, ledger, canary all exist | Canary dry-ran clean at `main` `693a125` / `upstream/main` `8fed7ac` |
+| 1 - the egress guard | **not started** | No path reaches a non-allowlisted host without failing CI | Next up. Unblocked - open question 3 resolved in ADR-0059 |
+| 2 - Bonzai provider, chat paths | **not started** | Agent chat and note generation reach Bonzai only | Depends on Phase 1 |
+| 3 - note transcription | **not started** | Note transcription reaches Bonzai at acceptable quality | Needs the whisper backend choice (open question 1) |
+| 4 - per-project keys | **not started** | Spend in LiteLLM reconciles to the project worked in | Depends on Phase 2 |
+| 5 - severance | **not started** | Zero OS Accounts and Clovy API requests in a session | Includes the dictation kill switch |
+| 6 - MCP policy | **not started** | Search restorable without reopening inference egress | Last beta phase |
+| Post-beta - dictation | **deferred** | Dictation on, and no slower than the baseline it replaced | Blocked on a benchmarked whisper backend; also projected to exceed the touched-line budget (43 / 40) |
+
+**Beta is phases 1 to 6.** Post-beta work is out of beta scope by decision,
+not by slippage.
+
 ## Egress enforcement, in brief
 
 The full analysis moved into
@@ -243,7 +271,9 @@ in a superseding ADR. It should not be quietly exceeded.
 
 ## Phasing
 
-### Phase 0 - fork hygiene (done)
+### Phase 0 - fork hygiene
+
+**Status: done.**
 
 - `upstream` remote added; `bonzai-main` branched from `main`.
 - [UPSTREAM.md](../UPSTREAM.md) - topology, sync runbook, ledger, post-merge
@@ -255,6 +285,8 @@ in a superseding ADR. It should not be quietly exceeded.
 `upstream/main` = `8fed7ac`.
 
 ### Phase 1 - the egress guard
+
+**Status: not started.** Next up.
 
 Lands **before** any routing, so every later phase is verified by
 construction.
@@ -274,6 +306,8 @@ CI.
 
 ### Phase 2 - Bonzai provider, chat paths
 
+**Status: not started.** Depends on Phase 1.
+
 **Additive:** `bonzai/chat.rs`, `bonzai/models.rs`, `bonzai/keys.rs` (global
 key only), `PROVIDER_BONZAI`.
 
@@ -287,6 +321,8 @@ fails loudly and never falls back.
 **Exit:** chat and note generation reach Bonzai only.
 
 ### Phase 3 - note transcription
+
+**Status: not started.** Needs the whisper backend choice.
 
 The one remaining path with no existing escape hatch. Dictation is disabled
 here rather than ported (see the post-beta phase).
@@ -305,6 +341,8 @@ operations (agent chat, note generation, note transcription) are fully
 routed.
 
 ### Phase 4 - per-project keys
+
+**Status: not started.** Depends on Phase 2.
 
 The feature the PRD is named for, and structurally the safest phase.
 
@@ -337,6 +375,8 @@ before work starts; the key never appears in a frontend payload or a log.
 **Exit:** spend in LiteLLM reconciles to the project worked in.
 
 ### Phase 5 - severance
+
+**Status: not started.**
 
 **Shared:** unregister the disabled tools; remove their UI surfaces; fail
 closed on their call paths; `shouldBlockOnSignIn` returns false under the
@@ -371,6 +411,8 @@ this should hold, but it is the change most likely to surprise.
 
 ### Phase 6 - MCP policy
 
+**Status: not started.**
+
 **Shared:** restrict server creation to `streamable_http`; validate the host
 against the allowlist at save time and at connect time.
 
@@ -381,6 +423,8 @@ non-allowlisted host is refused at both points.
 inference egress.
 
 ### Post-beta - dictation
+
+**Status: deferred** by decision, not slippage.
 
 Deliberately outside the beta because the risk is a product risk, not a
 structural one.
@@ -440,5 +484,7 @@ requirement, not a nicety:
       (`repository-hygiene` enforces the pin).
 - [x] Both canary merge steps dry-run clean locally at the current heads.
 - [x] `bonzai-main` exists on `origin` and points at `main`.
+- [x] Every phase carries a status in both the status board and its own
+      section, and the two agree.
 - [ ] Docs-only otherwise - no build gate applies, but `make verify` should
       be green on `bonzai-main` before Phase 1 opens.
