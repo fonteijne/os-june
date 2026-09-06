@@ -1,4 +1,5 @@
 import { IconCrossSmall } from "central-icons/IconCrossSmall";
+import { DICTATION_ENABLED } from "../../lib/feature-flags";
 import { IconArrowBoxRight } from "central-icons/IconArrowBoxRight";
 import { IconBubble3 } from "central-icons/IconBubble3";
 import { IconRobot2 } from "central-icons/IconRobot2";
@@ -319,7 +320,9 @@ const SETTINGS_SIDEBAR_GROUPS: {
  * id here; restore the full nav by deleting this set and the `.filter` in
  * SettingsSidebar that uses it.
  */
-export const HIDDEN_SETTINGS_TABS: ReadonlySet<SettingsTab> = new Set();
+export const HIDDEN_SETTINGS_TABS: ReadonlySet<SettingsTab> = new Set(
+  DICTATION_ENABLED ? [] : ["dictation"],
+);
 
 export function Sidebar({
   notes,
@@ -639,13 +642,17 @@ export function Sidebar({
         searchText: normalizeCommandQuery("projects folders go to"),
         action: () => onChangeView("folders"),
       },
-      {
-        id: "quick:dictation",
-        label: "Go to Dictation",
-        icon: <IconMicrophone size={15} />,
-        searchText: normalizeCommandQuery("dictation go to"),
-        action: () => onChangeView("dictation"),
-      },
+      ...(DICTATION_ENABLED
+        ? [
+            {
+              id: "quick:dictation",
+              label: "Go to Dictation",
+              icon: <IconMicrophone size={15} />,
+              searchText: normalizeCommandQuery("dictation go to"),
+              action: () => onChangeView("dictation"),
+            },
+          ]
+        : []),
       {
         id: "quick:connectors",
         label: "Go to connectors",
@@ -1219,18 +1226,20 @@ export function Sidebar({
               </span>
               <span className="sidebar-nav-label">Projects</span>
             </button>
-            <button
-              type="button"
-              className="sidebar-nav-item"
-              data-active={activeView === "dictation"}
-              aria-current={activeView === "dictation" ? "page" : undefined}
-              onClick={() => onChangeView("dictation")}
-            >
-              <span className="sidebar-nav-icon">
-                <IconMicrophone size={16} />
-              </span>
-              <span className="sidebar-nav-label">Dictation</span>
-            </button>
+            {DICTATION_ENABLED ? (
+              <button
+                type="button"
+                className="sidebar-nav-item"
+                data-active={activeView === "dictation"}
+                aria-current={activeView === "dictation" ? "page" : undefined}
+                onClick={() => onChangeView("dictation")}
+              >
+                <span className="sidebar-nav-icon">
+                  <IconMicrophone size={16} />
+                </span>
+                <span className="sidebar-nav-label">Dictation</span>
+              </button>
+            ) : null}
             <button
               type="button"
               className="sidebar-nav-item"

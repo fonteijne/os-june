@@ -115,6 +115,7 @@ pub async fn dispatch_tool(
     name: &str,
     arguments: Value,
 ) -> Result<Value, AppError> {
+    crate::bonzai::severance::refuse_disabled_tool(name)?;
     if !name.starts_with("mcp_")
         && crate::routines::routine_tool_allowed_for_session(
             &context.repository.pool,

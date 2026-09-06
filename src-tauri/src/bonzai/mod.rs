@@ -16,6 +16,8 @@
 //! - [`models`], [`chat`], and [`audio`] are the operations: the model
 //!   catalog per key, chat completions, and audio transcription.
 //! - [`resolve`] answers "which key and which model for this work?".
+//! - [`severance`] is what this fork switches off, the fail-closed paths
+//!   behind it, and the no-account mode.
 //! - [`commands`] is the Tauri surface, deliberately one command.
 //!
 //! Upstream reaches this module through three-line prologues at the top of
@@ -30,6 +32,7 @@ pub mod http;
 pub mod keys;
 pub mod models;
 pub mod resolve;
+pub mod severance;
 
 use std::path::PathBuf;
 use std::sync::OnceLock;

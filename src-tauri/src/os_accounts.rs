@@ -464,6 +464,9 @@ fn env_or_build_trimmed(key: &str, build_value: Option<&'static str>) -> String 
 }
 
 pub(crate) fn local_dev_enabled() -> bool {
+    if crate::bonzai::severance::no_account_mode() {
+        return true;
+    }
     load_local_env();
     crate::env_compat::truthy(LOCAL_DEV_ENV, LEGACY_LOCAL_DEV_ENV)
 }
@@ -499,6 +502,9 @@ fn normalize_local_dev_user_id(value: &str) -> String {
 }
 
 fn local_dev_account_status() -> AccountStatus {
+    if crate::bonzai::severance::no_account_mode() {
+        return crate::bonzai::severance::account_status();
+    }
     AccountStatus {
         signed_in: true,
         configured: true,

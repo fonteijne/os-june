@@ -448,6 +448,7 @@ pub async fn generate_note_from_transcript(
 pub async fn dictate_transcribe(
     request: DictateTranscribeRequest,
 ) -> Result<TranscriptionProviderResult, AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "dictation.wav");
     let model = crate::providers::transcription_model();
@@ -488,6 +489,7 @@ fn normalized_language(language: Option<&str>) -> Option<&str> {
 }
 
 pub async fn cleanup_text(params: DictateCleanupRequestParams) -> Result<String, AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     let model = DEFAULT_DICTATION_CLEANUP_MODEL.to_string();
     let send_venice_api_key = model_accepts_venice_api_key(&model);
     let body = DictateCleanupBody {
@@ -525,6 +527,7 @@ pub async fn submit_p3a_report(request: P3aReportRequest) -> Result<(), AppError
 }
 
 pub async fn list_models(model_type: &str) -> Result<Vec<ModelDto>, AppError> {
+    crate::bonzai::severance::refuse_clovy_api("/v1/models")?;
     let url = format!("{}/v1/models", clovy_api_url());
     let response = http_client()
         .get(url)
@@ -548,6 +551,7 @@ pub struct BrowserTransportPolicyDto {
 /// distinct so they cannot overwrite the last known policy.
 pub async fn fetch_browser_transport_policy() -> Result<Option<BrowserTransportPolicyDto>, AppError>
 {
+    crate::bonzai::severance::refuse_clovy_api("/v1/browser-transport-policy")?;
     let path = "/v1/browser-transport-policy";
     let response = http_client()
         .get(format!("{}{}", clovy_api_url(), path))
@@ -562,6 +566,7 @@ pub async fn fetch_browser_transport_policy() -> Result<Option<BrowserTransportP
 }
 
 pub async fn computer_use_rollout(macos_version: &str) -> Result<ComputerUseRolloutDto, AppError> {
+    crate::bonzai::severance::refuse_clovy_api("/v1/computer-use/rollout")?;
     let url = format!("{}/v1/computer-use/rollout", clovy_api_url());
     let response = http_client()
         .get(url)
@@ -3592,6 +3597,7 @@ async fn send_multipart(
     form: Form,
     send_venice_api_key: bool,
 ) -> Result<reqwest::Response, AppError> {
+    crate::bonzai::severance::refuse_clovy_api(path)?;
     // access_token() now pre-emptively refreshes if the cached JWT is stale,
     // so multipart bodies (which can't be replayed on a 401) go out with a
     // known-fresh token. Form is not Clone, so a retry-on-401 fallback isn't
@@ -3626,6 +3632,7 @@ async fn authed_send<F>(
 where
     F: Fn(&reqwest::Client, String, String) -> reqwest::RequestBuilder,
 {
+    crate::bonzai::severance::refuse_clovy_api(path)?;
     let client = http_client();
     let url = format!("{}{}", clovy_api_url(), path);
     let mut token = crate::os_accounts::access_token().await?;
