@@ -164,14 +164,24 @@ with re-indented lines under a wrap counted (the pessimistic reading).
 | `src/components/settings/AppSettings.tsx` | 5 | P, W | Phase 2: import and mount of the Bonzai section (2). Phase 5: hook, import, and the issue-report row gated (3) | The Models tab and the report row are upstream's |
 | `src/components/settings/PrivacySettingsSection.tsx` | 4 | P | Phase 5: returns null on a Bonzai build | The telemetry section is upstream's |
 | `src/components/folders/ProjectSettingsDialog.tsx` | 2 | P | Phase 4: import and mount of the project key field | Beside instructions, per the PRD |
-| `src/components/folders/FoldersWorkspace.tsx` | 2 | P | Phase 4: import and mount of the key badge | The project card is upstream's |
+| `src/components/folders/FoldersWorkspace.tsx` | 5 | P, S | Phase 4: import and mount of the key badge (2). Beta feedback: the create dialog's `onCreate` returns the folder (3, a reflowed one-token change) | The project card and the create dialog's mount are upstream's |
+| `src/components/folders/CreateFolderDialog.tsx` | 7 | P | Beta feedback: `useBonzaiCreateKey` hook, reset, probe before create, attach after, field mounted, import | Creating a project is upstream's dialog; the key must be known before the project exists |
+| `src/lib/agent-runtime-adapter.ts` | 5 | P | Beta feedback: `bonzaiNoticePart` returns a Bonzai refusal as its own notice (4), import (1) | Where a failed run becomes a chat part |
+| `src/components/agent/chat-turns/RunNotices.tsx` | 4 | P, S | Beta feedback: `text` prop (3), shown for the `bonzai` kind (1) | The failure notice is upstream's component |
+| `src/components/agent/chat-turns/AgentChatTurnRow.tsx` | 3 | P | Beta feedback: the `bonzai` kind routed to the notice with its text | Upstream's part dispatch |
+| `agent-runtime/src/sanitize.ts` | 3 | P | Beta feedback: `bonzaiFailure` prologue in `runtimeFailureDetails` keeps a Bonzai `AppError` code out of the "runtime" fallback | The one classifier every failed run passes through |
+| `src/lib/agent-chat-runtime.ts` | 1 | S | Beta feedback: `bonzai` added to the notice kind union | The part type is upstream's |
 | `src/lib/feature-flags.ts` | 2 | F | Phase 5: `IMAGE_GENERATION_ENABLED`, `VIDEO_GENERATION_ENABLED` off | Upstream's own kill switches |
 | `src/test/app-notes-reliability.test.tsx` | 6 | P | Phase 5: `feature-flags` mocked with dictation on, following the slash-command test's convention | Upstream tests click the dictation entry this fork hides |
 | `src/test/folders-workspace.test.tsx` | 6 | P | As above | As above |
+| `agent-runtime/test/sanitize.test.ts` | 16 | P | Beta feedback: one appended test for the Bonzai classifier | Beside the classifier's own tests |
 
-**Running total: 119 counted lines in source (plus 12 in tests) against
+**Running total: 145 counted lines in source (plus 28 in tests) against
 ADR-0060's ceiling of 150.** By phase: 1 - 24, 2 - 12, 3 - 3, 4 - 5,
-5 - 62, 6 - 13. The 12 test lines sit outside the count because a mock at
+5 - 62, 6 - 13, beta feedback - 26 (key at project creation 10, Bonzai
+refusals shown with their reason 16). Five lines of headroom remain; the next
+shared-line change needs a matching reduction or an ADR-0060 addendum. The
+28 test lines sit outside the count because a mock at
 the top of a test file carries no merge risk to the code under test; they are
 listed so the surface is whole.
 

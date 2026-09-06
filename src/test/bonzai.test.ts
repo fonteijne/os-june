@@ -8,6 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import {
+  bonzaiNoticePart,
   bonzaiProjectKeyIndex,
   bonzaiStatus,
   clearBonzaiProjectKey,
@@ -77,5 +78,14 @@ describe("Bonzai bindings", () => {
     await setBonzaiProjectKey("f1", "sk-live-abcdefghij");
     expect(heard).toHaveBeenCalledTimes(1);
     window.removeEventListener("clovy:bonzai-project-keys-changed", heard);
+  });
+
+  it("renders a Bonzai refusal as a notice with its reason, and nothing else", () => {
+    expect(
+      bonzaiNoticePart({ code: "bonzai_key_missing", message: "No key.", retryable: false }),
+    ).toEqual({ type: "notice", kind: "bonzai", text: "No key.", retryable: false });
+    expect(bonzaiNoticePart({ code: "egress_blocked", message: "Blocked." })?.kind).toBe("bonzai");
+    expect(bonzaiNoticePart({ code: "agent_provider_failed", message: "x" })).toBeUndefined();
+    expect(bonzaiNoticePart({ message: "x" })).toBeUndefined();
   });
 });

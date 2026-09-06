@@ -24,9 +24,11 @@ export function CreditsNoticePart({ onTopUp }: { onTopUp?: () => void; [key: str
 export function UpstreamProviderFailureNoticePart({
   onRetry,
   kind = "upstream-provider",
+  text,
 }: {
   onRetry?: () => void;
-  kind?: "upstream-provider" | "tool" | "runtime";
+  kind?: "upstream-provider" | "tool" | "runtime" | "bonzai";
+  text?: string;
   [key: string]: unknown;
 }) {
   const message =
@@ -37,7 +39,7 @@ export function UpstreamProviderFailureNoticePart({
         : "The model service could not finish this request.";
   return (
     <div className="agent-system-notice">
-      {message}
+      {kind === "bonzai" ? text : message}
       {onRetry ? (
         <button type="button" onClick={onRetry}>
           Try again

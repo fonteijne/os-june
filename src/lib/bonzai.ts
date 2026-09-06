@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
+import type { AgentChatNoticePart } from "./agent-chat-runtime";
 
 // Bonzai is this fork's own LiteLLM deployment and its only inference
 // destination. The native side exposes one dispatching Tauri command so the
@@ -174,4 +175,17 @@ export function describeBonzaiError(error: unknown): string {
   if (message) return message;
   if (error instanceof Error) return error.message;
   return "Bonzai request failed.";
+}
+
+/** A Bonzai refusal (no key, rejected key, model not permitted, egress
+ * blocked) reaches the chat as a failed run whose code the sidecar preserved.
+ * Rendered with its reason, so the user can fix the key instead of retrying
+ * against "Clovy stopped unexpectedly". */
+export function bonzaiNoticePart(item: {
+  code?: string;
+  message: string;
+  retryable?: boolean;
+}): AgentChatNoticePart | undefined {
+  if (!item.code || !/^(?:bonzai_[a-z_]+|egress_blocked)$/.test(item.code)) return undefined;
+  return { type: "notice", kind: "bonzai", text: item.message, retryable: item.retryable };
 }

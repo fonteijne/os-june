@@ -318,7 +318,7 @@ function FolderList({
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={async (name, description) => {
-          await onCreateFolder(name, description);
+          return await onCreateFolder(name, description);
         }}
       />
       <ImportClaudeProjectsDialog

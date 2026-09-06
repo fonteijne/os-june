@@ -66,7 +66,7 @@ export type AgentChatSecretPart = {
 };
 export type AgentChatNoticePart = {
   type: "notice";
-  kind: "credits" | "context-overflow" | "upstream-provider" | "tool" | "runtime";
+  kind: "credits" | "context-overflow" | "upstream-provider" | "tool" | "runtime" | "bonzai";
   text: string;
   retryable?: boolean;
 };
