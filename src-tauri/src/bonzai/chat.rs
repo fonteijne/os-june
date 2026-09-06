@@ -116,6 +116,18 @@ pub async fn generate_note(
 /// the user was shown privacy copy for that choice that Bonzai does not
 /// honour.
 pub async fn proxy_agent_chat_completions(
+    body: serde_json::Value,
+) -> Result<AgentChatCompletionsResponse, AppError> {
+    // Every refusal is logged here, at the one entry the agent runtime uses,
+    // so the reason reaches the terminal even when the UI shows only a notice.
+    let result = proxy_agent_chat_completions_inner(body).await;
+    if let Err(error) = &result {
+        tracing::warn!(target: "bonzai", code = %error.code, message = %error.message, "agent chat refused");
+    }
+    result
+}
+
+async fn proxy_agent_chat_completions_inner(
     mut body: serde_json::Value,
 ) -> Result<AgentChatCompletionsResponse, AppError> {
     let session_id = body

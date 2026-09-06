@@ -12,6 +12,8 @@
 //! - [`config`] resolves the base URL and submits it to that check.
 //! - [`keys`] is the keychain-backed store for Bonzai keys, global and
 //!   per-project.
+//! - [`logging`] installs the stderr subscriber upstream never did, so the
+//!   runtime's stderr and Bonzai refusals reach the `pnpm tauri:dev` terminal.
 //! - [`http`] is the single request helper every Bonzai call goes through.
 //! - [`models`], [`chat`], and [`audio`] are the operations: the model
 //!   catalog per key, chat completions, and audio transcription.
@@ -31,6 +33,7 @@ pub mod config;
 pub mod egress;
 pub mod http;
 pub mod keys;
+pub(crate) mod logging;
 pub mod mcp_policy;
 pub mod models;
 pub mod resolve;
@@ -71,6 +74,7 @@ pub fn active() -> bool {
 /// An unconfigured base URL is not an error: a build without one simply does
 /// not route to Bonzai.
 pub fn setup(app: &tauri::App) {
+    logging::install();
     let _ = APP.set(app.handle().clone());
     if let Ok(directory) = crate::app_paths::app_config_dir(app.handle()) {
         let _ = CONFIG_DIR.set(directory);
