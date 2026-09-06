@@ -41,6 +41,11 @@ use std::sync::OnceLock;
 pub const PROVIDER_BONZAI: &str = "bonzai";
 
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
+static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
+
+/// The wire field the agent host stamps onto a chat request so the Bonzai
+/// proxy can bill the session's project. Stripped before the request leaves.
+pub const SESSION_TAG_FIELD: &str = "clovy_session_id";
 
 /// Whether this build routes inference to Bonzai.
 ///
@@ -61,6 +66,7 @@ pub fn active() -> bool {
 /// An unconfigured base URL is not an error: a build without one simply does
 /// not route to Bonzai.
 pub fn setup(app: &tauri::App) {
+    let _ = APP.set(app.handle().clone());
     if let Ok(directory) = crate::app_paths::app_config_dir(app.handle()) {
         let _ = CONFIG_DIR.set(directory);
     }
@@ -78,4 +84,26 @@ pub fn setup(app: &tauri::App) {
 /// The app's configuration directory, once `setup` has run.
 pub(crate) fn config_dir() -> Option<PathBuf> {
     CONFIG_DIR.get().cloned()
+}
+
+/// The app handle, once `setup` has run. Bonzai reaches the notes database
+/// through it to answer "which project is this work for?".
+pub(crate) fn app_handle() -> Option<tauri::AppHandle> {
+    APP.get().cloned()
+}
+
+/// Stamp an agent chat request with the session it belongs to, so the Bonzai
+/// proxy can resolve the session's project and bill its key. A no-op when
+/// Bonzai is inactive, so the one line upstream's host spends on it is inert
+/// for every other build.
+pub fn tag_agent_request(body: &mut serde_json::Value, session_id: &str) {
+    if !active() {
+        return;
+    }
+    if let Some(object) = body.as_object_mut() {
+        object.insert(
+            SESSION_TAG_FIELD.to_string(),
+            serde_json::Value::String(session_id.to_string()),
+        );
+    }
 }

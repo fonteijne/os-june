@@ -108,14 +108,99 @@ pub async fn set(scope: &KeyScope, key: &str) -> Result<(), AppError> {
     let user = scope.user();
     tokio::task::spawn_blocking(move || store::set(service(), &user, &key))
         .await
-        .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))?
+        .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))??;
+    if let KeyScope::Project { folder_id } = scope {
+        index::add(folder_id)?;
+    }
+    Ok(())
 }
 
 pub async fn clear(scope: &KeyScope) -> Result<(), AppError> {
     let user = scope.user();
     tokio::task::spawn_blocking(move || store::delete(service(), &user))
         .await
-        .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))?
+        .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))??;
+    if let KeyScope::Project { folder_id } = scope {
+        index::remove(folder_id)?;
+    }
+    Ok(())
+}
+
+/// The projects that carry their own key, for the projects list. The
+/// keychain cannot be enumerated, so this is an index maintained beside it;
+/// the keychain stays authoritative and `reconcile_index` repairs drift.
+pub fn project_ids_with_keys() -> Result<Vec<String>, AppError> {
+    index::list()
+}
+
+/// Bring the index in line with what the keychain actually holds for one
+/// project. Called whenever a project's key is read, so a keychain item
+/// removed outside Clovy stops being advertised the next time it is looked at.
+pub fn reconcile_index(folder_id: &str, key_present: bool) -> Result<(), AppError> {
+    if key_present {
+        index::add(folder_id)
+    } else {
+        index::remove(folder_id)
+    }
+}
+
+/// Which projects have a key. A JSON list in the app config directory; it
+/// holds folder ids only, never a key, so it is not a secret.
+mod index {
+    use super::{AppError, KEYCHAIN_FAILED};
+    use std::collections::BTreeSet;
+    use std::path::PathBuf;
+
+    fn path() -> Result<PathBuf, AppError> {
+        let directory = crate::bonzai::config_dir().ok_or_else(|| {
+            AppError::new(
+                KEYCHAIN_FAILED,
+                "The Bonzai key index is not available before the app has started.",
+            )
+        })?;
+        Ok(directory.join(format!("{}.projects.json", super::service())))
+    }
+
+    fn load() -> Result<BTreeSet<String>, AppError> {
+        match std::fs::read_to_string(path()?) {
+            Ok(raw) => serde_json::from_str(&raw)
+                .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string())),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(BTreeSet::new()),
+            Err(error) => Err(AppError::new(KEYCHAIN_FAILED, error.to_string())),
+        }
+    }
+
+    fn save(ids: &BTreeSet<String>) -> Result<(), AppError> {
+        let path = path()?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))?;
+        }
+        let raw = serde_json::to_string_pretty(ids)
+            .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))?;
+        std::fs::write(&path, raw)
+            .map_err(|error| AppError::new(KEYCHAIN_FAILED, error.to_string()))
+    }
+
+    pub fn list() -> Result<Vec<String>, AppError> {
+        Ok(load()?.into_iter().collect())
+    }
+
+    pub fn add(folder_id: &str) -> Result<(), AppError> {
+        let mut ids = load()?;
+        if ids.insert(folder_id.to_string()) {
+            save(&ids)?;
+        }
+        Ok(())
+    }
+
+    pub fn remove(folder_id: &str) -> Result<(), AppError> {
+        let mut ids = load()?;
+        if ids.remove(folder_id) {
+            save(&ids)?;
+        }
+        Ok(())
+    }
 }
 
 /// The key for a scope, or the loud refusal the PRD requires when there is

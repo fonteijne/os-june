@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 
 // Bonzai is this fork's own LiteLLM deployment and its only inference
 // destination. The native side exposes one dispatching Tauri command so the
@@ -27,8 +28,15 @@ export type BonzaiProbeDto = {
   models: string[];
 };
 
+export type BonzaiProjectKeyIndexDto = {
+  /** Folder ids that carry their own Bonzai key. Everything else bills to the
+   * global key. */
+  folderIds: string[];
+};
+
 type BonzaiRequest =
   | { action: "status" }
+  | { action: "project_key_index" }
   | { action: "set_global_key"; key: string }
   | { action: "clear_global_key" }
   | { action: "set_project_key"; folder_id: string; key: string }
@@ -39,7 +47,8 @@ type BonzaiRequest =
 type BonzaiResponse =
   | ({ kind: "status" } & BonzaiStatusDto)
   | ({ kind: "project_key_status" } & BonzaiProjectKeyStatusDto)
-  | ({ kind: "probe" } & BonzaiProbeDto);
+  | ({ kind: "probe" } & BonzaiProbeDto)
+  | ({ kind: "project_key_index" } & BonzaiProjectKeyIndexDto);
 
 async function dispatch<K extends BonzaiResponse["kind"]>(
   request: BonzaiRequest,
@@ -66,12 +75,87 @@ export function clearBonzaiGlobalKey() {
   return dispatch({ action: "clear_global_key" }, "status");
 }
 
-export function setBonzaiProjectKey(folderId: string, key: string) {
-  return dispatch({ action: "set_project_key", folder_id: folderId, key }, "project_key_status");
+/** Fired on `window` whenever a project's key is stored or removed, so every
+ * mounted badge refreshes without a shared store. */
+export const BONZAI_PROJECT_KEYS_CHANGED_EVENT = "clovy:bonzai-project-keys-changed";
+
+function dispatchProjectKeysChanged() {
+  window.dispatchEvent(new Event(BONZAI_PROJECT_KEYS_CHANGED_EVENT));
 }
 
-export function clearBonzaiProjectKey(folderId: string) {
-  return dispatch({ action: "clear_project_key", folder_id: folderId }, "project_key_status");
+export async function setBonzaiProjectKey(folderId: string, key: string) {
+  const status = await dispatch(
+    { action: "set_project_key", folder_id: folderId, key },
+    "project_key_status",
+  );
+  dispatchProjectKeysChanged();
+  return status;
+}
+
+export async function clearBonzaiProjectKey(folderId: string) {
+  const status = await dispatch(
+    { action: "clear_project_key", folder_id: folderId },
+    "project_key_status",
+  );
+  dispatchProjectKeysChanged();
+  return status;
+}
+
+export function bonzaiProjectKeyIndex() {
+  return dispatch({ action: "project_key_index" }, "project_key_index");
+}
+
+let activePromise: Promise<boolean> | undefined;
+
+/** Whether this build routes to Bonzai. A build property, so it is fetched
+ * once and shared; a failed lookup reads as inactive so nothing Bonzai-only
+ * renders on a build that is not. */
+export function bonzaiActive(): Promise<boolean> {
+  activePromise ??= bonzaiStatus()
+    .then((status) => status.active)
+    .catch(() => false);
+  return activePromise;
+}
+
+export function useBonzaiActive() {
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void bonzaiActive().then((value) => {
+      if (!cancelled) setActive(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return active;
+}
+
+/** The set of folder ids with their own key, kept fresh across key changes.
+ * Undefined until the first answer arrives so callers can avoid flashing the
+ * wrong badge. */
+export function useBonzaiProjectKeyIndex(enabled: boolean) {
+  const [folderIds, setFolderIds] = useState<ReadonlySet<string>>();
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    const refresh = () => {
+      bonzaiProjectKeyIndex()
+        .then((index) => {
+          if (!cancelled) setFolderIds(new Set(index.folderIds));
+        })
+        .catch(() => {
+          if (!cancelled) setFolderIds(new Set());
+        });
+    };
+    refresh();
+    window.addEventListener(BONZAI_PROJECT_KEYS_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(BONZAI_PROJECT_KEYS_CHANGED_EVENT, refresh);
+    };
+  }, [enabled]);
+  return folderIds;
 }
 
 export function bonzaiProjectKeyStatus(folderId: string) {

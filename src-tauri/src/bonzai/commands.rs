@@ -40,6 +40,8 @@ pub enum BonzaiRequest {
     ProbeKey {
         key: String,
     },
+    /// The projects that carry their own key, for the projects list.
+    ProjectKeyIndex,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -72,11 +74,18 @@ pub struct BonzaiProbeDto {
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BonzaiProjectKeyIndexDto {
+    pub folder_ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum BonzaiResponse {
     Status(BonzaiStatusDto),
     ProjectKeyStatus(BonzaiProjectKeyStatusDto),
     Probe(BonzaiProbeDto),
+    ProjectKeyIndex(BonzaiProjectKeyIndexDto),
 }
 
 #[tauri::command]
@@ -114,6 +123,11 @@ pub async fn bonzai_command(request: BonzaiRequest) -> Result<BonzaiResponse, Ap
                 .map(BonzaiResponse::ProjectKeyStatus)
         }
         BonzaiRequest::ProbeKey { key } => probe(&key).await.map(BonzaiResponse::Probe),
+        BonzaiRequest::ProjectKeyIndex => {
+            Ok(BonzaiResponse::ProjectKeyIndex(BonzaiProjectKeyIndexDto {
+                folder_ids: keys::project_ids_with_keys()?,
+            }))
+        }
     }
 }
 
@@ -132,6 +146,7 @@ async fn project_key_status(folder_id: String) -> Result<BonzaiProjectKeyStatusD
         folder_id: folder_id.clone(),
     })
     .await?;
+    keys::reconcile_index(&folder_id, project.is_some())?;
     let global = keys::get(&KeyScope::Global).await?;
     Ok(BonzaiProjectKeyStatusDto {
         folder_id,

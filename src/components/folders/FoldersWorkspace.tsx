@@ -30,6 +30,7 @@ import {
   useState,
 } from "react";
 import { LEGACY_NOTE_DND_MIME, NOTE_DND_MIME } from "../../lib/dnd";
+import { BonzaiKeyBadge } from "./BonzaiKeyBadge";
 import { useDismiss } from "../../lib/use-dismiss";
 import { useForcedEmptyStates } from "../../lib/empty-states-demo";
 import { BreadcrumbBar } from "../ui/BreadcrumbBar";
@@ -483,6 +484,7 @@ function FolderCard({
         <div className="folder-card-text">
           <h3 className="folder-card-title">{folder.name}</h3>
           {folder.description ? <p className="folder-card-meta">{folder.description}</p> : null}
+          <BonzaiKeyBadge folderId={folder.id} />
           {folder.localPath ? (
             <p className="folder-card-path" title={folder.localPath}>
               {folder.localPath}

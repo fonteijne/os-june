@@ -36,7 +36,7 @@ pub async fn generate_note(
             "Transcript is empty, so a note cannot be generated.",
         ));
     }
-    let resolved = resolve::key_for(None).await?;
+    let resolved = resolve::key_for_operation(request.operation_id.as_deref()).await?;
     let model = resolve::generation_model()?;
     let title_hint = request.title.trim();
     let user_message = format!(
@@ -118,14 +118,18 @@ pub async fn generate_note(
 pub async fn proxy_agent_chat_completions(
     mut body: serde_json::Value,
 ) -> Result<AgentChatCompletionsResponse, AppError> {
-    let folder_id = body
-        .get("clovy_folder_id")
+    let session_id = body
+        .get(super::SESSION_TAG_FIELD)
         .and_then(serde_json::Value::as_str)
         .map(str::to_string);
+    let folder_id = match session_id.as_deref() {
+        Some(session_id) => resolve::folder_for_session(session_id).await,
+        None => None,
+    };
     let resolved = resolve::key_for(folder_id.as_deref()).await?;
     let model = resolve_agent_model(&body)?;
     if let Some(object) = body.as_object_mut() {
-        object.remove("clovy_folder_id");
+        object.remove(super::SESSION_TAG_FIELD);
         object.insert(
             "model".to_string(),
             serde_json::Value::String(model.clone()),
