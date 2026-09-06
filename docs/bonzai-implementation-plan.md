@@ -44,11 +44,11 @@ renaming it in both places.
 | --- | --- | --- | --- |
 | 0 - fork hygiene | **done** | `upstream` remote, `bonzai-main`, ledger, canary all exist | Canary dry-ran clean at `main` `693a125` / `upstream/main` `8fed7ac` |
 | 1 - the egress guard | **done** | No path reaches a non-allowlisted host without failing CI | `bonzai/{mod,egress,config}.rs` + `tests/bonzai_egress_guard.rs`; all 16 client sites routed; guard verified to fail on a reintroduced raw client |
-| 2 - Bonzai provider, chat paths | **not started** | Agent chat and note generation reach Bonzai only | Next up. Unblocked - Phase 1 done |
-| 3 - note transcription | **not started** | Note transcription reaches Bonzai at acceptable quality | Needs the whisper backend choice (open question 1) |
-| 4 - per-project keys | **not started** | Spend in LiteLLM reconciles to the project worked in | Depends on Phase 2 |
-| 5 - severance | **not started** | Zero OS Accounts and Clovy API requests in a session | Includes the dictation kill switch |
-| 6 - MCP policy | **not started** | Search restorable without reopening inference egress | Last beta phase |
+| 2 - Bonzai provider, chat paths | **done** | Agent chat and note generation reach Bonzai only | `bonzai/{http,keys,models,chat,resolve,commands}.rs`; prologues in both chat paths and the picker; end-to-end run against a live Bonzai still owed (see the section) |
+| 3 - note transcription | **done** (routing) | Note transcription reaches Bonzai at acceptable quality | `bonzai/audio.rs` + one prologue. The quality gate against real meeting audio is not yet run and depends on open question 1 |
+| 4 - per-project keys | **done** | Spend in LiteLLM reconciles to the project worked in | Project-then-global resolution from `note_folders` and `session_folders`; keychain keys; project settings field and card badge. No migration: the plan's column was replaced by an index beside the keychain |
+| 5 - severance | **done** | Zero OS Accounts and Clovy API requests in a session | `bonzai/severance.rs`; guards on both Clovy API chokepoints and every direct GET; no-account mode; disabled tools stripped and refused; dictation off on both sides; P3A and issue reports cut |
+| 6 - MCP policy | **done** | Search restorable without reopening inference egress | `bonzai/mcp_policy.rs` + an MCP allowlist (empty) checked at save and connect time; stdio refused; the form hides it |
 | Post-beta - dictation | **deferred** | Dictation on, and no slower than the baseline it replaced | Blocked on a benchmarked whisper backend; also projected to exceed the touched-line budget (43 / 40) |
 
 **Beta is phases 1 to 6.** Post-beta work is out of beta scope by decision,
@@ -254,18 +254,25 @@ separately:
 
 Estimated against the budget:
 
-| Phase | Edits in existing blocks | Running total |
-| --- | ---: | ---: |
-| 1 - egress guard | **24 (actual)** | 24 |
-| 2 - chat paths | ~8 | 32 |
-| 3 - note transcription | ~4 | 36 |
-| 4 - per-project keys | ~4 | 40 |
-| 5 - severance (incl. dictation kill switch) | ~7 | 47 |
-| 6 - MCP policy | ~1 | 48 |
-| **Beta total** | | **~48 / 40** |
-| Post-beta - dictation | ~6 | 54 |
+| Phase | Estimated | Actual | Running total |
+| --- | ---: | ---: | ---: |
+| 1 - egress guard | ~13 | 24 | 24 |
+| 2 - chat paths | ~8 | 12 | 36 |
+| 3 - note transcription | ~4 | 3 | 39 |
+| 4 - per-project keys | ~4 | 5 | 44 |
+| 5 - severance (incl. dictation kill switch) | ~7 | 62 | 106 |
+| 6 - MCP policy | ~1 | 13 | 119 |
+| **Beta total** | **~37** | **119** | **119 / 150 (ADR-0060)** |
+| Post-beta - dictation | ~6 | - | - |
 
-**Beta no longer fits.** Phase 1 was estimated at ~13 against ADR-0059's
+**The beta landed at 119 against the original budget of 40**, and
+[ADR-0060](adr/0060-the-bonzai-touched-line-budget-is-a-shape-rule-with-an-inventoried-ceiling.md)
+supersedes that budget with a shape rule and a ceiling of 150. The per-file
+inventory, with the shape of every edit, is the ledger in
+[UPSTREAM.md](../UPSTREAM.md). The paragraphs below are kept as the record of
+how the estimate went wrong.
+
+**Beta no longer fits the original budget.** Phase 1 was estimated at ~13 against ADR-0059's
 inventory of eight client sites; the real inventory is sixteen sites and 22
 substitution lines, plus two lines wiring startup validation into the Tauri
 setup hook. Beta now projects to roughly 48 of 40, and the budget is crossed
@@ -352,7 +359,35 @@ failing CI.
 
 ### Phase 2 - Bonzai provider, chat paths
 
-**Status: not started.** Depends on Phase 1.
+**Status: done.**
+
+**What landed.** `bonzai/http.rs` (the one request helper: allowlist check,
+key, error mapping), `bonzai/keys.rs` (keychain-backed global key, last-four
+hints, shape validation), `bonzai/models.rs` (`/v1/models` per key served into
+upstream's picker as provider `bonzai`), `bonzai/chat.rs` (note generation and
+the streaming agent proxy, reusing upstream's prompts and parsers through a
+seam appended to `clovy_api.rs`), `bonzai/resolve.rs`, and one dispatching
+Tauri command. A settings section for the global key sits at the top of
+Settings > Models.
+
+**Deviations from the plan above, both deliberate:**
+
+- **Activation is the base URL, not a provider setting.** The plan's prologue
+  tested `generation_provider() == PROVIDER_BONZAI`. That would have needed
+  edits inside `sanitize_settings` and the provider toggles; instead a build
+  is a Bonzai build when it carries a base URL, and `bonzai::active()` is the
+  prologue's predicate. There is no toggle by design (PRD section 7.2: one
+  fixed endpoint for the build).
+- **No `Bonzai` arm in the route enum.** A prologue at the top of the agent
+  proxy is the ADR-0058 shape and costs three lines; an enum arm would have
+  cost edits in the enum, the resolver, and the dispatch.
+- **One Tauri command, not several.** Each registration is a line in a list
+  upstream appends to; the whole Bonzai surface hangs off one.
+
+**Verified:** 30 unit tests over model-tag decoding, error mapping, key shape,
+picker rows, and the wire contract; the guard; `cargo test --lib` green.
+**Still owed:** an end-to-end note generation against a live Bonzai with a
+real key, which this environment cannot reach.
 
 **Additive:** `bonzai/chat.rs`, `bonzai/models.rs`, `bonzai/keys.rs` (global
 key only), `PROVIDER_BONZAI`.
@@ -368,7 +403,16 @@ fails loudly and never falls back.
 
 ### Phase 3 - note transcription
 
-**Status: not started.** Needs the whisper backend choice.
+**Status: done** for routing; the quality gate is still owed.
+
+**What landed.** `bonzai/audio.rs` posts multipart to
+`/v1/audio/transcriptions` with the file, the model, a language hint, and the
+caller's context as the whisper `prompt`; `verbose_json` so the detected
+language comes back. One prologue in `transcribe_saved_audio`. Live previews
+bill to the global key (they run before a note has a project).
+
+**Still owed:** transcribing real meeting recordings through Bonzai and
+comparing against the Venice output (open question 1 decides the backend).
 
 The one remaining path with no existing escape hatch. Dictation is disabled
 here rather than ported (see the post-beta phase).
@@ -388,7 +432,26 @@ routed.
 
 ### Phase 4 - per-project keys
 
-**Status: not started.** Depends on Phase 2.
+**Status: done.**
+
+**What landed.** `resolve::key_for` (project key, else global, else a refusal
+naming the project); the project found from the note id upstream already
+threads through transcription and generation (`note_folders`, with the
+`-chunk-N` suffix stripped) and from the agent session id the host stamps onto
+a chat request in one shared line (`session_folders`). Per-project keys in the
+keychain under `project:<folder id>`; a field beside instructions in project
+settings; an own-or-global badge on the project card.
+
+**Deviation: no migration 035.** The keychain user is already deterministic
+from the folder id, so a column would have bought only the list badge, at the
+cost of edits in the repository, the DTO, the migration list, and the
+frontend type. A JSON index of folder ids beside the keychain buys the same
+for zero shared lines; the keychain stays authoritative and the index is
+reconciled on every read. The "reference on `folders`, never the secret"
+intent is preserved: nothing about a key is in the database at all.
+
+**Verified:** operation-id parsing, scope naming, the wire contract, and the
+binding test; a live two-project reconciliation in LiteLLM is still owed.
 
 The feature the PRD is named for, and structurally the safest phase.
 
@@ -422,7 +485,23 @@ before work starts; the key never appears in a frontend payload or a log.
 
 ### Phase 5 - severance
 
-**Status: not started.**
+**Status: done.** The largest overrun; ADR-0060 records why.
+
+**What landed.** `bonzai/severance.rs`: the no-account mode (a synthetic
+account behind `local_dev_enabled()`, so every short-circuit upstream already
+has stays in force), the disabled-tool list applied to the registry and the
+dispatch, the Clovy API refusal on both request chokepoints and the three
+direct GETs, and the dictation refusal. `DICTATION_ENABLED = false` on both
+sides; image and video flipped off through upstream's own switches; the
+dictation helper never spawned, never retried, its command failing closed;
+the sidebar entry, palette action, and settings tab hidden; telemetry and the
+issue-report row hidden; P3A recording a no-op. Shares and companion pairing
+(open question 2) are cut by the chokepoint rather than by their own guards.
+
+**Verified:** every request helper the Clovy API has is behind a refusal that
+returns the egress code; unit tests over the tool list, the synthetic
+account, and the kill switch. The session-level "zero requests" measurement
+against a packet capture is still owed.
 
 **Shared:** unregister the disabled tools; remove their UI surfaces; fail
 closed on their call paths; `shouldBlockOnSignIn` returns false under the
@@ -457,7 +536,16 @@ this should hold, but it is the change most likely to surprise.
 
 ### Phase 6 - MCP policy
 
-**Status: not started.**
+**Status: done.**
+
+**What landed.** An MCP allowlist in `egress.rs` (empty; a host joins it by
+a rebuild) and `bonzai/mcp_policy.rs`, checked in `validate_custom` (save
+time) and `start_transport` (connect time, which also covers definitions that
+predate the policy and the managed Linear server). stdio is refused outright
+and the settings form hides it on a Bonzai build.
+
+**Consequence to know about:** the managed Linear MCP server is refused until
+`api.linear.app` is added to the MCP allowlist and the build is cut again.
 
 **Shared:** restrict server creation to `streamable_http`; validate the host
 against the allowlist at save time and at connect time.
@@ -513,16 +601,17 @@ requirement, not a nicety:
    the post-beta dictation phase needs it for *latency*, which is the harder
    bar. Deferring dictation buys time to answer this properly rather than
    under release pressure.
-2. **Shares and companion pairing** (`/v1/shares`, `/v1/companion/pairings`)
-   - sever or keep? Not inference, so not blocking, but they are Clovy API
-   egress. Decide before Phase 5.
+2. ~~**Shares and companion pairing**~~ **Resolved in Phase 5:** cut. Both
+   reach the Clovy API through the request chokepoints, which refuse on a
+   Bonzai build, so neither needed a guard of its own.
 3. ~~**Base URL location**~~ **Resolved** - see "Base URL and allowlist"
    above. The base URL follows the repo's `env_or_build_trimmed` idiom; the
    **allowlist** is a compile-time constant that no runtime input can reach.
    Recorded in ADR-0059.
-4. **Does the global Bonzai key live in the keychain too?** Assumed yes for
-   consistency; it means a fresh install cannot run until a key is entered,
-   which onboarding must handle.
+4. ~~**Does the global Bonzai key live in the keychain too?**~~ **Resolved in
+   Phase 2:** yes, under the `global` user of the Bonzai keychain service. A
+   fresh install refuses inference with a message pointing at Settings until
+   a key is entered; a dedicated onboarding step is a follow-up.
 
 ## Verification for this plan's own PR
 

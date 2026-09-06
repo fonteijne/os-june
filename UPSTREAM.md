@@ -121,10 +121,10 @@ Every line this fork changes in a file that also exists upstream. Additive
 files - ones upstream does not have - are listed separately and carry no
 merge risk.
 
-**Budget: under 40 touched lines in shared files** (ADR-0058). The budget
-exists to make growth visible. A change that needs more is a signal to move
-logic into `src-tauri/src/bonzai/`, not to raise the number. Raising it
-requires a superseding ADR.
+**Budget: every shared-file edit is one of four shapes, under a ceiling of
+150 counted lines** (ADR-0060, superseding ADR-0058's 40). The shape rule is
+the invariant; the ceiling exists to make growth visible. A fifth shape, or
+growth past the ceiling, requires a superseding ADR.
 
 Two kinds of change carry very different merge risk, so they are counted
 separately:
@@ -136,37 +136,60 @@ separately:
 
 ### Shared files (merge risk)
 
-| File | Lines | What | Why here and not in `bonzai/` |
-| --- | ---: | --- | --- |
-| `src-tauri/src/clovy_api.rs` | 7 | `reqwest::Client::{builder,new}()` -> `bonzai::egress::guarded_{builder,client}()` at `http_client`, `agent_http_client`, `local_http_client`, and a test probe | A client has to be constructed where it is used; only the constructor moves |
-| `src-tauri/src/agent_mcp.rs` | 5 | Same substitution at the five MCP client sites | As above |
-| `src-tauri/src/providers/mod.rs` | 3 | Same substitution at the local-endpoint probe and the Venice key verifier | As above |
-| `src-tauri/src/os_accounts.rs` | 2 | Same substitution at `http_client` | As above |
-| `src-tauri/src/connectors/oauth.rs` | 2 | Same substitution at `http_client` | As above |
-| `src-tauri/src/connectors/notion.rs` | 1 | Same substitution at the hosted-MCP client | As above |
-| `src-tauri/src/companion/mod.rs` | 1 | Same substitution at `companion_http_client` | As above |
-| `src-tauri/src/video_download_url.rs` | 1 | Same substitution at `video_download_client_builder` | As above |
-| `src-tauri/src/lib.rs` | 2 | `bonzai::setup()` first in the Tauri setup hook, so a build pointed at a host it may not reach refuses to start | The setup hook is the only place startup order is decided |
+Every edit below is one of the four shapes ADR-0060 permits: **P** a one- or
+three-line prologue at the top of an existing function, **S** a one-token
+substitution, **F** a one-token constant flip, **W** a JSX wrap behind a flag.
+Counts are `git diff` added-or-changed lines against `origin/bonzai-main`,
+with re-indented lines under a wrap counted (the pessimistic reading).
 
-**Running total: 24 / 40.** `pub mod bonzai;` in `lib.rs` is an appended
-symbol at a distinct location, so it is tracked here and not counted.
+| File | Lines | Shape | What | Why here and not in `bonzai/` |
+| --- | ---: | :-: | --- | --- |
+| `src-tauri/src/clovy_api.rs` | 23 | S, P | Phase 1: 7 client-constructor substitutions. Phase 2: prologues in `generate_note_from_transcript` and `proxy_agent_chat_completions`. Phase 3: prologue in `transcribe_saved_audio`. Phase 5: `refuse_clovy_api` in `authed_send`, `send_multipart`, `list_models`, `fetch_browser_transport_policy`, `computer_use_rollout`; `refuse_dictation` in `dictate_transcribe`, `cleanup_text` | The functions upstream dispatches through are the only place a prologue can intercept |
+| `src-tauri/src/os_accounts.rs` | 8 | S, P | Phase 1: 2 substitutions. Phase 5: prologues in `local_dev_enabled` (covers all 17 OS Accounts short-circuits) and `local_dev_account_status` | One prologue in the predicate every short-circuit consults |
+| `src-tauri/src/agent_mcp.rs` | 7 | S, P | Phase 1: 5 substitutions. Phase 6: `mcp_policy::check` in `validate_custom` and `start_transport` | Save-time and connect-time are upstream's two funnels |
+| `src-tauri/src/providers/mod.rs` | 6 | S, P | Phase 1: 3 substitutions. Phase 2: prologue in `list_venice_models` | The picker's command is upstream's; Bonzai serves its shape |
+| `src-tauri/src/dictation.rs` | 5 | P | Phase 5: `refuse_dictation` in `spawn_helper` and `dictation_helper_command`; early return in `retry_helper_spawn` | The helper is spawned, retried, and driven from three functions |
+| `src-tauri/src/lib.rs` | 3 | P | Phase 1: `bonzai::setup(app)` first in the setup hook (2). Phase 2: one command registration (1) | Startup order and the command list live only here |
+| `src-tauri/src/p3a/mod.rs` | 3 | P | Phase 5: `record_question` returns early | The single recording entry point |
+| `src-tauri/src/connectors/oauth.rs` | 2 | S | Phase 1 | - |
+| `src-tauri/src/agent_runtime/api.rs` | 1 | P | Phase 5: `strip_disabled_tools` after the descriptor list | Where the advertised list is built |
+| `src-tauri/src/agent_runtime/tools.rs` | 1 | P | Phase 5: `refuse_disabled_tool` at the top of `dispatch_tool` | The single dispatch |
+| `src-tauri/src/agent_runtime/host.rs` | 1 | P | Phase 4: `tag_agent_request` stamps the session id | The only place the session id and the request body meet |
+| `src-tauri/src/feature_flags.rs` | 1 | F | Phase 5: `VIDEO_GENERATION_ENABLED` off | Upstream's own kill switch |
+| `src-tauri/src/connectors/notion.rs` | 1 | S | Phase 1 | - |
+| `src-tauri/src/companion/mod.rs` | 1 | S | Phase 1 | - |
+| `src-tauri/src/video_download_url.rs` | 1 | S | Phase 1 | - |
+| `src/components/sidebar/Sidebar.tsx` | 29 | W | Phase 5: dictation nav button wrapped (13), palette entry wrapped (11), `HIDDEN_SETTINGS_TABS` gains `dictation` (3), import (1). Upstream keeps no flag for dictation, so a wrap is the only shape available | The nav, palette, and tab list are upstream's |
+| `src/components/settings/AgentMcpServersSection.tsx` | 11 | W, P | Phase 6: stdio option hidden on a Bonzai build (1), draft moved off stdio (8), hook and import (2) | The transport select is upstream's form |
+| `src/components/settings/AppSettings.tsx` | 5 | P, W | Phase 2: import and mount of the Bonzai section (2). Phase 5: hook, import, and the issue-report row gated (3) | The Models tab and the report row are upstream's |
+| `src/components/settings/PrivacySettingsSection.tsx` | 4 | P | Phase 5: returns null on a Bonzai build | The telemetry section is upstream's |
+| `src/components/folders/ProjectSettingsDialog.tsx` | 2 | P | Phase 4: import and mount of the project key field | Beside instructions, per the PRD |
+| `src/components/folders/FoldersWorkspace.tsx` | 2 | P | Phase 4: import and mount of the key badge | The project card is upstream's |
+| `src/lib/feature-flags.ts` | 2 | F | Phase 5: `IMAGE_GENERATION_ENABLED`, `VIDEO_GENERATION_ENABLED` off | Upstream's own kill switches |
+| `src/test/app-notes-reliability.test.tsx` | 6 | P | Phase 5: `feature-flags` mocked with dictation on, following the slash-command test's convention | Upstream tests click the dictation entry this fork hides |
+| `src/test/folders-workspace.test.tsx` | 6 | P | As above | As above |
 
-Every one of the 22 substitution lines is a single-token change:
-`reqwest::Client::builder()` becomes
-`crate::bonzai::egress::guarded_builder()`, and `reqwest::Client::new()`
-becomes `crate::bonzai::egress::guarded_client()`. No function is
-restructured and no conditional is threaded through a body, so an upstream
-edit anywhere else in these functions still merges cleanly.
+**Running total: 119 counted lines in source (plus 12 in tests) against
+ADR-0060's ceiling of 150.** By phase: 1 - 24, 2 - 12, 3 - 3, 4 - 5,
+5 - 62, 6 - 13. The 12 test lines sit outside the count because a mock at
+the top of a test file carries no merge risk to the code under test; they are
+listed so the surface is whole.
 
-**The budget is projected to be exceeded.** ADR-0059 estimated eight client
-sites and the plan budgeted Phase 1 at ~13 lines on that basis; the real
-inventory is sixteen sites and 22 lines (see the 2026-09-05 addendum to
-ADR-0059), which puts the beta total at roughly **48 / 40**. Per ADR-0058 the
-budget is to be revised in a superseding ADR rather than quietly exceeded,
-and that decision is due before Phase 5. Reducing the guard's scope to buy
-the lines back is not an option: a guard that reads only the files we already
-know about cannot see the client an upstream merge adds, which is the whole
-reason it exists.
+ADR-0058's original budget of 40 was exceeded in Phase 4 and its estimate of
+37 by more than three times; ADR-0060 records why (a wrong inventory, the
+breadth of severance, and the cost of JSX wraps) and replaces the number with
+a shape rule and a ceiling. Reducing the guard's scope or leaving a disabled
+capability visible to buy lines back was not an option on the table.
+
+### Appended blocks (tracked, not counted)
+
+| File | What |
+| --- | --- |
+| `src-tauri/src/clovy_api.rs` | `bonzai_seam`: thin wrappers over the note prompt, parsers, audio helpers, and the response wrapper, so the Bonzai path cannot drift from the local-provider path |
+| `src-tauri/src/lib.rs` | `pub mod bonzai;` |
+| `src-tauri/src/feature_flags.rs` | `DICTATION_ENABLED` |
+| `src/lib/feature-flags.ts` | `DICTATION_ENABLED` |
+| `.env.example` | `BONZAI_BASE_URL`, `BONZAI_DEFAULT_MODEL` |
 
 ### Additive files (no merge risk)
 
@@ -176,13 +199,28 @@ reason it exists.
 | `.github/workflows/upstream-conflict-canary.yml` | The conflict canary |
 | `docs/bonzai-model-routing-prd.md` | The PRD |
 | `docs/bonzai-implementation-plan.md` | The implementation plan |
-| `docs/adr/0057-bonzai-is-the-only-inference-egress.md` | ADR |
-| `docs/adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md` | ADR |
+| `docs/adr/0057-bonzai-is-the-only-inference-egress.md` | ADR (superseded by 0059) |
+| `docs/adr/0058-bonzai-routing-lives-in-an-additive-provider-layer.md` | ADR (budget clause superseded by 0060) |
 | `docs/adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md` | ADR |
-| `src-tauri/src/bonzai/mod.rs` | Module root and the startup validation |
-| `src-tauri/src/bonzai/egress.rs` | The compiled allowlist, `assert_allowed`, and the only permitted client constructors |
-| `src-tauri/src/bonzai/config.rs` | Base URL resolution, checked against the allowlist |
+| `docs/adr/0060-the-bonzai-touched-line-budget-is-a-shape-rule-with-an-inventoried-ceiling.md` | ADR |
+| `src-tauri/src/bonzai/mod.rs` | Module root, activation, startup validation, the session tag |
+| `src-tauri/src/bonzai/egress.rs` | The compiled allowlists (inference and MCP), `assert_allowed`, `assert_mcp_allowed`, and the only permitted client constructors |
+| `src-tauri/src/bonzai/config.rs` | Base URL and default model resolution, checked against the allowlist |
+| `src-tauri/src/bonzai/http.rs` | The one request helper: allowlist, key, error mapping |
+| `src-tauri/src/bonzai/keys.rs` | Keychain-backed keys, global and per-project, with the project index |
+| `src-tauri/src/bonzai/resolve.rs` | Which key and which model for a piece of work |
+| `src-tauri/src/bonzai/models.rs` | `/v1/models` per key, served into upstream's picker |
+| `src-tauri/src/bonzai/chat.rs` | Note generation and the streaming agent proxy |
+| `src-tauri/src/bonzai/audio.rs` | Note transcription |
+| `src-tauri/src/bonzai/severance.rs` | The no-account mode, disabled tools, Clovy API and dictation refusals |
+| `src-tauri/src/bonzai/mcp_policy.rs` | Streamable HTTP on allowlisted hosts only |
+| `src-tauri/src/bonzai/commands.rs` | The one dispatching Tauri command |
 | `src-tauri/tests/bonzai_egress_guard.rs` | The source-level CI guard |
+| `src/lib/bonzai.ts` | Typed wrapper over the command, activation and index hooks |
+| `src/components/settings/BonzaiSettingsSection.tsx` | The global key, in Settings > Models |
+| `src/components/folders/BonzaiProjectKeyField.tsx` | A project's key, in project settings |
+| `src/components/folders/BonzaiKeyBadge.tsx` | Own or global key, on the project card |
+| `src/test/bonzai.test.ts` | Binding tests |
 
 `docs/index.md` is shared and gains one row per document. Index rows are
 append-only single lines and conflict trivially, so they are exempt from the

@@ -164,3 +164,13 @@ near-pristine mirror.
 
 Topology, sync runbook, ledger, and post-merge checklist:
 [UPSTREAM.md](../../UPSTREAM.md).
+
+## Addendum - the budget clause is superseded (2026-09-06)
+
+The beta landed at 119 counted lines against this ADR's budget of 40.
+[ADR-0060](0060-the-bonzai-touched-line-budget-is-a-shape-rule-with-an-inventoried-ceiling.md)
+supersedes the budget clause: the invariant is now the *shape* of every
+shared edit (prologue, substitution, flip, or wrap), with a ceiling of 150
+and an exact ledger. Every other decision in this ADR - the additive layer,
+the dispatch prologue, never interleaving, the ledger, the canary, and not
+modelling Bonzai as the local provider - stands unchanged.
