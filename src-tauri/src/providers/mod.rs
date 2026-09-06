@@ -1182,6 +1182,9 @@ pub async fn list_venice_models(
     state: State<'_, ProviderSettingsState>,
     request: VeniceModelsRequest,
 ) -> Result<VeniceModelsResponse, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::models::list_for_picker(request).await;
+    }
     let model_type = request.mode.api_type();
     let selected_model = selected_model_for_mode(&state, request.mode)?;
     // Image models aren't part of the priced catalog the backend serves (image

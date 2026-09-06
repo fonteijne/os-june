@@ -130,6 +130,7 @@ import {
 import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS } from "../../lib/video-models";
 import { AgentSettingsSection } from "./AgentSettingsSection";
 import { AgentMcpServersSection } from "./AgentMcpServersSection";
+import { BonzaiSettingsSection } from "./BonzaiSettingsSection";
 import { ConnectorsSection } from "./ConnectorsSection";
 import { LinkedDevicesSection } from "./LinkedDevicesSection";
 import { DictionarySettingsSection } from "./DictionarySettingsSection";
@@ -2141,6 +2142,7 @@ export function AppSettings({
               title="Models"
               blurb="Choose the models Clovy uses for voice, text, image, and video."
             />
+            <BonzaiSettingsSection />
             <section
               className="settings-group settings-models-group"
               aria-labelledby="voice-models-heading"

@@ -400,6 +400,9 @@ pub async fn transcribe_saved_audio(
 pub async fn generate_note_from_transcript(
     request: GenerationRequest,
 ) -> Result<GenerationProviderResult, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::chat::generate_note(request).await;
+    }
     let transcript = request.transcript.trim();
     if transcript.is_empty() {
         return Err(AppError::new(
@@ -999,6 +1002,9 @@ fn job_id_from_status_path(path: &str) -> &str {
 pub async fn proxy_agent_chat_completions(
     mut body: serde_json::Value,
 ) -> Result<AgentChatCompletionsResponse, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::chat::proxy_agent_chat_completions(body).await;
+    }
     let managed_auto = body
         .get("model")
         .and_then(serde_json::Value::as_str)
@@ -6069,5 +6075,59 @@ Microphone: Great. Let's ship the feed fix this week, then review the onboarding
             has_parseable_delta,
             "SSE stream should contain at least one parseable chat.completion.chunk"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Bonzai seam (this fork). Appended, so upstream edits above merge cleanly.
+// The Bonzai layer (`crate::bonzai`) reuses upstream's note-generation prompt,
+// parsers, and response wrapper through these thin wrappers rather than
+// copies, so the Bonzai path and the local-provider path cannot drift apart.
+// Nothing here changes behaviour; it only exposes what already exists.
+pub(crate) mod bonzai_seam {
+    use super::{AgentChatCompletionsResponse, AgentModelRouteMetadata};
+
+    pub(crate) fn note_generate_system_prompt() -> &'static str {
+        super::NOTE_GENERATE_SYSTEM_PROMPT
+    }
+
+    pub(crate) fn safety_context() -> &'static str {
+        super::LOCAL_SAFETY_CONTEXT
+    }
+
+    pub(crate) fn generation_source_text(
+        existing_generated_note: Option<&str>,
+        manual_notes: Option<&str>,
+        transcript: &str,
+        transcript_source_labels: bool,
+    ) -> String {
+        super::generation_source_text(
+            existing_generated_note,
+            manual_notes,
+            transcript,
+            transcript_source_labels,
+        )
+    }
+
+    pub(crate) fn extract_chat_completion_text(value: &serde_json::Value) -> Option<String> {
+        super::extract_chat_completion_text(value)
+    }
+
+    pub(crate) fn cleanup_generated_note_text(text: &str, labeled_transcript: &str) -> String {
+        super::cleanup_generated_note_text(text, labeled_transcript)
+    }
+
+    pub(crate) fn agent_chat_completions_response(
+        status: u16,
+        content_type: String,
+        route: AgentModelRouteMetadata,
+        upstream: reqwest::Response,
+    ) -> AgentChatCompletionsResponse {
+        AgentChatCompletionsResponse {
+            status,
+            content_type,
+            route,
+            upstream,
+        }
     }
 }

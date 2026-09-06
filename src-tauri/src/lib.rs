@@ -383,6 +383,7 @@ pub fn run() {
             providers::save_local_generation_settings,
             providers::set_local_generation_enabled,
             providers::probe_local_generation_endpoint,
+            bonzai::commands::bonzai_command,
             p3a::p3a_settings,
             p3a::p3a_question_catalog,
             p3a::set_p3a_enabled,
@@ -453,7 +454,7 @@ pub fn run() {
         .manage(connectors::NotionConnectFlow::default())
         .setup(|app| {
             // Refuse to start if this build points where it may not send.
-            bonzai::setup();
+            bonzai::setup(app);
             browser::setup_on_app_start();
             agent_runtime::tools::seed_bundled_skills(app.handle());
             setup_app_menu(app)?;

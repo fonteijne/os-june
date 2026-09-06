@@ -37,6 +37,30 @@ fn configured_raw() -> String {
     }
 }
 
+/// The environment variable, and the `option_env!` key, for the model a
+/// request uses when the user has not picked one.
+pub const BONZAI_DEFAULT_MODEL_ENV: &str = "BONZAI_DEFAULT_MODEL";
+
+/// The build's default model, if it has one. Same runtime-then-build
+/// resolution as the base URL; unlike the base URL it is not a destination,
+/// so it is not a subject of the egress policy.
+pub fn default_model() -> Option<String> {
+    crate::os_accounts::load_local_env();
+    let runtime = std::env::var(BONZAI_DEFAULT_MODEL_ENV)
+        .map(|value| value.trim().to_string())
+        .unwrap_or_default();
+    let value = if runtime.is_empty() {
+        // Literal repeated for `option_env!`; see `configured_raw`.
+        option_env!("BONZAI_DEFAULT_MODEL")
+            .map(str::trim)
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        runtime
+    };
+    (!value.is_empty()).then_some(value)
+}
+
 /// Whether this build has a Bonzai base URL at all.
 ///
 /// Absent is a valid state until the routing phases land, and is not the same
