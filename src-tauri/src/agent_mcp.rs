@@ -337,6 +337,7 @@ impl McpServerDefinition {
 
     fn validate_custom(&self) -> Result<(), AgentMcpError> {
         self.validate()?;
+        crate::bonzai::mcp_policy::check(self)?;
         self.validate_custom_id()
     }
 
@@ -2391,6 +2392,7 @@ async fn start_transport(
     secrets: &McpSecretBundle,
     sandbox_workspace: Option<&std::path::Path>,
 ) -> Result<PersistentMcpTransport, AgentMcpError> {
+    crate::bonzai::mcp_policy::check(server)?;
     match server.transport {
         McpTransport::Stdio => start_stdio_session(server, secrets, sandbox_workspace)
             .await

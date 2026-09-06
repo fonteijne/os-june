@@ -54,6 +54,44 @@ const DEV_ALLOWED_HOSTS: &[&str] = &["localhost", "127.0.0.1", "[::1]"];
 #[cfg(not(debug_assertions))]
 const DEV_ALLOWED_HOSTS: &[&str] = &[];
 
+/// MCP servers this build may connect to. Empty by default (ADR-0059): tool
+/// egress is governed per server rather than closed, and a host joins this
+/// list by a rebuild, never by a setting. Loopback is permitted in development
+/// builds through the same `DEV_ALLOWED_HOSTS` split as inference.
+const MCP_ALLOWED_HOSTS: &[&str] = &[];
+
+/// Every MCP host this build may reach, release entries first.
+pub fn mcp_allowed_hosts() -> Vec<&'static str> {
+    MCP_ALLOWED_HOSTS
+        .iter()
+        .chain(DEV_ALLOWED_HOSTS.iter())
+        .copied()
+        .collect()
+}
+
+/// Reject an MCP server destination this build may not reach. Same rules as
+/// [`assert_allowed`], against the MCP list.
+pub fn assert_mcp_allowed(url: &Url) -> Result<(), AppError> {
+    if url.scheme() != "https" {
+        return Err(blocked(url, "only https MCP servers are permitted"));
+    }
+    let Some(host) = url.host_str() else {
+        return Err(blocked(url, "the MCP server has no host"));
+    };
+    let host = normalize_host(host);
+    let permitted = !host.is_empty()
+        && mcp_allowed_hosts()
+            .iter()
+            .any(|allowed| normalize_host(allowed) == host);
+    if !permitted {
+        return Err(blocked(
+            url,
+            "the MCP server host is not in this build's compiled MCP allowlist",
+        ));
+    }
+    Ok(())
+}
+
 /// Every host this build may reach, release entries first.
 pub fn allowed_hosts() -> Vec<&'static str> {
     ALLOWED_HOSTS
@@ -189,6 +227,15 @@ mod tests {
                 "{host} is a loopback entry in the release allowlist"
             );
         }
+    }
+
+    #[test]
+    fn the_mcp_allowlist_is_empty_in_release_and_refuses_everything_else() {
+        assert!(MCP_ALLOWED_HOSTS.is_empty());
+        let error = assert_mcp_allowed(&url("https://mcp.example/sse")).expect_err("refused");
+        assert_eq!(error.code, EGRESS_BLOCKED);
+        let error = assert_mcp_allowed(&url("http://localhost:3000/mcp")).expect_err("plaintext");
+        assert!(error.message.contains("https"));
     }
 
     #[test]

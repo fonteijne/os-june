@@ -18,6 +18,7 @@
 //! - [`resolve`] answers "which key and which model for this work?".
 //! - [`severance`] is what this fork switches off, the fail-closed paths
 //!   behind it, and the no-account mode.
+//! - [`mcp_policy`] governs tool egress: streamable HTTP on allowlisted hosts.
 //! - [`commands`] is the Tauri surface, deliberately one command.
 //!
 //! Upstream reaches this module through three-line prologues at the top of
@@ -30,6 +31,7 @@ pub mod config;
 pub mod egress;
 pub mod http;
 pub mod keys;
+pub mod mcp_policy;
 pub mod models;
 pub mod resolve;
 pub mod severance;
