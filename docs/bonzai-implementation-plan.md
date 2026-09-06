@@ -49,7 +49,7 @@ renaming it in both places.
 | 4 - per-project keys | **done** | Spend in LiteLLM reconciles to the project worked in | Project-then-global resolution from `note_folders` and `session_folders`; keychain keys; project settings field and card badge. No migration: the plan's column was replaced by an index beside the keychain |
 | 5 - severance | **done** | Zero OS Accounts and Clovy API requests in a session | `bonzai/severance.rs`; guards on both Clovy API chokepoints and every direct GET; no-account mode; disabled tools stripped and refused; dictation off on both sides; P3A and issue reports cut |
 | 6 - MCP policy | **done** | Search restorable without reopening inference egress | `bonzai/mcp_policy.rs` + an MCP allowlist (empty) checked at save and connect time; stdio refused; the form hides it |
-| Beta feedback (round 1) | **done** | A project can be given its Bonzai key as it is created; a Bonzai refusal in chat names its reason | `useBonzaiCreateKey` in the create dialog (probe first, store once the project has an id); `agent-runtime/src/bonzai.ts` + `bonzaiNoticePart` replace the "Clovy stopped unexpectedly" fallback for `bonzai_*` and `egress_blocked` codes; `bonzai/logging.rs` installs the stderr `tracing` subscriber upstream never had, so the runtime's stderr and Bonzai refusals reach the dev terminal |
+| Beta feedback (round 1) | **done** | A project can be given its Bonzai key as it is created or edited; a Bonzai refusal in chat names its reason | `useBonzaiCreateKey` in the create dialog (probe first, store once the project has an id); `agent-runtime/src/bonzai.ts` + `bonzaiNoticePart` replace the "Clovy stopped unexpectedly" fallback for `bonzai_*` and `egress_blocked` codes; `bonzai/logging.rs` installs the stderr `tracing` subscriber upstream never had, so the runtime's stderr and Bonzai refusals reach the dev terminal |
 | Post-beta - dictation | **deferred** | Dictation on, and no slower than the baseline it replaced | Blocked on a benchmarked whisper backend; also projected to exceed the touched-line budget (43 / 40) |
 
 **Beta is phases 1 to 6.** Post-beta work is out of beta scope by decision,
@@ -263,8 +263,8 @@ Estimated against the budget:
 | 4 - per-project keys | ~4 | 5 | 44 |
 | 5 - severance (incl. dictation kill switch) | ~7 | 62 | 106 |
 | 6 - MCP policy | ~1 | 13 | 119 |
-| Beta feedback (round 1) | - | 27 | 146 |
-| **Beta total** | **~37** | **146** | **146 / 150 (ADR-0060)** |
+| Beta feedback (round 1) | - | 29 | 148 |
+| **Beta total** | **~37** | **148** | **148 / 150 (ADR-0060)** |
 | Post-beta - dictation | ~6 | - | - |
 
 **The beta landed at 119 against the original budget of 40**, and

@@ -171,16 +171,18 @@ with re-indented lines under a wrap counted (the pessimistic reading).
 | `src/components/agent/chat-turns/AgentChatTurnRow.tsx` | 3 | P | Beta feedback: the `bonzai` kind routed to the notice with its text | Upstream's part dispatch |
 | `agent-runtime/src/sanitize.ts` | 3 | P | Beta feedback: `bonzaiFailure` prologue in `runtimeFailureDetails` keeps a Bonzai `AppError` code out of the "runtime" fallback | The one classifier every failed run passes through |
 | `src/lib/agent-chat-runtime.ts` | 1 | S | Beta feedback: `bonzai` added to the notice kind union | The part type is upstream's |
+| `src/components/folders/EditFolderDialog.tsx` | 2 | P | Beta feedback: import and mount of the project key field, as in the settings dialog | The edit dialog is upstream's |
 | `src-tauri/Cargo.toml` | 1 | P | Beta feedback: `tracing-subscriber`, for the stderr subscriber `bonzai/logging.rs` installs (upstream emits `tracing` events and never subscribes to them) | The dependency list is upstream's |
 | `src/lib/feature-flags.ts` | 2 | F | Phase 5: `IMAGE_GENERATION_ENABLED`, `VIDEO_GENERATION_ENABLED` off | Upstream's own kill switches |
 | `src/test/app-notes-reliability.test.tsx` | 6 | P | Phase 5: `feature-flags` mocked with dictation on, following the slash-command test's convention | Upstream tests click the dictation entry this fork hides |
 | `src/test/folders-workspace.test.tsx` | 6 | P | As above | As above |
 | `agent-runtime/test/sanitize.test.ts` | 16 | P | Beta feedback: one appended test for the Bonzai classifier | Beside the classifier's own tests |
 
-**Running total: 146 counted lines in source (plus 28 in tests) against
+**Running total: 148 counted lines in source (plus 28 in tests) against
 ADR-0060's ceiling of 150.** By phase: 1 - 24, 2 - 12, 3 - 3, 4 - 5,
-5 - 62, 6 - 13, beta feedback - 27 (key at project creation 10, Bonzai
-refusals shown with their reason 16, log output 1). Four lines of headroom remain; the next
+5 - 62, 6 - 13, beta feedback - 29 (key at project creation 10, key in the
+edit dialog 2, Bonzai refusals shown with their reason 16, log output 1).
+Two lines of headroom remain; the next
 shared-line change needs a matching reduction or an ADR-0060 addendum. The
 28 test lines sit outside the count because a mock at
 the top of a test file carries no merge risk to the code under test; they are
