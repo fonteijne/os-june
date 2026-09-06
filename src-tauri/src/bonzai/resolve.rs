@@ -26,6 +26,14 @@ pub async fn key_for(folder_id: Option<&str>) -> Result<ResolvedKey, AppError> {
     Ok(ResolvedKey { scope, key })
 }
 
+/// Resolve the key for an operation by its upstream operation id (a note id,
+/// a `<note>-chunk-N` id, or a live-preview id). Until Phase 4 lands every
+/// call resolves to the global key.
+pub async fn key_for_operation(operation_id: Option<&str>) -> Result<ResolvedKey, AppError> {
+    let _ = operation_id;
+    key_for(None).await
+}
+
 /// The model a generation request should use when the caller left it to the
 /// settings. Upstream's Auto router is a Clovy API concept with no Bonzai
 /// equivalent, so an Auto selection resolves to the build's configured default

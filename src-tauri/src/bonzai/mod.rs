@@ -13,14 +13,15 @@
 //! - [`keys`] is the keychain-backed store for Bonzai keys, global and
 //!   per-project.
 //! - [`http`] is the single request helper every Bonzai call goes through.
-//! - [`models`] and [`chat`] are the operations: the model catalog per key
-//!   and chat completions. Audio transcription joins them in Phase 3.
+//! - [`models`], [`chat`], and [`audio`] are the operations: the model
+//!   catalog per key, chat completions, and audio transcription.
 //! - [`resolve`] answers "which key and which model for this work?".
 //! - [`commands`] is the Tauri surface, deliberately one command.
 //!
 //! Upstream reaches this module through three-line prologues at the top of
 //! the functions it intercepts, and through nothing else.
 
+pub mod audio;
 pub mod chat;
 pub mod commands;
 pub mod config;

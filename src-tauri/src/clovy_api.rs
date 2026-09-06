@@ -360,6 +360,9 @@ struct P3aReportResponse {
 pub async fn transcribe_saved_audio(
     request: TranscriptionRequest,
 ) -> Result<TranscriptionProviderResult, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::audio::transcribe_saved_audio(request).await;
+    }
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "recording.wav");
     let model = crate::providers::transcription_model();
@@ -6115,6 +6118,26 @@ pub(crate) mod bonzai_seam {
 
     pub(crate) fn cleanup_generated_note_text(text: &str, labeled_transcript: &str) -> String {
         super::cleanup_generated_note_text(text, labeled_transcript)
+    }
+
+    pub(crate) async fn read_audio(path: &std::path::Path) -> Result<Vec<u8>, super::AppError> {
+        super::read_audio(path).await
+    }
+
+    pub(crate) fn filename_for_audio(path: &std::path::Path, fallback: &str) -> String {
+        super::filename_for_audio(path, fallback)
+    }
+
+    pub(crate) fn audio_part(
+        audio: Vec<u8>,
+        filename: &str,
+        path: &std::path::Path,
+    ) -> Result<reqwest::multipart::Part, super::AppError> {
+        super::audio_part(audio, filename, path)
+    }
+
+    pub(crate) fn normalized_language(language: Option<&str>) -> Option<&str> {
+        super::normalized_language(language)
     }
 
     pub(crate) fn agent_chat_completions_response(
