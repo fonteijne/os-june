@@ -130,6 +130,8 @@ import {
 import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS } from "../../lib/video-models";
 import { AgentSettingsSection } from "./AgentSettingsSection";
 import { AgentMcpServersSection } from "./AgentMcpServersSection";
+import { useBonzaiActive } from "../../lib/bonzai";
+import { BonzaiSettingsSection } from "./BonzaiSettingsSection";
 import { ConnectorsSection } from "./ConnectorsSection";
 import { LinkedDevicesSection } from "./LinkedDevicesSection";
 import { DictionarySettingsSection } from "./DictionarySettingsSection";
@@ -465,6 +467,7 @@ export function AppSettings({
   // the switch is flipped for a remote endpoint; the confirm affordance
   // proceeds.
   const [localEnableConfirm, setLocalEnableConfirm] = useState(false);
+  const bonzaiActive = useBonzaiActive();
   const [veniceModels, setVeniceModels] = useState<Record<ProviderModelMode, VeniceModelDto[]>>({
     transcription: [],
     generation: [],
@@ -2141,6 +2144,7 @@ export function AppSettings({
               title="Models"
               blurb="Choose the models Clovy uses for voice, text, image, and video."
             />
+            <BonzaiSettingsSection />
             <section
               className="settings-group settings-models-group"
               aria-labelledby="voice-models-heading"
@@ -2774,7 +2778,7 @@ export function AppSettings({
                   </div>
                 </div>
 
-                {onReportIssue ? (
+                {onReportIssue && !bonzaiActive ? (
                   <div className="settings-row">
                     <div className="settings-row-info">
                       <h3 className="settings-row-title">Report an issue</h3>

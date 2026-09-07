@@ -1608,6 +1608,7 @@ pub fn dictation_helper_command(
     state: State<'_, HelperState>,
     command: serde_json::Value,
 ) -> Result<(), AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     if let Some(request_id) = command.get("composerRequestId") {
         let valid = request_id
             .as_str()
@@ -4375,6 +4376,7 @@ fn process_alive(pid: u32) -> bool {
 }
 
 fn spawn_helper(app: &AppHandle) -> Result<HelperProcess, AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     // Abort the spawn if a prior instance's orphaned helper is still holding the
     // global CGEventTap; racing it would reproduce the permission collision.
     // Record-driven reap first, then the one-time legacy sweep for helpers left
@@ -4600,6 +4602,9 @@ fn supervise_helper_exit(app: &AppHandle, spawn_instant: Instant) {
 }
 
 fn retry_helper_spawn(app: &AppHandle, mut survived: Duration, initial_start: bool) {
+    if crate::bonzai::severance::dictation_disabled() {
+        return;
+    }
     let Some(state) = app.try_state::<HelperState>() else {
         return;
     };
