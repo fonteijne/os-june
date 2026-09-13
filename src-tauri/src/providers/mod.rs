@@ -84,6 +84,16 @@ pub struct ProviderModelSettings {
     pub venice_api_key: Option<String>,
     #[serde(default)]
     pub local_generation: LocalGenerationSettings,
+    /// The opt-in "bring your own" speech-to-text endpoint. Configured
+    /// independently of `local_generation`: a user may point text at one
+    /// server and transcription at another.
+    #[serde(default)]
+    pub local_transcription: LocalTranscriptionSettings,
+    /// The last explicitly chosen remote transcription model, so disabling
+    /// the local transcription endpoint restores it rather than the hardcoded
+    /// default. Mirrors `remote_generation_model`.
+    #[serde(default = "default_transcription_model")]
+    pub remote_transcription_model: String,
     /// When true, Venice `safe_mode` blurs adult content on generated/edited
     /// images. Clovy defaults it ON; the user opts out via Settings or the
     /// generation-time consent dialog. Defaulted so settings files predating
@@ -122,6 +132,19 @@ pub struct LocalGenerationSettings {
     pub api_key: String,
 }
 
+/// A distinct type from `LocalGenerationSettings` on purpose: the two
+/// endpoints are configured separately, and separate types keep the
+/// generation and transcription call sites from being interchangeable by
+/// accident.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalTranscriptionSettings {
+    pub base_url: String,
+    pub model_id: String,
+    #[serde(default)]
+    pub api_key: String,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileModelOverrides {
@@ -151,6 +174,8 @@ pub struct ProviderModelSettingsDto {
     pub video_model: String,
     pub venice_api_key_configured: bool,
     pub local_generation: LocalGenerationSettings,
+    pub local_transcription: LocalTranscriptionSettings,
+    pub remote_transcription_model: String,
     pub image_safe_mode: bool,
     pub image_safe_mode_prompt_dismissed: bool,
     pub live_transcription: bool,
@@ -172,6 +197,8 @@ impl From<&ProviderModelSettings> for ProviderModelSettingsDto {
                 .as_deref()
                 .is_some_and(|value| !value.trim().is_empty()),
             local_generation: settings.local_generation.clone(),
+            local_transcription: settings.local_transcription.clone(),
+            remote_transcription_model: settings.remote_transcription_model.clone(),
             image_safe_mode: settings.image_safe_mode,
             image_safe_mode_prompt_dismissed: settings.image_safe_mode_prompt_dismissed,
             live_transcription: settings.live_transcription,
@@ -253,7 +280,24 @@ pub struct SetLocalGenerationEnabledRequest {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct ProbeLocalGenerationEndpointRequest {
+pub struct SaveLocalTranscriptionSettingsRequest {
+    pub base_url: String,
+    pub model_id: String,
+    #[serde(default)]
+    pub api_key: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetLocalTranscriptionEnabledRequest {
+    pub enabled: bool,
+}
+
+/// Shared by the generation and transcription probes: both ask an
+/// OpenAI-compatible endpoint for `GET {base_url}/models`.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProbeLocalEndpointRequest {
     pub base_url: String,
     #[serde(default)]
     pub api_key: String,
@@ -388,6 +432,10 @@ pub fn generation_provider() -> String {
 
 pub fn local_generation_settings() -> LocalGenerationSettings {
     current_settings().local_generation
+}
+
+pub fn local_transcription_settings() -> LocalTranscriptionSettings {
+    current_settings().local_transcription
 }
 
 pub fn image_model() -> String {
@@ -652,6 +700,7 @@ pub fn set_venice_model(
             settings.transcription_provider =
                 transcription_provider_for_model(model_id).to_string();
             settings.transcription_model = model_id.to_string();
+            settings.remote_transcription_model = model_id.to_string();
         }
         ModelMode::Generation => {
             settings.generation_provider = PROVIDER_VENICE.to_string();
@@ -1111,7 +1160,109 @@ fn set_local_generation_enabled_impl(
 /// short timeout because this runs interactively while the user types.
 #[tauri::command]
 pub async fn probe_local_generation_endpoint(
-    request: ProbeLocalGenerationEndpointRequest,
+    request: ProbeLocalEndpointRequest,
+) -> Result<LocalEndpointProbe, AppError> {
+    probe_local_endpoint(request).await
+}
+
+/// Persists the "bring your own" speech-to-text endpoint without switching
+/// the active transcription provider. Same contract as
+/// [`save_local_generation_settings`].
+#[tauri::command]
+pub fn save_local_transcription_settings(
+    state: State<'_, ProviderSettingsState>,
+    request: SaveLocalTranscriptionSettingsRequest,
+) -> Result<ProviderModelSettingsDto, AppError> {
+    save_local_transcription_settings_impl(&state, request)
+}
+
+fn save_local_transcription_settings_impl(
+    state: &ProviderSettingsState,
+    request: SaveLocalTranscriptionSettingsRequest,
+) -> Result<ProviderModelSettingsDto, AppError> {
+    let raw_base_url = request.base_url.trim();
+    let model_id = request.model_id.trim().to_string();
+    let api_key = request.api_key.trim().to_string();
+    let clearing = raw_base_url.is_empty() && model_id.is_empty() && api_key.is_empty();
+
+    let base_url = if clearing {
+        String::new()
+    } else {
+        normalize_local_base_url(raw_base_url)?
+    };
+
+    let candidate = LocalTranscriptionSettings {
+        base_url,
+        model_id,
+        api_key,
+    };
+    let configured = local_transcription_settings_configured(&candidate);
+
+    update_settings_result(state, |settings| {
+        let provider_is_local = settings.transcription_provider == PROVIDER_LOCAL;
+        if provider_is_local && !configured {
+            return Err(AppError::new(
+                "local_model_in_use",
+                "Disable the local transcription model first.",
+            ));
+        }
+        settings.local_transcription = candidate.clone();
+        if provider_is_local {
+            settings.transcription_model = candidate.model_id.clone();
+        }
+        Ok(())
+    })
+}
+
+/// Switches transcription between the saved local endpoint and the last
+/// remote model. Never edits the stored local endpoint. Same contract as
+/// [`set_local_generation_enabled`].
+#[tauri::command]
+pub fn set_local_transcription_enabled(
+    state: State<'_, ProviderSettingsState>,
+    request: SetLocalTranscriptionEnabledRequest,
+) -> Result<ProviderModelSettingsDto, AppError> {
+    set_local_transcription_enabled_impl(&state, request)
+}
+
+fn set_local_transcription_enabled_impl(
+    state: &ProviderSettingsState,
+    request: SetLocalTranscriptionEnabledRequest,
+) -> Result<ProviderModelSettingsDto, AppError> {
+    update_settings_result(state, |settings| {
+        if request.enabled {
+            if !local_transcription_settings_configured(&settings.local_transcription) {
+                return Err(AppError::new(
+                    "local_model_not_configured",
+                    "Configure a local transcription endpoint and model ID first.",
+                ));
+            }
+            settings.transcription_provider = PROVIDER_LOCAL.to_string();
+            settings.transcription_model = settings.local_transcription.model_id.trim().to_string();
+        } else {
+            let remote = non_empty_or(
+                settings.remote_transcription_model.clone(),
+                DEFAULT_TRANSCRIPTION_MODEL,
+            );
+            settings.transcription_provider = transcription_provider_for_model(&remote).to_string();
+            settings.transcription_model = remote;
+        }
+        Ok(())
+    })
+}
+
+/// Advisory only: a failed probe never blocks saving or enabling, because
+/// not every OpenAI-compatible speech-to-text server implements
+/// `GET /v1/models`.
+#[tauri::command]
+pub async fn probe_local_transcription_endpoint(
+    request: ProbeLocalEndpointRequest,
+) -> Result<LocalEndpointProbe, AppError> {
+    probe_local_endpoint(request).await
+}
+
+async fn probe_local_endpoint(
+    request: ProbeLocalEndpointRequest,
 ) -> Result<LocalEndpointProbe, AppError> {
     let base_url = normalize_local_base_url(&request.base_url)?;
     let api_key = request.api_key.trim().to_string();
@@ -1283,6 +1434,8 @@ fn default_settings() -> ProviderModelSettings {
         video_model: DEFAULT_VIDEO_MODEL.to_string(),
         venice_api_key: None,
         local_generation: LocalGenerationSettings::default(),
+        local_transcription: LocalTranscriptionSettings::default(),
+        remote_transcription_model: DEFAULT_TRANSCRIPTION_MODEL.to_string(),
         image_safe_mode: true,
         image_safe_mode_prompt_dismissed: false,
         image_safe_mode_set_by_user: false,
@@ -1365,8 +1518,31 @@ fn sanitize_settings(
     settings: ProviderModelSettings,
     defaults: &ProviderModelSettings,
 ) -> ProviderModelSettings {
-    let transcription_model =
-        non_empty_or(settings.transcription_model, &defaults.transcription_model);
+    // Transcription mirrors generation: a persisted local provider survives a
+    // reload only while its endpoint is still configured; otherwise the last
+    // remote model is restored (never the stale local model id).
+    let mut remote_transcription_model = non_empty_or(
+        settings.remote_transcription_model,
+        &defaults.remote_transcription_model,
+    );
+    let local_transcription = sanitize_local_transcription(settings.local_transcription);
+    let persisted_transcription_local = settings.transcription_provider == PROVIDER_LOCAL;
+    let transcription_local_active = persisted_transcription_local
+        && local_transcription_settings_configured(&local_transcription);
+    let transcription_model = if transcription_local_active {
+        local_transcription.model_id.clone()
+    } else if persisted_transcription_local {
+        remote_transcription_model.clone()
+    } else {
+        let configured = non_empty_or(settings.transcription_model, &remote_transcription_model);
+        remote_transcription_model = configured.clone();
+        configured
+    };
+    let transcription_provider = if transcription_local_active {
+        PROVIDER_LOCAL.to_string()
+    } else {
+        transcription_provider_for_model(&transcription_model).to_string()
+    };
     let mut remote_generation_model = non_empty_or(
         settings.remote_generation_model,
         &defaults.remote_generation_model,
@@ -1398,7 +1574,7 @@ fn sanitize_settings(
     };
 
     ProviderModelSettings {
-        transcription_provider: transcription_provider_for_model(&transcription_model).to_string(),
+        transcription_provider,
         generation_provider: if local_active {
             PROVIDER_LOCAL.to_string()
         } else {
@@ -1412,6 +1588,8 @@ fn sanitize_settings(
         video_model: sanitize_video_model(settings.video_model, &defaults.video_model),
         venice_api_key: normalize_api_key_option(settings.venice_api_key),
         local_generation,
+        local_transcription,
+        remote_transcription_model,
         image_safe_mode,
         image_safe_mode_prompt_dismissed: settings.image_safe_mode_prompt_dismissed,
         image_safe_mode_set_by_user: settings.image_safe_mode_set_by_user,
@@ -1663,7 +1841,26 @@ fn sanitize_local_generation(settings: LocalGenerationSettings) -> LocalGenerati
 }
 
 fn local_generation_settings_configured(settings: &LocalGenerationSettings) -> bool {
-    !settings.base_url.trim().is_empty() && !settings.model_id.trim().is_empty()
+    local_endpoint_configured(&settings.base_url, &settings.model_id)
+}
+
+fn sanitize_local_transcription(
+    settings: LocalTranscriptionSettings,
+) -> LocalTranscriptionSettings {
+    let base_url = normalize_local_base_url(&settings.base_url).unwrap_or_default();
+    LocalTranscriptionSettings {
+        base_url,
+        model_id: settings.model_id.trim().to_string(),
+        api_key: settings.api_key.trim().to_string(),
+    }
+}
+
+fn local_transcription_settings_configured(settings: &LocalTranscriptionSettings) -> bool {
+    local_endpoint_configured(&settings.base_url, &settings.model_id)
+}
+
+fn local_endpoint_configured(base_url: &str, model_id: &str) -> bool {
+    !base_url.trim().is_empty() && !model_id.trim().is_empty()
 }
 
 /// Validates a local model base URL. Accepts any http/https URL that has a
@@ -2674,6 +2871,193 @@ mod tests {
         let error = set_local_generation_enabled_impl(
             &state,
             SetLocalGenerationEnabledRequest { enabled: true },
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "local_model_not_configured");
+    }
+
+    fn speaches_settings() -> LocalTranscriptionSettings {
+        LocalTranscriptionSettings {
+            base_url: "http://localhost:8000/v1".to_string(),
+            model_id: "Systran/faster-whisper-small".to_string(),
+            api_key: String::new(),
+        }
+    }
+
+    #[test]
+    fn sanitize_settings_keeps_local_transcription_active_across_reload() {
+        // The regression the guard exists for: a persisted "local" provider
+        // must survive the settings load instead of being reclassified from
+        // the (local) model id into venice.
+        let settings = ProviderModelSettings {
+            transcription_provider: PROVIDER_LOCAL.to_string(),
+            transcription_model: "Systran/faster-whisper-small".to_string(),
+            remote_transcription_model: "nvidia/parakeet-tdt-0.6b-v3".to_string(),
+            local_transcription: speaches_settings(),
+            ..default_settings()
+        };
+        let sanitized = sanitize_settings(settings, &default_settings());
+
+        assert_eq!(sanitized.transcription_provider, PROVIDER_LOCAL);
+        assert_eq!(
+            sanitized.transcription_model,
+            "Systran/faster-whisper-small"
+        );
+        assert_eq!(
+            sanitized.remote_transcription_model,
+            "nvidia/parakeet-tdt-0.6b-v3"
+        );
+        assert_eq!(sanitized.local_transcription, speaches_settings());
+    }
+
+    #[test]
+    fn sanitize_settings_falls_back_to_remote_transcription_when_local_unconfigured() {
+        let settings = ProviderModelSettings {
+            transcription_provider: PROVIDER_LOCAL.to_string(),
+            transcription_model: "Systran/faster-whisper-small".to_string(),
+            remote_transcription_model: "whisper-1".to_string(),
+            local_transcription: LocalTranscriptionSettings {
+                base_url: "not a url".to_string(),
+                ..speaches_settings()
+            },
+            ..default_settings()
+        };
+        let sanitized = sanitize_settings(settings, &default_settings());
+
+        // The stale local model id must not leak into the remote selection.
+        assert_eq!(sanitized.transcription_provider, PROVIDER_OPENAI);
+        assert_eq!(sanitized.transcription_model, "whisper-1");
+        assert_eq!(sanitized.local_transcription.base_url, "");
+    }
+
+    #[test]
+    fn sanitize_settings_backfills_remote_transcription_model_from_legacy_files() {
+        let settings = serde_json::from_value::<ProviderModelSettings>(serde_json::json!({
+            "transcriptionProvider": "openai",
+            "transcriptionModel": "whisper-1"
+        }))
+        .unwrap();
+        let sanitized = sanitize_settings(settings, &default_settings());
+
+        assert_eq!(sanitized.transcription_provider, PROVIDER_OPENAI);
+        assert_eq!(sanitized.transcription_model, "whisper-1");
+        assert_eq!(sanitized.remote_transcription_model, "whisper-1");
+        assert_eq!(
+            sanitized.local_transcription,
+            LocalTranscriptionSettings::default()
+        );
+    }
+
+    #[test]
+    fn save_local_transcription_settings_persists_without_activating() {
+        let state = test_state();
+        let updated = save_local_transcription_settings_impl(
+            &state,
+            SaveLocalTranscriptionSettingsRequest {
+                base_url: "http://localhost:8000/v1/".to_string(),
+                model_id: "  Systran/faster-whisper-small  ".to_string(),
+                api_key: " secret ".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(updated.transcription_provider, PROVIDER_VENICE);
+        assert_eq!(updated.transcription_model, DEFAULT_TRANSCRIPTION_MODEL);
+        assert_eq!(
+            updated.local_transcription.base_url,
+            "http://localhost:8000/v1"
+        );
+        assert_eq!(
+            updated.local_transcription.model_id,
+            "Systran/faster-whisper-small"
+        );
+        assert_eq!(updated.local_transcription.api_key, "secret");
+        // Generation's endpoint is a separate setting and stays untouched.
+        assert_eq!(updated.local_generation, LocalGenerationSettings::default());
+    }
+
+    #[test]
+    fn save_local_transcription_settings_blocks_clearing_while_active() {
+        let state = test_state();
+        let speaches = speaches_settings();
+        save_local_transcription_settings_impl(
+            &state,
+            SaveLocalTranscriptionSettingsRequest {
+                base_url: speaches.base_url.clone(),
+                model_id: speaches.model_id.clone(),
+                api_key: String::new(),
+            },
+        )
+        .unwrap();
+        set_local_transcription_enabled_impl(
+            &state,
+            SetLocalTranscriptionEnabledRequest { enabled: true },
+        )
+        .unwrap();
+
+        let error = save_local_transcription_settings_impl(
+            &state,
+            SaveLocalTranscriptionSettingsRequest {
+                base_url: String::new(),
+                model_id: String::new(),
+                api_key: String::new(),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "local_model_in_use");
+        let settings = state.settings.lock().unwrap();
+        assert_eq!(settings.local_transcription, speaches);
+    }
+
+    #[test]
+    fn enable_disable_local_transcription_restores_last_remote_model() {
+        let state = test_state();
+        // The user picked an explicit remote model before trying local.
+        update_settings(&state, |settings| {
+            settings.transcription_provider = PROVIDER_OPENAI.to_string();
+            settings.transcription_model = "whisper-1".to_string();
+            settings.remote_transcription_model = "whisper-1".to_string();
+        })
+        .unwrap();
+        let speaches = speaches_settings();
+        save_local_transcription_settings_impl(
+            &state,
+            SaveLocalTranscriptionSettingsRequest {
+                base_url: speaches.base_url.clone(),
+                model_id: speaches.model_id.clone(),
+                api_key: "secret".to_string(),
+            },
+        )
+        .unwrap();
+
+        let enabled = set_local_transcription_enabled_impl(
+            &state,
+            SetLocalTranscriptionEnabledRequest { enabled: true },
+        )
+        .unwrap();
+        assert_eq!(enabled.transcription_provider, PROVIDER_LOCAL);
+        assert_eq!(enabled.transcription_model, speaches.model_id);
+        assert_eq!(enabled.remote_transcription_model, "whisper-1");
+
+        let disabled = set_local_transcription_enabled_impl(
+            &state,
+            SetLocalTranscriptionEnabledRequest { enabled: false },
+        )
+        .unwrap();
+        assert_eq!(disabled.transcription_provider, PROVIDER_OPENAI);
+        assert_eq!(disabled.transcription_model, "whisper-1");
+        // Disabling never touches the stored endpoint.
+        assert_eq!(disabled.local_transcription.base_url, speaches.base_url);
+        assert_eq!(disabled.local_transcription.model_id, speaches.model_id);
+        assert_eq!(disabled.local_transcription.api_key, "secret");
+    }
+
+    #[test]
+    fn enable_local_transcription_requires_configuration() {
+        let state = test_state();
+        let error = set_local_transcription_enabled_impl(
+            &state,
+            SetLocalTranscriptionEnabledRequest { enabled: true },
         )
         .unwrap_err();
         assert_eq!(error.code, "local_model_not_configured");

@@ -134,6 +134,23 @@ separately:
 - **A new symbol appended to a shared file** - merges cleanly at a distinct
   location. Tracked in the table, not counted.
 
+### Fork features outside the Bonzai ledger
+
+Not every fork change is a Bonzai guard. **Bring-your-own transcription**
+([ADR-0061](docs/adr/0061-local-byoi-transcription-reuses-provider-local.md))
+is a feature written in upstream's own idiom, mirroring local generation and
+depending on nothing in `bonzai/`; it is a candidate to upstream, and its
+edits are tracked here rather than counted against the Bonzai ceiling:
+`src-tauri/src/providers/mod.rs` (settings, sanitize guard, commands),
+`src-tauri/src/clovy_api.rs` (local dispatch and request),
+`src-tauri/src/domain/processing.rs` (cleanup skip, one condition),
+`src-tauri/src/lib.rs` (three command registrations), `src/lib/tauri.ts`,
+`src/components/settings/AppSettings.tsx` (both local endpoints now share
+`LocalEndpointSettings.tsx`), and `src/lib/local-generation.ts` (option-id
+and loopback helpers hoisted into `src/lib/local-endpoint.ts`). Expect
+conflicts in these regions when upstream touches local generation; resolve
+towards upstream's shape and re-apply the transcription twin.
+
 ### Shared files (merge risk)
 
 Every edit below is one of the four shapes ADR-0060 permits: **P** a one- or

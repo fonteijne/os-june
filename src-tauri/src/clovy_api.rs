@@ -5,7 +5,9 @@
 
 use crate::{
     domain::types::AppError,
-    providers::{LocalGenerationSettings, PROVIDER_LOCAL, PROVIDER_OPENAI},
+    providers::{
+        LocalGenerationSettings, LocalTranscriptionSettings, PROVIDER_LOCAL, PROVIDER_OPENAI,
+    },
 };
 use reqwest::multipart::{Form, Part};
 use serde::{Deserialize, Serialize};
@@ -116,6 +118,22 @@ pub struct TranscriptionRequest {
     pub language: Option<String>,
     pub operation_id: Option<String>,
     pub preview: bool,
+}
+
+#[cfg(test)]
+impl TranscriptionRequest {
+    /// A bare request for routing tests; callers override the fields under test.
+    pub(crate) fn for_tests() -> Self {
+        Self {
+            provider: PROVIDER_LOCAL.to_string(),
+            audio_path: PathBuf::new(),
+            title: "Test".to_string(),
+            context: None,
+            language: None,
+            operation_id: None,
+            preview: false,
+        }
+    }
 }
 
 impl TranscriptionRequest {
@@ -363,6 +381,9 @@ pub async fn transcribe_saved_audio(
     if crate::bonzai::active() {
         return crate::bonzai::audio::transcribe_saved_audio(request).await;
     }
+    if crate::providers::configured_transcription_provider() == PROVIDER_LOCAL {
+        return transcribe_saved_audio_local(request).await;
+    }
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "recording.wav");
     let model = crate::providers::transcription_model();
@@ -449,6 +470,9 @@ pub async fn dictate_transcribe(
     request: DictateTranscribeRequest,
 ) -> Result<TranscriptionProviderResult, AppError> {
     crate::bonzai::severance::refuse_dictation()?;
+    if crate::providers::configured_transcription_provider() == PROVIDER_LOCAL {
+        return dictate_transcribe_local(request).await;
+    }
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "dictation.wav");
     let model = crate::providers::transcription_model();
@@ -1094,7 +1118,7 @@ async fn generate_note_from_transcript_local(
     });
     let local_request = with_local_auth(
         local_http_client().post(local_chat_completions_url(&settings)?),
-        &settings,
+        &settings.api_key,
     );
     let response = local_request
         .json(&body)
@@ -1151,7 +1175,7 @@ async fn proxy_local_agent_chat_completions(
     }
     let request = with_local_auth(
         local_http_client().post(local_chat_completions_url(&settings)?),
-        &settings,
+        &settings.api_key,
     );
     let response = request.json(&body).send().await.map_err(network_error)?;
     let status = response.status().as_u16();
@@ -1188,11 +1212,8 @@ fn local_generation_settings_or_error() -> Result<LocalGenerationSettings, AppEr
 /// Attaches `Authorization: Bearer {api_key}` when the user configured an api
 /// key for their local endpoint (Ollama needs none; vLLM / LiteLLM / a hosted
 /// gateway may). No header is sent when the key is empty.
-fn with_local_auth(
-    request: reqwest::RequestBuilder,
-    settings: &LocalGenerationSettings,
-) -> reqwest::RequestBuilder {
-    let api_key = settings.api_key.trim();
+fn with_local_auth(request: reqwest::RequestBuilder, api_key: &str) -> reqwest::RequestBuilder {
+    let api_key = api_key.trim();
     if api_key.is_empty() {
         request
     } else {
@@ -1209,6 +1230,126 @@ fn local_chat_completions_url(settings: &LocalGenerationSettings) -> Result<Stri
         ));
     }
     Ok(format!("{base_url}/chat/completions"))
+}
+
+async fn transcribe_saved_audio_local(
+    request: TranscriptionRequest,
+) -> Result<TranscriptionProviderResult, AppError> {
+    transcribe_audio_local(
+        &request.audio_path,
+        "recording.wav",
+        request.context.as_deref(),
+        request.language.as_deref(),
+    )
+    .await
+}
+
+async fn dictate_transcribe_local(
+    request: DictateTranscribeRequest,
+) -> Result<TranscriptionProviderResult, AppError> {
+    transcribe_audio_local(
+        &request.audio_path,
+        "dictation.wav",
+        request.context.as_deref(),
+        request.language.as_deref(),
+    )
+    .await
+}
+
+/// Transcribes on the user's own OpenAI-compatible speech-to-text server
+/// (multipart `POST {base_url}/audio/transcriptions`, the same wire contract
+/// `bonzai/audio.rs` speaks). Nothing here touches Clovy API, Bonzai, or OS
+/// Accounts: no metering happens and the audio never leaves the configured
+/// host. The caller's context rides as `prompt`, which whisper-class models
+/// use to bias vocabulary.
+async fn transcribe_audio_local(
+    audio_path: &Path,
+    fallback_filename: &str,
+    context: Option<&str>,
+    language: Option<&str>,
+) -> Result<TranscriptionProviderResult, AppError> {
+    let settings = local_transcription_settings_or_error()?;
+    let audio = read_audio(audio_path).await?;
+    let filename = filename_for_audio(audio_path, fallback_filename);
+    let mut form = Form::new()
+        .text("model", settings.model_id.clone())
+        .text("response_format", "verbose_json")
+        .part("file", audio_part(audio, &filename, audio_path)?);
+    if let Some(language) = normalized_language(language) {
+        form = form.text("language", language.to_string());
+    }
+    if let Some(prompt) = context.map(str::trim).filter(|value| !value.is_empty()) {
+        form = form.text("prompt", prompt.to_string());
+    }
+    let response = with_local_auth(
+        local_http_client().post(local_transcription_url(&settings)),
+        &settings.api_key,
+    )
+    .multipart(form)
+    .send()
+    .await
+    .map_err(network_error)?;
+    let status = response.status();
+    let body = response.bytes().await.map_err(network_error)?;
+    if !status.is_success() {
+        return Err(AppError::new(
+            "local_model_failed",
+            format!(
+                "Local transcription model returned status {}.",
+                status.as_u16()
+            ),
+        ));
+    }
+    parse_local_transcription_response(&body, language)
+}
+
+/// The OpenAI transcription response: `{"text": ...}` for `json`, plus
+/// `language` (and segments, ignored) for `verbose_json`.
+#[derive(Deserialize)]
+struct LocalTranscriptionResponse {
+    #[serde(default)]
+    text: String,
+    #[serde(default)]
+    language: Option<String>,
+}
+
+fn parse_local_transcription_response(
+    body: &[u8],
+    requested_language: Option<&str>,
+) -> Result<TranscriptionProviderResult, AppError> {
+    let parsed: LocalTranscriptionResponse = serde_json::from_slice(body).map_err(|error| {
+        AppError::new(
+            "local_model_invalid",
+            format!("Local transcription model returned a response Clovy could not read: {error}"),
+        )
+    })?;
+    Ok(TranscriptionProviderResult {
+        text: parsed.text,
+        language: parsed
+            .language
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .or_else(|| normalized_language(requested_language).map(str::to_string)),
+        provider: PROVIDER_LOCAL.to_string(),
+    })
+}
+
+fn local_transcription_settings_or_error() -> Result<LocalTranscriptionSettings, AppError> {
+    let settings = crate::providers::local_transcription_settings();
+    if settings.base_url.trim().is_empty() || settings.model_id.trim().is_empty() {
+        return Err(AppError::new(
+            "local_model_not_configured",
+            "Configure a local transcription endpoint and model ID first.",
+        ));
+    }
+    Ok(settings)
+}
+
+fn local_transcription_url(settings: &LocalTranscriptionSettings) -> String {
+    format!(
+        "{}/audio/transcriptions",
+        settings.base_url.trim().trim_end_matches('/')
+    )
 }
 
 fn inject_local_safety_context(object: &mut serde_json::Map<String, serde_json::Value>) {
@@ -5841,11 +5982,324 @@ data: [DONE]
 /// mixing them with other settings-mutating tests in one run
 /// (`--include-ignored`) requires `--test-threads=1`.
 #[cfg(test)]
+mod local_transcription_tests {
+    use super::*;
+    use crate::providers::{LocalTranscriptionSettings, PROVIDER_LOCAL};
+    use std::sync::{Mutex, MutexGuard};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    /// Serializes the tests that mutate the process-wide provider settings
+    /// (shared with `live_local_tests`, which restores the defaults on drop).
+    struct SettingsGuard(#[allow(dead_code)] MutexGuard<'static, ()>);
+
+    impl Drop for SettingsGuard {
+        fn drop(&mut self) {
+            crate::providers::replace_current_settings_for_tests(
+                crate::providers::default_settings_for_tests(),
+            );
+        }
+    }
+
+    fn install_local_transcription(local: LocalTranscriptionSettings) -> SettingsGuard {
+        static LOCK: Mutex<()> = Mutex::new(());
+        let guard = LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut settings = crate::providers::default_settings_for_tests();
+        settings.transcription_provider = PROVIDER_LOCAL.to_string();
+        settings.transcription_model = local.model_id.clone();
+        settings.local_transcription = local;
+        crate::providers::replace_current_settings_for_tests(settings);
+        SettingsGuard(guard)
+    }
+
+    fn temp_wav(name: &str) -> PathBuf {
+        let path =
+            std::env::temp_dir().join(format!("clovy-local-stt-{}-{name}", std::process::id()));
+        // Header only: the request path never inspects the audio.
+        std::fs::write(&path, b"RIFF\0\0\0\0WAVEfmt ").unwrap();
+        path
+    }
+
+    /// A one-shot HTTP server that records the request head and answers with
+    /// the given status. Enough to assert routing, path, and auth without a
+    /// real speech-to-text server.
+    async fn one_shot_server(
+        status_line: &'static str,
+        body: &'static str,
+    ) -> (String, tokio::task::JoinHandle<String>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buffer = vec![0u8; 64 * 1024];
+            let read = socket.read(&mut buffer).await.unwrap();
+            let head = String::from_utf8_lossy(&buffer[..read]).to_string();
+            let response = format!(
+                "HTTP/1.1 {status_line}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+            socket.shutdown().await.ok();
+            head
+        });
+        (base_url, handle)
+    }
+
+    #[tokio::test]
+    async fn local_provider_fails_closed_when_the_endpoint_is_not_configured() {
+        let _guard = install_local_transcription(LocalTranscriptionSettings::default());
+        let path = temp_wav("unconfigured.wav");
+
+        // Both entry points reach the local branch (never Clovy API) and stop
+        // at the settings check, before the audio is even read.
+        let note = transcribe_saved_audio(TranscriptionRequest {
+            audio_path: path.clone(),
+            ..TranscriptionRequest::for_tests()
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(note.code, "local_model_not_configured");
+
+        let dictation = dictate_transcribe_local(DictateTranscribeRequest {
+            audio_path: path,
+            context: None,
+            language: None,
+            session_id: "s".to_string(),
+            utterance_id: "u".to_string(),
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(dictation.code, "local_model_not_configured");
+    }
+
+    #[tokio::test]
+    async fn local_transcription_posts_openai_multipart_and_maps_failures() {
+        let (base_url, server) = one_shot_server("503 Service Unavailable", "{}").await;
+        let _guard = install_local_transcription(LocalTranscriptionSettings {
+            base_url,
+            model_id: "Systran/faster-whisper-small".to_string(),
+            api_key: "secret".to_string(),
+        });
+        let path = temp_wav("failure.wav");
+
+        let error = transcribe_saved_audio(TranscriptionRequest {
+            audio_path: path,
+            context: Some("Clovy, speaches".to_string()),
+            language: Some("en".to_string()),
+            ..TranscriptionRequest::for_tests()
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "local_model_failed");
+        assert!(error.message.contains("503"), "{}", error.message);
+
+        let head = server.await.unwrap();
+        assert!(
+            head.starts_with("POST /v1/audio/transcriptions HTTP/1.1"),
+            "{head}"
+        );
+        assert!(head.contains("authorization: Bearer secret"), "{head}");
+        assert!(head.contains("multipart/form-data"), "{head}");
+        for field in ["model", "response_format", "file", "language", "prompt"] {
+            assert!(
+                head.contains(&format!("name=\"{field}\"")),
+                "missing {field}:\n{head}"
+            );
+        }
+        assert!(head.contains("Systran/faster-whisper-small"), "{head}");
+        assert!(head.contains("Clovy, speaches"), "{head}");
+    }
+
+    #[tokio::test]
+    async fn local_transcription_returns_the_local_provider_on_success() {
+        let (base_url, server) = one_shot_server(
+            "200 OK",
+            r#"{"task":"transcribe","language":"nl","duration":1.0,"text":"hallo wereld","segments":[]}"#,
+        )
+        .await;
+        let _guard = install_local_transcription(LocalTranscriptionSettings {
+            base_url,
+            model_id: "Systran/faster-whisper-small".to_string(),
+            api_key: String::new(),
+        });
+        let path = temp_wav("success.wav");
+
+        let result = transcribe_saved_audio(TranscriptionRequest {
+            audio_path: path,
+            ..TranscriptionRequest::for_tests()
+        })
+        .await
+        .unwrap();
+        assert_eq!(result.provider, PROVIDER_LOCAL);
+        assert_eq!(result.text, "hallo wereld");
+        assert_eq!(result.language.as_deref(), Some("nl"));
+
+        let head = server.await.unwrap();
+        // No key configured: no Authorization header goes out.
+        assert!(
+            !head.to_ascii_lowercase().contains("authorization:"),
+            "{head}"
+        );
+    }
+
+    #[test]
+    fn parse_local_transcription_response_accepts_plain_and_verbose_json() {
+        let plain = parse_local_transcription_response(br#"{"text":"hello"}"#, Some("en")).unwrap();
+        assert_eq!(plain.text, "hello");
+        assert_eq!(plain.language.as_deref(), Some("en"));
+        assert_eq!(plain.provider, PROVIDER_LOCAL);
+
+        let verbose = parse_local_transcription_response(
+            br#"{"task":"transcribe","language":"de","text":"hallo","segments":[]}"#,
+            Some("en"),
+        )
+        .unwrap();
+        assert_eq!(verbose.language.as_deref(), Some("de"));
+
+        let error = parse_local_transcription_response(b"not json", None).unwrap_err();
+        assert_eq!(error.code, "local_model_invalid");
+    }
+
+    #[test]
+    fn local_transcription_url_appends_the_openai_path() {
+        let settings = LocalTranscriptionSettings {
+            base_url: "http://localhost:8000/v1/".to_string(),
+            model_id: "m".to_string(),
+            api_key: String::new(),
+        };
+        assert_eq!(
+            local_transcription_url(&settings),
+            "http://localhost:8000/v1/audio/transcriptions"
+        );
+    }
+}
+
+/// Live checks against a real OpenAI-compatible speech-to-text server (a
+/// local speaches instance by default). Ignored unless requested:
+///
+/// ```sh
+/// CLOVY_QA_LOCAL_TRANSCRIPTION_BASE_URL=http://127.0.0.1:8000/v1 \
+/// CLOVY_QA_LOCAL_TRANSCRIPTION_MODEL=Systran/faster-whisper-small \
+/// CLOVY_QA_LOCAL_TRANSCRIPTION_AUDIO=/path/to/speech.wav \
+/// cargo test --lib live_local_transcription -- --ignored --nocapture
+/// ```
+///
+/// Without an audio file a synthesized tone is sent, which only proves the
+/// round trip; point `CLOVY_QA_LOCAL_TRANSCRIPTION_AUDIO` at real speech to
+/// also assert non-empty text.
+#[cfg(test)]
+mod live_local_transcription_tests {
+    use super::*;
+    use crate::providers::{LocalTranscriptionSettings, PROVIDER_LOCAL};
+
+    const DEFAULT_BASE_URL: &str = "http://127.0.0.1:8000/v1";
+    const DEFAULT_MODEL: &str = "Systran/faster-whisper-small";
+
+    fn env(name: &str) -> Option<String> {
+        std::env::var(name)
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+    }
+
+    fn tone_wav(path: &Path) {
+        let sample_rate: u32 = 16_000;
+        let samples: Vec<i16> = (0..sample_rate * 2)
+            .map(|index| {
+                let t = index as f32 / sample_rate as f32;
+                ((t * 440.0 * std::f32::consts::TAU).sin() * 8_000.0) as i16
+            })
+            .collect();
+        let data_len = (samples.len() * 2) as u32;
+        let mut bytes = Vec::with_capacity(44 + data_len as usize);
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt ");
+        bytes.extend_from_slice(&16u32.to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes());
+        bytes.extend_from_slice(&sample_rate.to_le_bytes());
+        bytes.extend_from_slice(&(sample_rate * 2).to_le_bytes());
+        bytes.extend_from_slice(&2u16.to_le_bytes());
+        bytes.extend_from_slice(&16u16.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&data_len.to_le_bytes());
+        for sample in samples {
+            bytes.extend_from_slice(&sample.to_le_bytes());
+        }
+        std::fs::write(path, bytes).unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a live local OpenAI-compatible speech-to-text server"]
+    async fn live_local_transcription_round_trips_through_the_local_provider() {
+        let base_url = env("CLOVY_QA_LOCAL_TRANSCRIPTION_BASE_URL")
+            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
+        let model_id =
+            env("CLOVY_QA_LOCAL_TRANSCRIPTION_MODEL").unwrap_or_else(|| DEFAULT_MODEL.to_string());
+        let reachable = crate::bonzai::egress::guarded_builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(3))
+            .build()
+            .unwrap()
+            .get(format!("{base_url}/models"))
+            .send()
+            .await
+            .is_ok_and(|response| response.status().is_success());
+        if !reachable {
+            eprintln!(
+                "SKIPPED: no speech-to-text server reachable at {base_url}. Start speaches \
+                 (docker run -p 8000:8000 ghcr.io/speaches-ai/speaches:latest-cpu) or set \
+                 CLOVY_QA_LOCAL_TRANSCRIPTION_BASE_URL."
+            );
+            return;
+        }
+        let audio_path = match env("CLOVY_QA_LOCAL_TRANSCRIPTION_AUDIO") {
+            Some(path) => PathBuf::from(path),
+            None => {
+                let path = std::env::temp_dir().join("clovy-live-local-stt-tone.wav");
+                tone_wav(&path);
+                path
+            }
+        };
+        let expect_text = env("CLOVY_QA_LOCAL_TRANSCRIPTION_AUDIO").is_some();
+
+        let mut settings = crate::providers::default_settings_for_tests();
+        settings.transcription_provider = PROVIDER_LOCAL.to_string();
+        settings.transcription_model = model_id.clone();
+        settings.local_transcription = LocalTranscriptionSettings {
+            base_url,
+            model_id,
+            api_key: env("CLOVY_QA_LOCAL_TRANSCRIPTION_API_KEY").unwrap_or_default(),
+        };
+        crate::providers::replace_current_settings_for_tests(settings);
+
+        let result = transcribe_saved_audio(TranscriptionRequest {
+            audio_path,
+            language: Some("en".to_string()),
+            ..TranscriptionRequest::for_tests()
+        })
+        .await;
+        crate::providers::replace_current_settings_for_tests(
+            crate::providers::default_settings_for_tests(),
+        );
+        let result = result.expect("local transcription should succeed");
+        eprintln!(
+            "transcript: {:?} (language {:?})",
+            result.text, result.language
+        );
+        assert_eq!(result.provider, PROVIDER_LOCAL);
+        if expect_text {
+            assert!(!result.text.trim().is_empty(), "expected non-empty text");
+        }
+    }
+}
+
+#[cfg(test)]
 mod live_local_tests {
     use super::*;
     use crate::providers::{
-        probe_local_generation_endpoint, LocalGenerationSettings,
-        ProbeLocalGenerationEndpointRequest, PROVIDER_LOCAL,
+        probe_local_generation_endpoint, LocalGenerationSettings, ProbeLocalEndpointRequest,
+        PROVIDER_LOCAL,
     };
     use std::sync::{Mutex, MutexGuard};
 
@@ -5928,7 +6382,7 @@ mod live_local_tests {
             return;
         }
 
-        let probe = probe_local_generation_endpoint(ProbeLocalGenerationEndpointRequest {
+        let probe = probe_local_generation_endpoint(ProbeLocalEndpointRequest {
             base_url: base_url.clone(),
             api_key: String::new(),
         })

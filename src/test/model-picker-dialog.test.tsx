@@ -48,4 +48,45 @@ describe("ModelPickerDialog", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Model details unavailable")).not.toBeInTheDocument();
   });
+
+  it("shows the tools caveat for a local text model only, never for local transcription", () => {
+    const localOption = (mode: "generation" | "transcription") => ({
+      provider: "local",
+      id: `__june_local_${mode}__:Systran%2Ffaster-whisper-small`,
+      name: "Local: Systran/faster-whisper-small",
+      modelType: mode === "generation" ? "text" : "asr",
+      privacy: "local",
+      traits: ["local"],
+      capabilities: [],
+    });
+    const props = {
+      open: true,
+      search: "",
+      onSearchChange: vi.fn(),
+      onClose: vi.fn(),
+      onSelect: vi.fn(),
+    };
+
+    const { unmount } = render(
+      <ModelPickerDialog
+        {...props}
+        mode="transcription"
+        value={localOption("transcription").id}
+        options={[localOption("transcription")]}
+      />,
+    );
+    expect(screen.getByText("Local: Systran/faster-whisper-small")).toBeInTheDocument();
+    expect(screen.queryByText("Tools not verified")).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <ModelPickerDialog
+        {...props}
+        mode="generation"
+        value={localOption("generation").id}
+        options={[localOption("generation")]}
+      />,
+    );
+    expect(screen.getByText("Tools not verified")).toBeInTheDocument();
+  });
 });

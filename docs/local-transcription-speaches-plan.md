@@ -1,8 +1,11 @@
 # Local transcription via a BYO speaches server
 
-Fork-only implementation plan (`fable/bonzai-all-phases`). Status: proposed,
-not started. Written to be handed to a dedicated developer without further
-scoping conversations.
+Fork-only implementation plan (`fable/bonzai-all-phases`). Status:
+**implemented** (see
+[ADR-0061](adr/0061-local-byoi-transcription-reuses-provider-local.md) for
+the decisions and the manual verification steps in §7 for how to try it).
+Written to be handed to a dedicated developer without further scoping
+conversations; kept as the design record.
 
 This is the **bring-your-own-server** alternative to
 [`local-transcription-parakeet-sidecar-plan.md`](local-transcription-parakeet-sidecar-plan.md),
@@ -300,10 +303,7 @@ and needs an explicit model-license check before shipping).
 
 ## 5. New ADR
 
-`docs/adr/00NN-local-byoi-transcription-reuses-provider-local.md` — confirm
-the next free number against `docs/adr/` at implementation time (0061 was
-free as of the sidecar plan; if that plan's ADR lands first, this one is
-0062 or whatever is next). Content:
+Landed as [`docs/adr/0061-local-byoi-transcription-reuses-provider-local.md`](adr/0061-local-byoi-transcription-reuses-provider-local.md). Content:
 
 - **Decision**: transcription's BYOI path reuses `PROVIDER_LOCAL`, not a new
   identity (§2.1), and why that is the *opposite*, also-correct answer from

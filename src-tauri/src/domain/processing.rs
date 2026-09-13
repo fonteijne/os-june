@@ -3968,7 +3968,13 @@ async fn maybe_post_process_note_transcript(
     mut transcript: TranscriptionProviderResult,
     context: Option<&str>,
 ) -> TranscriptionProviderResult {
-    if provider == crate::providers::OPENAI_PROVIDER {
+    // A local (bring-your-own endpoint) transcript must never take the remote
+    // cleanup pass: that second call would send the text to Clovy API or
+    // Bonzai and defeat local transcription entirely. This exemption is
+    // load-bearing for the privacy claim (ADR-0061), not an optimisation; it
+    // was previously masked only by the dictation kill switch.
+    if provider == crate::providers::OPENAI_PROVIDER || provider == crate::providers::PROVIDER_LOCAL
+    {
         return transcript;
     }
     if transcript.text.trim().is_empty() {
@@ -4036,6 +4042,27 @@ fn tail_chars(value: &str, max_chars: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A local (bring-your-own endpoint) transcript must come back untouched:
+    /// the cleanup pass is a remote call, and reaching it would leak the text
+    /// off the device. OpenAI transcripts are the pre-existing exempt case.
+    #[tokio::test]
+    async fn local_and_openai_transcripts_skip_the_remote_cleanup_pass() {
+        for provider in [
+            crate::providers::PROVIDER_LOCAL,
+            crate::providers::OPENAI_PROVIDER,
+        ] {
+            let transcript = TranscriptionProviderResult {
+                text: "um so we agreed on the plan".to_string(),
+                language: Some("en".to_string()),
+                provider: provider.to_string(),
+            };
+            let result =
+                maybe_post_process_note_transcript(provider, transcript.clone(), Some("Clovy"))
+                    .await;
+            assert_eq!(result, transcript, "provider {provider}");
+        }
+    }
     use crate::clovy_api::TranscriptionProviderResult;
     use sqlx::row::Row;
     use std::{
