@@ -25,14 +25,18 @@ the earlier bundle rename; don't reintroduce), June as the current product
 name.
 
 **Clovy API**:
-The confidential backend service that holds the App API key and the upstream
-AI provider keys, runs `authorize`→`charge` against OS Accounts on behalf of
-the Clovy app, and proxies the metered AI calls (transcription, generation,
-agent chat, web). Lives in the same repo as Clovy under its own Cargo
-workspace; ships as a separate container image to GHCR and runs in a TEE.
-Cargo crates use the `clovy-*` prefix and the binary is `clovy-api`; deployment
-continues publishing June-era image and service aliases for released clients
-under ADR-0055.
+The confidential backend service that proxies AI calls (transcription,
+generation, agent chat) and runs in a TEE so prompt data stays unreadable to
+its own infrastructure. Lives in the same repo as Clovy under its own Cargo
+workspace; ships as a separate container image to GHCR. Cargo crates use the
+`clovy-*` prefix and the binary is `clovy-api`; deployment continues
+publishing June-era image and service aliases for released clients under
+ADR-0055.
+_In this fork_ (per ADR-0061): holds no upstream AI provider keys and runs no
+`authorize`→`charge` against OS Accounts — it is Bonzai's single, exclusive
+hop (client → Clovy API → Bonzai, TEE-hosted), not a metered multi-provider
+proxy. The upstream description above (App API key, provider keys,
+authorize/charge) is accurate for Clovy but not for this fork's use.
 _Avoid_: backend, proxy, AI proxy (use **Clovy API**).
 
 **OS Accounts**:
