@@ -3,6 +3,7 @@ import { IconPlusMedium } from "central-icons/IconPlusMedium";
 import { IconSettingsGear4 } from "central-icons/IconSettingsGear4";
 import { IconTrashCan } from "central-icons/IconTrashCan";
 import { useCallback, useEffect, useState } from "react";
+import { useBonzaiActive } from "../../lib/bonzai";
 import {
   createAgentMcpServer,
   connectAgentMcpOauth,
@@ -72,6 +73,15 @@ export function AgentMcpServersSection() {
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const bonzaiActive = useBonzaiActive();
+  // A Bonzai build permits streamable HTTP only; never leave the form on a
+  // transport it cannot save.
+  useEffect(() => {
+    if (!bonzaiActive) return;
+    setDraft((current) =>
+      current.transport === "stdio" ? { ...current, transport: "streamable_http" } : current,
+    );
+  }, [bonzaiActive]);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AgentMcpServerDto>();
   const [toDelete, setToDelete] = useState<AgentMcpServerDto>();
@@ -429,7 +439,7 @@ export function AgentMcpServersSection() {
                 }))
               }
             >
-              <option value="stdio">Local process (stdio)</option>
+              {bonzaiActive ? null : <option value="stdio">Local process (stdio)</option>}
               <option value="streamable_http">Streamable HTTP</option>
             </select>
           </label>

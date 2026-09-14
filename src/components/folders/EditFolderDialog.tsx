@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FolderDto } from "../../lib/tauri";
 import { Dialog, DialogField } from "../ui/Dialog";
+import { BonzaiProjectKeyField } from "./BonzaiProjectKeyField";
 
 type EditFolderDialogProps = {
   open: boolean;
@@ -84,6 +85,7 @@ export function EditFolderDialog({ open, onClose, folder, onSave }: EditFolderDi
             maxLength={400}
           />
         </DialogField>
+        <BonzaiProjectKeyField folderId={folder.id} />
       </form>
     </Dialog>
   );

@@ -360,6 +360,9 @@ struct P3aReportResponse {
 pub async fn transcribe_saved_audio(
     request: TranscriptionRequest,
 ) -> Result<TranscriptionProviderResult, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::audio::transcribe_saved_audio(request).await;
+    }
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "recording.wav");
     let model = crate::providers::transcription_model();
@@ -400,6 +403,9 @@ pub async fn transcribe_saved_audio(
 pub async fn generate_note_from_transcript(
     request: GenerationRequest,
 ) -> Result<GenerationProviderResult, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::chat::generate_note(request).await;
+    }
     let transcript = request.transcript.trim();
     if transcript.is_empty() {
         return Err(AppError::new(
@@ -442,6 +448,7 @@ pub async fn generate_note_from_transcript(
 pub async fn dictate_transcribe(
     request: DictateTranscribeRequest,
 ) -> Result<TranscriptionProviderResult, AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     let audio = read_audio(&request.audio_path).await?;
     let filename = filename_for_audio(&request.audio_path, "dictation.wav");
     let model = crate::providers::transcription_model();
@@ -482,6 +489,7 @@ fn normalized_language(language: Option<&str>) -> Option<&str> {
 }
 
 pub async fn cleanup_text(params: DictateCleanupRequestParams) -> Result<String, AppError> {
+    crate::bonzai::severance::refuse_dictation()?;
     let model = DEFAULT_DICTATION_CLEANUP_MODEL.to_string();
     let send_venice_api_key = model_accepts_venice_api_key(&model);
     let body = DictateCleanupBody {
@@ -519,6 +527,7 @@ pub async fn submit_p3a_report(request: P3aReportRequest) -> Result<(), AppError
 }
 
 pub async fn list_models(model_type: &str) -> Result<Vec<ModelDto>, AppError> {
+    crate::bonzai::severance::refuse_clovy_api("/v1/models")?;
     let url = format!("{}/v1/models", clovy_api_url());
     let response = http_client()
         .get(url)
@@ -542,6 +551,7 @@ pub struct BrowserTransportPolicyDto {
 /// distinct so they cannot overwrite the last known policy.
 pub async fn fetch_browser_transport_policy() -> Result<Option<BrowserTransportPolicyDto>, AppError>
 {
+    crate::bonzai::severance::refuse_clovy_api("/v1/browser-transport-policy")?;
     let path = "/v1/browser-transport-policy";
     let response = http_client()
         .get(format!("{}{}", clovy_api_url(), path))
@@ -556,6 +566,7 @@ pub async fn fetch_browser_transport_policy() -> Result<Option<BrowserTransportP
 }
 
 pub async fn computer_use_rollout(macos_version: &str) -> Result<ComputerUseRolloutDto, AppError> {
+    crate::bonzai::severance::refuse_clovy_api("/v1/computer-use/rollout")?;
     let url = format!("{}/v1/computer-use/rollout", clovy_api_url());
     let response = http_client()
         .get(url)
@@ -999,6 +1010,9 @@ fn job_id_from_status_path(path: &str) -> &str {
 pub async fn proxy_agent_chat_completions(
     mut body: serde_json::Value,
 ) -> Result<AgentChatCompletionsResponse, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::chat::proxy_agent_chat_completions(body).await;
+    }
     let managed_auto = body
         .get("model")
         .and_then(serde_json::Value::as_str)
@@ -3583,6 +3597,7 @@ async fn send_multipart(
     form: Form,
     send_venice_api_key: bool,
 ) -> Result<reqwest::Response, AppError> {
+    crate::bonzai::severance::refuse_clovy_api(path)?;
     // access_token() now pre-emptively refreshes if the cached JWT is stale,
     // so multipart bodies (which can't be replayed on a 401) go out with a
     // known-fresh token. Form is not Clone, so a retry-on-401 fallback isn't
@@ -3617,6 +3632,7 @@ async fn authed_send<F>(
 where
     F: Fn(&reqwest::Client, String, String) -> reqwest::RequestBuilder,
 {
+    crate::bonzai::severance::refuse_clovy_api(path)?;
     let client = http_client();
     let url = format!("{}{}", clovy_api_url(), path);
     let mut token = crate::os_accounts::access_token().await?;
@@ -3767,7 +3783,7 @@ fn body_model_accepts_venice_api_key(body: &serde_json::Value) -> bool {
 
 fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
@@ -3775,13 +3791,13 @@ fn http_client() -> &'static reqwest::Client {
             .user_agent(concat!("clovy/", env!("CARGO_PKG_VERSION")))
             .default_headers(app_version_headers())
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
 fn agent_http_client() -> &'static reqwest::Client {
     AGENT_HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(AGENT_HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
@@ -3789,7 +3805,7 @@ fn agent_http_client() -> &'static reqwest::Client {
             .user_agent(concat!("clovy-agent/", env!("CARGO_PKG_VERSION")))
             .default_headers(app_version_headers())
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
@@ -3808,14 +3824,14 @@ pub(crate) fn app_version_headers() -> reqwest::header::HeaderMap {
 /// host the user pointed their local model at.
 fn local_http_client() -> &'static reqwest::Client {
     LOCAL_HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(AGENT_HTTP_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
             .tcp_keepalive(Some(Duration::from_secs(30)))
             .user_agent(concat!("clovy-agent/", env!("CARGO_PKG_VERSION")))
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 
@@ -5853,7 +5869,7 @@ mod live_local_tests {
     /// True when the live endpoint answers `GET {base}/models`. Used to skip
     /// gracefully instead of failing when no server is running.
     async fn live_server_reachable(base_url: &str) -> bool {
-        let Ok(client) = reqwest::Client::builder()
+        let Ok(client) = crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(Duration::from_secs(3))
             .build()
@@ -6069,5 +6085,79 @@ Microphone: Great. Let's ship the feed fix this week, then review the onboarding
             has_parseable_delta,
             "SSE stream should contain at least one parseable chat.completion.chunk"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Bonzai seam (this fork). Appended, so upstream edits above merge cleanly.
+// The Bonzai layer (`crate::bonzai`) reuses upstream's note-generation prompt,
+// parsers, and response wrapper through these thin wrappers rather than
+// copies, so the Bonzai path and the local-provider path cannot drift apart.
+// Nothing here changes behaviour; it only exposes what already exists.
+pub(crate) mod bonzai_seam {
+    use super::{AgentChatCompletionsResponse, AgentModelRouteMetadata};
+
+    pub(crate) fn note_generate_system_prompt() -> &'static str {
+        super::NOTE_GENERATE_SYSTEM_PROMPT
+    }
+
+    pub(crate) fn safety_context() -> &'static str {
+        super::LOCAL_SAFETY_CONTEXT
+    }
+
+    pub(crate) fn generation_source_text(
+        existing_generated_note: Option<&str>,
+        manual_notes: Option<&str>,
+        transcript: &str,
+        transcript_source_labels: bool,
+    ) -> String {
+        super::generation_source_text(
+            existing_generated_note,
+            manual_notes,
+            transcript,
+            transcript_source_labels,
+        )
+    }
+
+    pub(crate) fn extract_chat_completion_text(value: &serde_json::Value) -> Option<String> {
+        super::extract_chat_completion_text(value)
+    }
+
+    pub(crate) fn cleanup_generated_note_text(text: &str, labeled_transcript: &str) -> String {
+        super::cleanup_generated_note_text(text, labeled_transcript)
+    }
+
+    pub(crate) async fn read_audio(path: &std::path::Path) -> Result<Vec<u8>, super::AppError> {
+        super::read_audio(path).await
+    }
+
+    pub(crate) fn filename_for_audio(path: &std::path::Path, fallback: &str) -> String {
+        super::filename_for_audio(path, fallback)
+    }
+
+    pub(crate) fn audio_part(
+        audio: Vec<u8>,
+        filename: &str,
+        path: &std::path::Path,
+    ) -> Result<reqwest::multipart::Part, super::AppError> {
+        super::audio_part(audio, filename, path)
+    }
+
+    pub(crate) fn normalized_language(language: Option<&str>) -> Option<&str> {
+        super::normalized_language(language)
+    }
+
+    pub(crate) fn agent_chat_completions_response(
+        status: u16,
+        content_type: String,
+        route: AgentModelRouteMetadata,
+        upstream: reqwest::Response,
+    ) -> AgentChatCompletionsResponse {
+        AgentChatCompletionsResponse {
+            status,
+            content_type,
+            route,
+            upstream,
+        }
     }
 }

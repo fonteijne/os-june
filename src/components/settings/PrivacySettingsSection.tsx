@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBonzaiActive } from "../../lib/bonzai";
 import { dispatchP3aSettingsChanged, TELEMETRY_INFO_URL } from "../../lib/p3a";
 import { p3aSettings, setP3aEnabled, type P3aSettingsDto } from "../../lib/tauri";
 import { Switch } from "../ui/Switch";
@@ -13,6 +14,7 @@ export function PrivacySettingsSection() {
   const [settings, setSettings] = useState<P3aSettingsDto>(DEFAULT_P3A_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string>();
+  const bonzaiActive = useBonzaiActive();
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +29,8 @@ export function PrivacySettingsSection() {
       cancelled = true;
     };
   }, []);
+
+  if (bonzaiActive) return null;
 
   async function toggleUsageStatistics(enabled: boolean) {
     setSaving(true);

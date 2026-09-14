@@ -644,6 +644,7 @@ async fn handle_runtime_request(
                     )
                 })?;
                 request["stream"] = Value::Bool(true);
+                crate::bonzai::tag_agent_request(&mut request, &frame.session_id);
                 let mut cancelled = cancellations.register(&frame.run_id).await;
                 if !model_scopes.lock().await.contains(&frame.run_id) {
                     return Err(AppError::new(

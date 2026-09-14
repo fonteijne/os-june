@@ -1117,7 +1117,7 @@ pub async fn probe_local_generation_endpoint(
     let api_key = request.api_key.trim().to_string();
     let url = format!("{base_url}/models");
 
-    let client = reqwest::Client::builder()
+    let client = crate::bonzai::egress::guarded_builder()
         .no_proxy()
         .timeout(Duration::from_secs(10))
         .build()
@@ -1182,6 +1182,9 @@ pub async fn list_venice_models(
     state: State<'_, ProviderSettingsState>,
     request: VeniceModelsRequest,
 ) -> Result<VeniceModelsResponse, AppError> {
+    if crate::bonzai::active() {
+        return crate::bonzai::models::list_for_picker(request).await;
+    }
     let model_type = request.mode.api_type();
     let selected_model = selected_model_for_mode(&state, request.mode)?;
     // Image models aren't part of the priced catalog the backend serves (image
@@ -1514,14 +1517,14 @@ async fn verify_venice_api_key(api_key: &str) -> Result<(), AppError> {
 
 fn venice_verify_http_client() -> &'static reqwest::Client {
     VENICE_VERIFY_HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::bonzai::egress::guarded_builder()
             .no_proxy()
             .timeout(VENICE_API_KEY_VERIFY_TIMEOUT)
             .pool_idle_timeout(Duration::from_secs(90))
             .tcp_keepalive(Some(Duration::from_secs(30)))
             .user_agent("clovy/0.1")
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
+            .unwrap_or_else(|_| crate::bonzai::egress::guarded_client())
     })
 }
 

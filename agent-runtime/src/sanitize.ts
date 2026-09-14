@@ -1,3 +1,4 @@
+import { bonzaiFailure } from "./bonzai.js";
 import type { JsonValue } from "./types.js";
 
 const SENSITIVE_KEY = /authorization|api[-_]?key|cookie|password|secret|token/i;
@@ -48,6 +49,8 @@ export type RuntimeFailureDetails = {
 };
 
 export function runtimeFailureDetails(error: unknown): RuntimeFailureDetails {
+  const bonzai = bonzaiFailure(error);
+  if (bonzai) return bonzai;
   const tagged = taggedRuntimeFailure(error);
   const message = errorMessage(tagged ?? error);
   if (tagged) {

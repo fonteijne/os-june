@@ -1,6 +1,6 @@
 /// Video kill switch. On now that video generation launches; keep in lockstep
 /// with the frontend `VIDEO_GENERATION_ENABLED` in src/lib/feature-flags.ts.
-pub const VIDEO_GENERATION_ENABLED: bool = true;
+pub const VIDEO_GENERATION_ENABLED: bool = false;
 
 /// Browser use kill switch. Off until the Chrome Web Store item exists (the
 /// manual 0.1.0 bootstrap in docs/release-extension.md): without a store
@@ -8,3 +8,13 @@ pub const VIDEO_GENERATION_ENABLED: bool = true;
 /// surface stays hidden and the grant cannot be enabled. Keep in lockstep
 /// with the frontend `BROWSER_USE_ENABLED` in src/lib/feature-flags.ts.
 pub const BROWSER_USE_ENABLED: bool = false;
+
+// --- Bonzai fork. Appended so upstream's flags above merge cleanly. ---
+
+/// Dictation kill switch (this fork). Off for the beta: dictation is
+/// latency-critical and the whisper backend Bonzai routes to is not yet
+/// benchmarked against that budget (PRD section 5). Off means the helper is
+/// never spawned, the hotkey is never registered, the HUD never arms, and the
+/// dictation request paths fail closed. Keep in lockstep with the frontend
+/// `DICTATION_ENABLED` in src/lib/feature-flags.ts.
+pub const DICTATION_ENABLED: bool = false;

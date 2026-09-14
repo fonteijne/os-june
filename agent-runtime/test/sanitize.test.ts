@@ -62,3 +62,20 @@ test("separates provider, context, credit, and local runtime failures", () => {
   assert.equal(runtimeFailureDetails(new Error("402 insufficient credits")).category, "credits");
   assert.equal(runtimeFailureDetails(new Error("unexpected local failure")).category, "runtime");
 });
+
+test("names a Bonzai refusal from the host as a provider failure with its reason", () => {
+  const rpc = Object.assign(new Error("No Bonzai key is configured for this project."), {
+    data: { appErrorCode: "bonzai_key_missing" },
+  });
+  assert.deepEqual(runtimeFailureDetails(rpc), {
+    message: "No Bonzai key is configured for this project.",
+    category: "provider",
+    code: "bonzai_key_missing",
+    retryable: false,
+  });
+  assert.equal(runtimeFailureDetails({ cause: rpc }).code, "bonzai_key_missing");
+  assert.equal(
+    runtimeFailureDetails(Object.assign(new Error("x"), { data: { appErrorCode: "agent_tool_failed" } })).category,
+    "runtime",
+  );
+});
