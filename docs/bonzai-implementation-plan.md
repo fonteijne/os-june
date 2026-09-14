@@ -45,7 +45,7 @@ renaming it in both places.
 | 0 - fork hygiene | **done** | `upstream` remote, `bonzai-main`, ledger, canary all exist | Canary dry-ran clean at `main` `693a125` / `upstream/main` `8fed7ac` |
 | 1 - the egress guard | **done** | No path reaches a non-allowlisted host without failing CI | `bonzai/{mod,egress,config}.rs` + `tests/bonzai_egress_guard.rs`; all 16 client sites routed; guard verified to fail on a reintroduced raw client |
 | 2 - Bonzai provider, chat paths | **done** | Agent chat and note generation reach Bonzai only | `bonzai/{http,keys,models,chat,resolve,commands}.rs`; prologues in both chat paths and the picker; end-to-end run against a live Bonzai still owed (see the section) |
-| 3 - note transcription | **done** (routing) | Note transcription reaches Bonzai at acceptable quality | `bonzai/audio.rs` + one prologue. The quality gate against real meeting audio is not yet run and depends on open question 1 |
+| 3 - note transcription | **done** (routing, paced) | Note transcription reaches Bonzai at acceptable quality | `bonzai/audio.rs` + one prologue. Beta feedback: a LiteLLM key's requests-per-minute limit answered the pipeline's bursts (two note chunks at a time plus a preview chunk per source every 8 s) with 429s upstream's retry loop did not recognise, failing whole notes; the module now paces itself (two in flight, a shared `Retry-After` cool-down, five attempts per note chunk, previews skipped while cooling). The quality gate against real meeting audio is not yet run and depends on open question 1 |
 | 4 - per-project keys | **done** | Spend in LiteLLM reconciles to the project worked in | Project-then-global resolution from `note_folders` and `session_folders`; keychain keys; project settings field and card badge. No migration: the plan's column was replaced by an index beside the keychain |
 | 5 - severance | **done** | Zero OS Accounts and Clovy API requests in a session | `bonzai/severance.rs`; guards on both Clovy API chokepoints and every direct GET; no-account mode; disabled tools stripped and refused; dictation off on both sides; P3A and issue reports cut |
 | 6 - MCP policy | **done** | Search restorable without reopening inference egress | `bonzai/mcp_policy.rs` + an MCP allowlist (empty) checked at save and connect time; stdio refused; the form hides it |
@@ -598,7 +598,7 @@ requirement, not a nicety:
 
 ## Open questions
 
-1. **Which whisper backend does Bonzai route to?** A Bonzai-side
+1. **Which whisper backend does Bonzai route to, and at what rate limit?** Upstream's Parakeet was never on-device: `nvidia/parakeet-tdt-0.6b-v3` is a Venice-hosted model reached through the Clovy API, so "local like before" has no baseline to return to. An on-device engine (Apple's on-device speech framework on macOS 26, or a bundled Parakeet ONNX under sherpa-onnx) is a post-beta phase of its own; until then the rate limit on the Bonzai key decides how fast a meeting transcribes. A Bonzai-side
    configuration decision. Phase 3 needs it for note-transcription *quality*;
    the post-beta dictation phase needs it for *latency*, which is the harder
    bar. Deferring dictation buys time to answer this properly rather than

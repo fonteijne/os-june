@@ -25,6 +25,7 @@ pub const MODEL_NOT_PERMITTED: &str = "bonzai_model_not_permitted";
 pub const UNREACHABLE: &str = "bonzai_unreachable";
 pub const REQUEST_FAILED: &str = "bonzai_request_failed";
 pub const RESPONSE_INVALID: &str = "bonzai_response_invalid";
+pub const RATE_LIMITED: &str = "bonzai_rate_limited";
 
 /// The shared Bonzai client. Direct-to-gateway like upstream's own clients:
 /// an ambient proxy variable must not be able to redirect a key.
@@ -100,9 +101,35 @@ pub fn status_error(
     scope: &str,
     model: Option<&str>,
 ) -> AppError {
+    status_error_with_retry(status, body, scope, model, None)
+}
+
+/// [`status_error`] with the response's `Retry-After`, so a 429 carries
+/// `details.retryAfterMs` the way upstream's own rate-limit errors do and the
+/// callers that pace themselves (note transcription) can honour it.
+pub fn status_error_with_retry(
+    status: reqwest::StatusCode,
+    body: &[u8],
+    scope: &str,
+    model: Option<&str>,
+    retry_after_ms: Option<u64>,
+) -> AppError {
     let body_text = String::from_utf8_lossy(body);
     let detail = extract_error_message(&body_text);
     match status.as_u16() {
+        429 => {
+            let mut error = AppError::new(
+                RATE_LIMITED,
+                format!(
+                    "Bonzai is rate limiting {scope} (429). Clovy retries transcription automatically; if this keeps happening, raise the key's requests-per-minute limit in LiteLLM.{}",
+                    detail.as_deref().map(|d| format!(" Bonzai said: {d}")).unwrap_or_default()
+                ),
+            );
+            if let Some(ms) = retry_after_ms {
+                error.details = Some(serde_json::json!({ "retryAfterMs": ms }));
+            }
+            error
+        }
         401 | 403 => AppError::new(
             KEY_REJECTED,
             format!(
@@ -126,6 +153,31 @@ pub fn status_error(
             ),
         ),
     }
+}
+
+/// `Retry-After` in milliseconds when the gateway sent one as a delay in
+/// seconds (LiteLLM's form). HTTP-date values are not parsed: a caller then
+/// falls back to its own backoff.
+pub fn retry_after_ms(headers: &reqwest::header::HeaderMap) -> Option<u64> {
+    headers
+        .get(reqwest::header::RETRY_AFTER)?
+        .to_str()
+        .ok()?
+        .trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+        .map(|seconds| (seconds * 1000.0).round() as u64)
+}
+
+/// Whether the error is one a paced retry can get past: the gateway asked for
+/// a pause (429) or briefly failed (502, 503, 504), as opposed to a refusal.
+pub fn is_transient(error: &AppError) -> bool {
+    error.code == RATE_LIMITED
+        || (error.code == REQUEST_FAILED
+            && ["status 502", "status 503", "status 504"]
+                .iter()
+                .any(|needle| error.message.contains(needle)))
 }
 
 fn mentions_model(detail: Option<&str>) -> bool {
@@ -166,6 +218,59 @@ fn truncate(text: &str, max_chars: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_429_is_a_rate_limit_with_the_gateway_pause_attached() {
+        let error = status_error_with_retry(
+            reqwest::StatusCode::TOO_MANY_REQUESTS,
+            br#"{"error":{"message":"RateLimitError: key over limit"}}"#,
+            "the global Bonzai key",
+            Some("whisper-1"),
+            Some(3_000),
+        );
+        assert_eq!(error.code, RATE_LIMITED);
+        assert!(error.message.contains("key over limit"));
+        assert_eq!(error.details.unwrap()["retryAfterMs"], 3_000);
+        assert!(is_transient(&status_error(
+            reqwest::StatusCode::TOO_MANY_REQUESTS,
+            b"",
+            "x",
+            None
+        )));
+        assert!(is_transient(&status_error(
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            b"",
+            "x",
+            None
+        )));
+        assert!(!is_transient(&status_error(
+            reqwest::StatusCode::UNAUTHORIZED,
+            b"",
+            "x",
+            None
+        )));
+        assert!(!is_transient(&status_error(
+            reqwest::StatusCode::BAD_REQUEST,
+            b"",
+            "x",
+            None
+        )));
+    }
+
+    #[test]
+    fn retry_after_reads_seconds_and_ignores_dates() {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(reqwest::header::RETRY_AFTER, "2".parse().unwrap());
+        assert_eq!(retry_after_ms(&headers), Some(2_000));
+        headers.insert(reqwest::header::RETRY_AFTER, "0.5".parse().unwrap());
+        assert_eq!(retry_after_ms(&headers), Some(500));
+        headers.insert(
+            reqwest::header::RETRY_AFTER,
+            "Wed, 21 Oct 2015 07:28:00 GMT".parse().unwrap(),
+        );
+        assert_eq!(retry_after_ms(&headers), None);
+        assert_eq!(retry_after_ms(&reqwest::header::HeaderMap::new()), None);
+    }
 
     #[test]
     fn a_rejected_key_is_named_as_such_and_never_as_a_network_error() {
