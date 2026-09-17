@@ -17,6 +17,8 @@
 //! - [`http`] is the single request helper every Bonzai call goes through.
 //! - [`models`], [`chat`], and [`audio`] are the operations: the model
 //!   catalog per key, chat completions, and audio transcription.
+//! - [`compat`] keeps an agent request portable across the providers behind
+//!   LiteLLM: tuning parameters a model refuses are dropped and remembered.
 //! - [`resolve`] answers "which key and which model for this work?".
 //! - [`severance`] is what this fork switches off, the fail-closed paths
 //!   behind it, and the no-account mode.
@@ -29,6 +31,7 @@
 pub mod audio;
 pub mod chat;
 pub mod commands;
+pub mod compat;
 pub mod config;
 pub mod egress;
 pub mod http;

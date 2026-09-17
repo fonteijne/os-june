@@ -353,6 +353,13 @@ budget.
   global key, to another project's key, or to Clovy credits.
 - **Model not permitted for that key:** fail with the model name and the
   project, and prompt re-selection from that key's actual model list.
+- **Model refuses a tuning parameter** (`reasoning_effort`, sampling
+  settings, and the like; LiteLLM refuses rather than drops what the routed
+  provider does not support): the one exception to hard-fail. Dropping a
+  tuning parameter changes how the model answers, never what it is asked or
+  whose key pays, so Clovy resends without it and remembers the refusal for
+  that model. A refusal naming anything else (the model, the messages, the
+  tools) still fails loudly with the gateway's own message.
 - **Bonzai unreachable:** fail. No upstream provider fallback exists by
   design.
 - **Non-allowlisted host attempted:** fail closed with an egress-policy

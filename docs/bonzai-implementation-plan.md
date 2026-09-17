@@ -391,6 +391,21 @@ picker rows, and the wire contract; the guard; `cargo test --lib` green.
 **Still owed:** an end-to-end note generation against a live Bonzai with a
 real key, which this environment cannot reach.
 
+**Amended after beta feedback (2026-09-17): every model behind LiteLLM must
+work, not only Anthropic's.** The agent runtime's Chat Completions request
+carries `reasoning_effort` on every call and marks every tool `strict`.
+Upstream's gateway forwards both to one provider that tolerates them; LiteLLM
+instead refuses a parameter the routed provider does not support (its
+`drop_params` is a deployment setting, not ours), and OpenAI rejects a
+`strict` tool whose schema is not strict-shaped. So through Bonzai only
+reasoning-capable models that ignore `strict` worked. `bonzai/compat.rs` now
+keeps the agent request portable without naming any provider: `strict` is
+removed from tool definitions up front, and a refusal that names one of the
+runtime's tuning parameters (`reasoning_effort` above all) is answered by
+dropping it, remembering the refusal for that model, and sending again. Any
+other gateway error is replayed to the host byte for byte, so upstream's
+context-overflow and rate-limit handling keep reading the same answer.
+
 **Additive:** `bonzai/chat.rs`, `bonzai/models.rs`, `bonzai/keys.rs` (global
 key only), `PROVIDER_BONZAI`.
 

@@ -10,6 +10,7 @@ use crate::clovy_api::{
 };
 use crate::domain::types::AppError;
 
+use super::compat;
 use super::http;
 use super::resolve;
 
@@ -147,24 +148,64 @@ async fn proxy_agent_chat_completions_inner(
             serde_json::Value::String(model.clone()),
         );
         prepend_safety_context(object);
+        let left_out = compat::make_portable(object, &model);
+        if !left_out.is_empty() {
+            tracing::info!(target: "bonzai", model = %model, parameters = ?left_out, "sending without parameters this model refused earlier");
+        }
     }
-    let response = http::authed(reqwest::Method::POST, "chat/completions", &resolved.key)?
-        .json(&body)
-        .send()
-        .await
-        .map_err(http::network_error)?;
-    let status = response.status();
-    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
-        // A rejected key must surface as its own error, not as a status the
-        // agent runtime renders as a generic model failure and retries.
+    // Bonzai fronts many providers, and a provider that does not support one
+    // of the runtime's tuning parameters refuses the whole request instead of
+    // ignoring it. Such a refusal is answered by dropping what it named and
+    // sending again; anything else the gateway says is handed back unread in
+    // meaning, so upstream's host renders it exactly as it always has.
+    let mut rounds = 0;
+    loop {
+        let response = http::authed(reqwest::Method::POST, "chat/completions", &resolved.key)?
+            .json(&body)
+            .send()
+            .await
+            .map_err(http::network_error)?;
+        let status = response.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+            // A rejected key must surface as its own error, not as a status the
+            // agent runtime renders as a generic model failure and retries.
+            let bytes = response.bytes().await.map_err(http::network_error)?;
+            return Err(http::status_error(
+                status,
+                &bytes,
+                &resolved.scope.describe(),
+                Some(&model),
+            ));
+        }
+        if status.is_success() {
+            return Ok(agent_response(status, response, &model));
+        }
+        let headers = response.headers().clone();
         let bytes = response.bytes().await.map_err(http::network_error)?;
-        return Err(http::status_error(
-            status,
-            &bytes,
-            &resolved.scope.describe(),
-            Some(&model),
-        ));
+        let refused = body
+            .as_object()
+            .map(|object| compat::refused_parameters(&String::from_utf8_lossy(&bytes), object))
+            .unwrap_or_default();
+        if refused.is_empty() || rounds >= compat::MAX_REFUSAL_ROUNDS {
+            let replayed = replay_response(status, headers, bytes.to_vec());
+            return Ok(agent_response(status, replayed, &model));
+        }
+        rounds += 1;
+        tracing::warn!(target: "bonzai", model = %model, parameters = ?refused, status = %status.as_u16(), "the model refused tuning parameters; sending again without them");
+        compat::remember_refused(&model, &refused);
+        if let Some(object) = body.as_object_mut() {
+            for parameter in &refused {
+                object.remove(parameter);
+            }
+        }
     }
+}
+
+fn agent_response(
+    status: reqwest::StatusCode,
+    response: reqwest::Response,
+    model: &str,
+) -> AgentChatCompletionsResponse {
     let content_type = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
@@ -174,14 +215,29 @@ async fn proxy_agent_chat_completions_inner(
     let route = AgentModelRouteMetadata {
         provider: Some(super::PROVIDER_BONZAI.to_string()),
         privacy_level: None,
-        endpoint: Some(model),
+        endpoint: Some(model.to_string()),
     };
-    Ok(bonzai_seam::agent_chat_completions_response(
-        status.as_u16(),
-        content_type,
-        route,
-        response,
-    ))
+    bonzai_seam::agent_chat_completions_response(status.as_u16(), content_type, route, response)
+}
+
+/// A failed response, re-assembled after its body was read to look for a
+/// parameter refusal. Status, headers, and body are the gateway's own, so
+/// the host sees the same answer it would have without the look: its
+/// context-overflow detection reads the message, and its rate-limit handling
+/// reads `Retry-After`.
+fn replay_response(
+    status: reqwest::StatusCode,
+    headers: reqwest::header::HeaderMap,
+    body: Vec<u8>,
+) -> reqwest::Response {
+    let mut builder = tauri::http::Response::builder().status(status);
+    if let Some(target) = builder.headers_mut() {
+        *target = headers;
+    }
+    let response = builder
+        .body(body.clone())
+        .unwrap_or_else(|_| tauri::http::Response::new(body));
+    reqwest::Response::from(response)
 }
 
 /// The concrete model for an agent request: a tagged remote or resolved-Auto
