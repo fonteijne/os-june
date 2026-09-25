@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task workbench</title>
+    <meta name="description" content="A static Clovy task-management workbench sketch for roadmap review." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Fraunces:opsz,wght@9..144,500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #eef0ea;
+        --panel: #fbfcf7;
+        --panel-strong: #ffffff;
+        --panel-soft: #e6ebe2;
+        --line: #d5ddd0;
+        --line-strong: #b9c8b5;
+        --ink: #1f2a24;
+        --muted: #657269;
+        --faint: #8b978e;
+        --accent: #467a4a;
+        --accent-strong: #315e37;
+        --accent-soft: #d9e8d4;
+        --accent-ink: #eff7eb;
+        --warn: #a65b36;
+        --warn-soft: #f1e0d5;
+        --purple: #725b8e;
+        --shadow: 0 18px 48px rgba(35, 52, 39, 0.12), 0 2px 8px rgba(35, 52, 39, 0.06);
+        --radius-sm: 7px;
+        --radius-md: 12px;
+        --radius-lg: 18px;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --space-6: 24px;
+        --space-8: 32px;
+        --fs-xs: 11px;
+        --fs-sm: 12px;
+        --fs-md: 13px;
+        --fs-lg: 15px;
+        --fs-xl: 20px;
+        --fs-display: 32px;
+        --ease: cubic-bezier(.2,.8,.2,1);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --page: #161d19;
+          --panel: #202a23;
+          --panel-strong: #263229;
+          --panel-soft: #2c3930;
+          --line: #38483d;
+          --line-strong: #526b58;
+          --ink: #edf3e9;
+          --muted: #abb8ad;
+          --faint: #7e8d81;
+          --accent: #8ebe7d;
+          --accent-strong: #a7d79a;
+          --accent-soft: #304832;
+          --accent-ink: #172219;
+          --warn: #e09b70;
+          --warn-soft: #4b3329;
+          --purple: #baa4d2;
+          --shadow: 0 22px 54px rgba(0, 0, 0, .3), 0 2px 8px rgba(0, 0, 0, .18);
+        }
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --page: #161d19;
+        --panel: #202a23;
+        --panel-strong: #263229;
+        --panel-soft: #2c3930;
+        --line: #38483d;
+        --line-strong: #526b58;
+        --ink: #edf3e9;
+        --muted: #abb8ad;
+        --faint: #7e8d81;
+        --accent: #8ebe7d;
+        --accent-strong: #a7d79a;
+        --accent-soft: #304832;
+        --accent-ink: #172219;
+        --warn: #e09b70;
+        --warn-soft: #4b3329;
+        --purple: #baa4d2;
+        --shadow: 0 22px 54px rgba(0, 0, 0, .3), 0 2px 8px rgba(0, 0, 0, .18);
+      }
+
+      * { box-sizing: border-box; }
+      html { min-width: 320px; background: var(--page); }
+      body {
+        margin: 0;
+        min-width: 0;
+        min-height: 100vh;
+        padding: 24px;
+        background: var(--page);
+        color: var(--ink);
+        font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+        font-size: var(--fs-md);
+        line-height: 1.45;
+      }
+      button, input, select { font: inherit; }
+      button { color: inherit; }
+      button:focus-visible, input:focus-visible, select:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--accent) 42%, transparent);
+        outline-offset: 2px;
+      }
+      .frame {
+        width: min(1320px, 100%);
+        min-height: calc(100vh - 48px);
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        min-height: 72px;
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-strong);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+      }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: var(--fs-sm);
+      }
+      .brand-copy { min-width: 0; }
+      .brand-name { font-weight: 500; letter-spacing: -.02em; }
+      .brand-context {
+        color: var(--muted);
+        font-size: var(--fs-xs);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .top-actions { display: flex; align-items: center; gap: var(--space-2); }
+      .quiet-button, .primary-button {
+        min-height: 32px;
+        padding: 0 var(--space-3);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        cursor: pointer;
+        transition: background 140ms var(--ease), border-color 140ms var(--ease);
+      }
+      .quiet-button:hover { background: var(--panel-soft); }
+      .primary-button {
+        border-color: var(--accent-strong);
+        background: var(--accent-strong);
+        color: #f5fbf1;
+      }
+      .primary-button:hover { background: var(--accent); }
+      .theme-button { font-family: "IBM Plex Mono", monospace; font-size: var(--fs-xs); }
+
+      .workbench {
+        display: grid;
+        grid-template-columns: 212px minmax(280px, 1fr) minmax(280px, 360px);
+        min-height: 720px;
+      }
+      .lens-nav {
+        padding: var(--space-6) var(--space-3);
+        border-right: 1px solid var(--line);
+        background: var(--panel-soft);
+      }
+      .eyebrow {
+        margin: 0 var(--space-3) var(--space-3);
+        color: var(--muted);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: var(--fs-xs);
+        letter-spacing: .06em;
+      }
+      .lens-list { display: grid; gap: var(--space-1); }
+      .lens {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        width: 100%;
+        min-height: 36px;
+        padding: 0 var(--space-3);
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+      .lens:hover { background: color-mix(in srgb, var(--panel-strong) 62%, transparent); }
+      .lens[aria-current="page"] { background: var(--panel-strong); color: var(--accent-strong); font-weight: 500; }
+      .lens-count { color: var(--faint); font-family: "IBM Plex Mono", monospace; font-size: var(--fs-xs); }
+      .lens[aria-current="page"] .lens-count { color: var(--accent); }
+      .nav-note {
+        margin: var(--space-8) var(--space-3) 0;
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: var(--fs-sm);
+      }
+      .nav-note strong { display: block; margin-bottom: var(--space-2); color: var(--ink); font-weight: 500; }
+
+      .task-column { min-width: 0; background: var(--panel); }
+      .column-header {
+        display: grid;
+        gap: var(--space-4);
+        padding: var(--space-6);
+        border-bottom: 1px solid var(--line);
+      }
+      .column-title-row { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); }
+      h1, h2, p { margin: 0; }
+      h1 {
+        font-family: Fraunces, "Iowan Old Style", Georgia, serif;
+        font-size: var(--fs-display);
+        font-weight: 500;
+        letter-spacing: -.045em;
+        line-height: 1.05;
+        text-wrap: balance;
+      }
+      .result-count { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
+      .search-wrap { position: relative; }
+      .search {
+        width: 100%;
+        height: 36px;
+        padding: 0 var(--space-3);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-sm);
+        background: var(--panel-strong);
+        color: var(--ink);
+      }
+      .search::placeholder { color: var(--faint); }
+      .filter-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+      .filter {
+        height: 28px;
+        padding: 0 var(--space-2);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--muted);
+        font-size: var(--fs-sm);
+      }
+      .filter:hover { background: var(--panel-soft); }
+      .task-list { display: grid; gap: 1px; background: var(--line); }
+      .task-row {
+        display: grid;
+        grid-template-columns: 9px minmax(0, 1fr) auto;
+        gap: var(--space-3);
+        align-items: start;
+        width: 100%;
+        min-height: 92px;
+        padding: var(--space-4) var(--space-6);
+        border: 0;
+        background: var(--panel);
+        text-align: left;
+        cursor: pointer;
+        transition: background 140ms var(--ease);
+      }
+      .task-row:hover { background: var(--panel-strong); }
+      .task-row[aria-selected="true"] { background: var(--accent-soft); }
+      .status-dot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--faint); }
+      .status-dot.next { background: var(--accent); }
+      .status-dot.progress { background: var(--purple); }
+      .status-dot.waiting { background: var(--warn); }
+      .status-dot.done { background: var(--accent-strong); opacity: .5; }
+      .task-main { min-width: 0; }
+      .task-title { display: block; overflow: hidden; color: var(--ink); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+      .task-description { display: block; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: var(--fs-sm); text-overflow: ellipsis; white-space: nowrap; }
+      .task-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); color: var(--faint); font-size: var(--fs-xs); }
+      .task-meta span + span::before { content: "·"; margin-right: var(--space-2); color: var(--line-strong); }
+      .priority { align-self: start; color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: var(--fs-xs); }
+      .priority.high { color: var(--warn); }
+      .priority.medium { color: var(--accent); }
+      .empty { padding: var(--space-8) var(--space-6); color: var(--muted); }
+      .empty strong { display: block; margin-bottom: var(--space-2); color: var(--ink); font-family: Fraunces, Georgia, serif; font-size: var(--fs-xl); font-weight: 500; }
+
+      .detail-column {
+        min-width: 0;
+        padding: var(--space-6);
+        border-left: 1px solid var(--line);
+        background: var(--panel-strong);
+      }
+      .detail-header { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-5); border-bottom: 1px solid var(--line); }
+      .detail-kicker { margin-bottom: var(--space-2); color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: var(--fs-xs); }
+      h2 { font-size: var(--fs-xl); font-weight: 500; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; }
+      .close-button { width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: transparent; cursor: pointer; }
+      .close-button:hover { background: var(--panel-soft); }
+      .detail-copy { padding: var(--space-5) 0; color: var(--muted); }
+      .detail-grid { display: grid; gap: var(--space-3); padding: var(--space-4) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .detail-field { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--space-3); align-items: baseline; }
+      .detail-label { color: var(--faint); font-size: var(--fs-sm); }
+      .detail-value { min-width: 0; overflow-wrap: anywhere; }
+      .tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 var(--space-2); border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-xs); }
+      .tag.warning { background: var(--warn-soft); color: var(--warn); }
+      .detail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-5); }
+      .detail-actions .quiet-button { flex: 1 1 100px; }
+      .detail-actions .primary-button { flex: 1 1 120px; }
+      .notice { margin-top: var(--space-5); padding: var(--space-3); border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-sm); }
+      .notice[hidden] { display: none; }
+      .footer-note { padding: var(--space-4) var(--space-6); border-top: 1px solid var(--line); color: var(--muted); font-size: var(--fs-xs); }
+      .footer-note kbd { padding: 2px 5px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--panel-soft); font-family: "IBM Plex Mono", monospace; font-size: var(--fs-xs); }
+
+      @media (max-width: 1020px) {
+        body { padding: 16px; }
+        .frame { min-height: calc(100vh - 32px); }
+        .workbench { grid-template-columns: 180px minmax(280px, 1fr); }
+        .detail-column { grid-column: 1 / -1; border-top: 1px solid var(--line); border-left: 0; }
+      }
+      @media (max-width: 680px) {
+        body { padding: 0; }
+        .frame { min-height: 100vh; border: 0; border-radius: 0; }
+        .topbar { padding: var(--space-4); }
+        .workbench { display: block; min-height: 0; }
+        .lens-nav { display: flex; gap: var(--space-2); overflow-x: auto; padding: var(--space-3) var(--space-4); border-right: 0; border-bottom: 1px solid var(--line); }
+        .eyebrow, .nav-note { display: none; }
+        .lens-list { display: flex; min-width: max-content; }
+        .lens { width: auto; white-space: nowrap; }
+        .column-header, .task-row, .detail-column { padding-left: var(--space-4); padding-right: var(--space-4); }
+        .column-title-row { align-items: start; flex-direction: column; gap: var(--space-2); }
+        .task-row { grid-template-columns: 9px minmax(0, 1fr); }
+        .priority { grid-column: 2; margin-top: -8px; }
+        .detail-column { border-top: 1px solid var(--line); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" aria-label="Task workbench example">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">C</div>
+          <div class="brand-copy">
+            <div class="brand-name">Clovy</div>
+            <div class="brand-context">Example workspace · roadmap sketch</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="quiet-button theme-button" id="themeToggle" type="button">Theme: system</button>
+          <button class="primary-button" id="newTask" type="button">New task</button>
+        </div>
+      </header>
+
+      <div class="workbench">
+        <nav class="lens-nav" aria-label="Task views">
+          <p class="eyebrow">Task views</p>
+          <div class="lens-list" role="list">
+            <button class="lens" type="button" data-lens="inbox" aria-current="page"><span>Inbox</span><span class="lens-count">4</span></button>
+            <button class="lens" type="button" data-lens="today"><span>Today</span><span class="lens-count">2</span></button>
+            <button class="lens" type="button" data-lens="upcoming"><span>Upcoming</span><span class="lens-count">3</span></button>
+            <button class="lens" type="button" data-lens="projects"><span>Projects</span><span class="lens-count">2</span></button>
+            <button class="lens" type="button" data-lens="completed"><span>Completed</span><span class="lens-count">6</span></button>
+          </div>
+          <div class="nav-note">
+            <strong>Local by design</strong>
+            Tasks stay on this device. Agent actions pass through the Rust host.
+          </div>
+        </nav>
+
+        <section class="task-column" aria-labelledby="taskHeading">
+          <div class="column-header">
+            <div class="column-title-row">
+              <h1 id="taskHeading">Inbox</h1>
+              <span class="result-count" id="resultCount">4 open tasks</span>
+            </div>
+            <label class="search-wrap">
+              <span class="eyebrow" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);">Search tasks</span>
+              <input class="search" id="search" type="search" placeholder="Search tasks" autocomplete="off" />
+            </label>
+            <div class="filter-row" aria-label="Task filters">
+              <select class="filter" id="priorityFilter" aria-label="Filter by priority">
+                <option value="all">All priorities</option>
+                <option value="high">High priority</option>
+                <option value="medium">Medium priority</option>
+                <option value="low">Low priority</option>
+              </select>
+              <select class="filter" id="projectFilter" aria-label="Filter by Project">
+                <option value="all">All Projects</option>
+                <option value="launch">Launch planning</option>
+                <option value="research">Research</option>
+              </select>
+            </div>
+          </div>
+          <div class="task-list" id="taskList" role="listbox" aria-label="Tasks"></div>
+          <div class="empty" id="emptyState" hidden>
+            <strong>No tasks match</strong>
+            Try another lens or clear the search. The list keeps its shape while you filter.
+          </div>
+        </section>
+
+        <aside class="detail-column" aria-labelledby="detailHeading">
+          <div id="detailContent"></div>
+          <div class="notice" id="notice" role="status" hidden></div>
+        </aside>
+      </div>
+      <footer class="footer-note">Example content for roadmap review · <kbd>/</kbd> focuses search · <kbd>↑</kbd> <kbd>↓</kbd> moves selection · <kbd>Enter</kbd> opens detail</footer>
+    </main>
+
+    <script>
+      const tasks = [
+        { id: "task-1", title: "Confirm local task status vocabulary", description: "Resolve the Phase 0 state labels before schema review.", status: "inbox", priority: "high", due: "Today", project: "Launch planning", source: "Agent session", origin: "Agent" },
+        { id: "task-2", title: "Review migration catalog constraints", description: "Check the next append-only catalog position when scheduled.", status: "next", priority: "medium", due: "Tomorrow", project: "Research", source: "Note", origin: "User" },
+        { id: "task-3", title: "Decide source deletion behavior", description: "Choose whether a missing Note leaves a source-unavailable marker.", status: "waiting", priority: "medium", due: "Friday", project: "Launch planning", source: "Agent session", origin: "Routine" },
+        { id: "task-4", title: "Write a bounded task-list query", description: "Keep list results compact and predictable for the host tool.", status: "inbox", priority: "low", due: "No due time", project: "Research", source: "None", origin: "User" },
+        { id: "task-5", title: "Archive the old task proposal", description: "Retain the history after the dedicated plan is linked.", status: "done", priority: "low", due: "Last week", project: "Launch planning", source: "Note", origin: "User" }
+      ];
+      const lensLabels = { inbox: "Inbox", today: "Today", upcoming: "Upcoming", projects: "Projects", completed: "Completed" };
+      let activeLens = "inbox";
+      let selectedId = "task-1";
+      let themeMode = "system";
+
+      const list = document.getElementById("taskList");
+      const empty = document.getElementById("emptyState");
+      const heading = document.getElementById("taskHeading");
+      const count = document.getElementById("resultCount");
+      const search = document.getElementById("search");
+      const priorityFilter = document.getElementById("priorityFilter");
+      const projectFilter = document.getElementById("projectFilter");
+      const detail = document.getElementById("detailContent");
+      const notice = document.getElementById("notice");
+
+      function filteredTasks() {
+        const query = search.value.trim().toLowerCase();
+        const priority = priorityFilter.value;
+        const project = projectFilter.value;
+        return tasks.filter((task) => {
+          const matchesLens = activeLens === "completed"
+            ? task.status === "done"
+            : activeLens === "today"
+              ? task.due === "Today" && task.status !== "done"
+              : activeLens === "upcoming"
+                ? ["Tomorrow", "Friday"].includes(task.due) && task.status !== "done"
+                : activeLens === "projects"
+                  ? Boolean(task.project)
+                  : task.status !== "done";
+          const matchesQuery = !query || [task.title, task.description, task.project, task.source].join(" ").toLowerCase().includes(query);
+          const matchesPriority = priority === "all" || task.priority === priority;
+          const matchesProject = project === "all" || task.project.toLowerCase().startsWith(project);
+          return matchesLens && matchesQuery && matchesPriority && matchesProject;
+        });
+      }
+
+      function statusClass(status) {
+        return { next: "next", in_progress: "progress", waiting: "waiting", done: "done" }[status] || "";
+      }
+
+      function renderList() {
+        const visible = filteredTasks();
+        heading.textContent = lensLabels[activeLens];
+        count.textContent = `${visible.length} ${visible.length === 1 ? "task" : "open tasks"}`;
+        list.innerHTML = visible.map((task) => `
+          <button class="task-row" type="button" role="option" aria-selected="${task.id === selectedId}" data-id="${task.id}">
+            <span class="status-dot ${statusClass(task.status)}" aria-hidden="true"></span>
+            <span class="task-main">
+              <span class="task-title">${task.title}</span>
+              <span class="task-description">${task.description}</span>
+              <span class="task-meta"><span>${task.due}</span><span>${task.project}</span><span>${task.source}</span></span>
+            </span>
+            <span class="priority ${task.priority}">${task.priority}</span>
+          </button>`).join("");
+        empty.hidden = visible.length > 0;
+        list.hidden = visible.length === 0;
+        if (visible.length && !visible.some((task) => task.id === selectedId)) selectedId = visible[0].id;
+        renderDetail();
+      }
+
+      function renderDetail() {
+        const task = tasks.find((item) => item.id === selectedId);
+        if (!task) {
+          detail.innerHTML = "<p class=\"detail-copy\">Select a task to inspect its context.</p>";
+          return;
+        }
+        const statusLabel = task.status === "in_progress" ? "In progress" : task.status[0].toUpperCase() + task.status.slice(1);
+        detail.innerHTML = `
+          <div class="detail-header">
+            <div><p class="detail-kicker">Task detail</p><h2 id="detailHeading">${task.title}</h2></div>
+            <button class="close-button" type="button" aria-label="Close task detail" id="closeDetail">×</button>
+          </div>
+          <p class="detail-copy">${task.description} This example shows how a task can explain its source without becoming a Note or an agent session.</p>
+          <div class="detail-grid">
+            <div class="detail-field"><span class="detail-label">Status</span><span class="detail-value"><span class="tag">${statusLabel}</span></span></div>
+            <div class="detail-field"><span class="detail-label">Priority</span><span class="detail-value">${task.priority}</span></div>
+            <div class="detail-field"><span class="detail-label">Due</span><span class="detail-value">${task.due} · local time</span></div>
+            <div class="detail-field"><span class="detail-label">Project</span><span class="detail-value">${task.project}</span></div>
+            <div class="detail-field"><span class="detail-label">Source</span><span class="detail-value">${task.source}</span></div>
+            <div class="detail-field"><span class="detail-label">Origin</span><span class="detail-value">${task.origin}</span></div>
+          </div>
+          <div class="detail-actions">
+            <button class="primary-button" type="button" id="completeTask">${task.status === "done" ? "Reopen task" : "Complete task"}</button>
+            <button class="quiet-button" type="button" id="cancelTask">${task.status === "cancelled" ? "Reopen task" : "Cancel task"}</button>
+          </div>`;
+      }
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+        window.setTimeout(() => { notice.hidden = true; }, 2400);
+      }
+
+      function setSelected(id) {
+        selectedId = id;
+        renderList();
+        document.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ block: "nearest" });
+      }
+
+      document.addEventListener("click", (event) => {
+        const lens = event.target.closest("[data-lens]");
+        if (lens) {
+          activeLens = lens.dataset.lens;
+          document.querySelectorAll("[data-lens]").forEach((button) => button.setAttribute("aria-current", button === lens ? "page" : "false"));
+          renderList();
+          return;
+        }
+        const row = event.target.closest("[data-id]");
+        if (row) { setSelected(row.dataset.id); return; }
+        if (event.target.id === "newTask") {
+          const newTask = { id: `task-${Date.now()}`, title: "Name the next task", description: "A new local task would open here with a required title.", status: "inbox", priority: "none", due: "No due time", project: "No Project", source: "None", origin: "User" };
+          tasks.unshift(newTask); selectedId = newTask.id; activeLens = "inbox"; renderList(); showNotice("New task draft added locally in this example.");
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (event.target.id === "completeTask" || event.target.id === "cancelTask") {
+          const task = tasks.find((item) => item.id === selectedId);
+          if (!task) return;
+          const isComplete = event.target.id === "completeTask";
+          task.status = isComplete ? (task.status === "done" ? "inbox" : "done") : (task.status === "cancelled" ? "inbox" : "cancelled");
+          showNotice(isComplete ? "Task state changed in the local example." : "Task kept with a cancelled state.");
+          renderList();
+        }
+        if (event.target.id === "closeDetail") {
+          selectedId = null;
+          renderDetail();
+        }
+      });
+
+      search.addEventListener("input", renderList);
+      priorityFilter.addEventListener("change", renderList);
+      projectFilter.addEventListener("change", renderList);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "/" && document.activeElement !== search) { event.preventDefault(); search.focus(); return; }
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") return;
+        const visible = filteredTasks();
+        if (!visible.length) return;
+        const index = Math.max(0, visible.findIndex((task) => task.id === selectedId));
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const next = event.key === "ArrowDown" ? Math.min(visible.length - 1, index + 1) : Math.max(0, index - 1);
+          setSelected(visible[next].id);
+        } else if (event.key === "Enter" && document.activeElement?.classList.contains("task-row")) {
+          renderDetail();
+        }
+      });
+      document.getElementById("themeToggle").addEventListener("click", (event) => {
+        themeMode = themeMode === "system" ? "dark" : themeMode === "dark" ? "light" : "system";
+        document.documentElement.toggleAttribute("data-theme", themeMode !== "system");
+        if (themeMode !== "system") document.documentElement.dataset.theme = themeMode;
+        event.target.textContent = `Theme: ${themeMode}`;
+      });
+      renderList();
+    </script>
+  </body>
+</html>

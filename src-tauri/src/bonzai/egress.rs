@@ -38,7 +38,7 @@ pub const EGRESS_BLOCKED: &str = "egress_blocked";
 /// look alike and are not: the base URL is where we send, the allowlist is
 /// where we are permitted to send. Deriving one from the other makes the check
 /// self-referential and enforces nothing (ADR-0059, correction 3).
-const ALLOWED_HOSTS: &[&str] = &["api-v2.bonzai.iodigital.com"];
+const ALLOWED_HOSTS: &[&str] = &["api-v2.bonzai.iodigital.com", "connect.iobonzai.com"];
 
 /// Hosts a development build additionally permits.
 ///
@@ -181,7 +181,12 @@ mod tests {
 
     #[test]
     fn allows_a_compiled_host_over_https() {
-        assert!(assert_allowed(&url("https://api-v2.bonzai.iodigital.com/v1/models")).is_ok());
+        for raw in [
+            "https://api-v2.bonzai.iodigital.com/v1/models",
+            "https://connect.iobonzai.com/v1/models",
+        ] {
+            assert!(assert_allowed(&url(raw)).is_ok(), "{raw} should be allowed");
+        }
     }
 
     #[test]

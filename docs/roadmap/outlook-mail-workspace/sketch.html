@@ -1,0 +1,214 @@
+<title>Project Mail Context</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f5f2;
+    --shell: #fbfcfa;
+    --sidebar: #eef1ed;
+    --panel: #ffffff;
+    --panel-soft: #f7f8f6;
+    --text: #202621;
+    --muted: #7c857e;
+    --muted-strong: #566059;
+    --line: #e1e6e1;
+    --line-strong: #d2dad3;
+    --wash: #e7eee8;
+    --brand: #93c99a;
+    --brand-deep: #315f40;
+    --brand-ink: #173721;
+    --warning: #a56d31;
+    --shadow: 0 22px 64px rgba(30, 42, 34, .14), 0 4px 16px rgba(30, 42, 34, .07);
+    --sans: "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #161a17; --shell: #1c211d; --sidebar: #141814; --panel: #242a25;
+      --panel-soft: #202620; --text: #eef3ee; --muted: #8a958d;
+      --muted-strong: #b7c1b9; --line: #343d35; --line-strong: #465047;
+      --wash: #2b392e; --brand: #9bd09f; --brand-deep: #b3dfb7;
+      --brand-ink: #112117; --warning: #d9a467;
+      --shadow: 0 28px 88px rgba(0, 0, 0, .46), 0 5px 22px rgba(0, 0, 0, .26);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #161a17; --shell: #1c211d; --sidebar: #141814; --panel: #242a25;
+    --panel-soft: #202620; --text: #eef3ee; --muted: #8a958d;
+    --muted-strong: #b7c1b9; --line: #343d35; --line-strong: #465047;
+    --wash: #2b392e; --brand: #9bd09f; --brand-deep: #b3dfb7;
+    --brand-ink: #112117; --warning: #d9a467;
+    --shadow: 0 28px 88px rgba(0, 0, 0, .46), 0 5px 22px rgba(0, 0, 0, .26);
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body { margin: 0; padding: 22px 16px 32px; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; }
+  button, input, textarea { font: inherit; }
+  button { color: inherit; }
+  .page { width: min(1360px, 100%); margin: 0 auto; }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 4px 14px; color: var(--muted); }
+  .topline h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+  .topline p { margin: 4px 0 0; font-size: 12px; }
+  .theme-toggle { border: 1px solid var(--line); border-radius: 999px; background: var(--panel-soft); color: var(--muted-strong); padding: 6px 10px; cursor: pointer; }
+  .theme-toggle:hover { background: var(--wash); }
+  .canvas { min-height: 720px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--shell); box-shadow: 0 12px 36px rgba(25, 35, 28, .08); }
+  .app-shell { display: grid; grid-template-columns: 208px minmax(0, 1fr) 330px; min-height: 720px; }
+  .sidebar { display: flex; flex-direction: column; gap: 19px; padding: 22px 13px 16px; background: var(--sidebar); border-right: 1px solid var(--line); }
+  .wordmark { padding: 0 10px; color: var(--brand-deep); font-size: 15px; font-weight: 600; letter-spacing: -.04em; }
+  .nav { display: grid; gap: 3px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; min-height: 32px; padding: 0 10px; border-radius: 8px; color: var(--muted-strong); }
+  .nav-item.active { background: var(--wash); color: var(--text); }
+  .nav-icon { width: 15px; color: var(--muted); text-align: center; }
+  .nav-item.active .nav-icon { color: var(--brand-deep); }
+  .nav-label { flex: 1; }
+  .section-label { margin: 7px 10px 5px; color: var(--muted); font-size: 11px; }
+  .session-row { display: flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 8px; color: var(--muted-strong); font-size: 12px; }
+  .session-row.selected { background: var(--wash); color: var(--text); }
+  .sidebar-bottom { margin-top: auto; padding: 0 10px; color: var(--muted); font-size: 12px; }
+  .main { min-width: 0; overflow: hidden; background: var(--shell); }
+  .titlebar { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 22px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .chat { display: flex; min-height: 676px; flex-direction: column; }
+  .chat-header { padding: 21px 28px 12px; border-bottom: 1px solid var(--line); }
+  .chat-eyebrow { margin-bottom: 7px; color: var(--brand-deep); font-size: 11px; }
+  .chat-header h2 { margin: 0; font-size: 18px; font-weight: 400; letter-spacing: -.03em; }
+  .chat-header p { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+  .transcript { display: flex; flex: 1; flex-direction: column; gap: 16px; overflow: auto; padding: 28px; }
+  .assistant-line { max-width: 560px; color: var(--muted-strong); line-height: 1.6; }
+  .assistant-line strong { color: var(--text); font-weight: 400; }
+  .user-line { align-self: flex-end; max-width: 78%; padding: 10px 12px; border-radius: 11px 11px 3px 11px; background: var(--wash); color: var(--text); line-height: 1.5; }
+  .context-card { display: grid; gap: 7px; max-width: 560px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); }
+  .context-card-top { display: flex; justify-content: space-between; gap: 12px; color: var(--brand-deep); font-size: 11px; }
+  .context-card h3 { margin: 0; font-size: 13px; font-weight: 400; }
+  .context-meta { color: var(--muted); font-size: 11px; }
+  .context-copy { color: var(--muted-strong); line-height: 1.5; }
+  .composer { display: grid; gap: 10px; margin: 0 22px 20px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel); }
+  .composer textarea { min-height: 52px; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--text); line-height: 1.5; }
+  .composer textarea::placeholder { color: var(--muted); }
+  .composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 11px; }
+  .composer-action { border: 1px solid var(--line); border-radius: 7px; background: var(--panel-soft); color: var(--muted-strong); padding: 6px 9px; cursor: pointer; }
+  .composer-action:hover { background: var(--wash); }
+  .send { height: 29px; padding: 0 11px; border: 0; border-radius: 7px; background: var(--brand-deep); color: var(--brand-ink); cursor: pointer; }
+  .send:hover { filter: brightness(1.06); }
+  .context-panel { display: flex; min-width: 0; flex-direction: column; border-left: 1px solid var(--line); background: var(--panel-soft); }
+  .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 19px 16px 12px; border-bottom: 1px solid var(--line); }
+  .panel-header h2 { margin: 0; font-size: 15px; font-weight: 400; letter-spacing: -.02em; }
+  .panel-header p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .panel-close { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--muted); cursor: pointer; }
+  .panel-close:hover { background: var(--wash); }
+  .mail-search { display: flex; align-items: center; gap: 8px; height: 32px; margin: 13px 13px 10px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); }
+  .mail-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 12px; }
+  .mail-search input::placeholder { color: var(--muted); }
+  .related-note { margin: 0 13px 11px; color: var(--muted); font-size: 11px; }
+  .list-note { margin: 0 13px 9px; color: var(--muted); font-size: 10px; }
+  .related-note strong { color: var(--muted-strong); font-weight: 400; }
+  .messages { height: 220px; overflow: auto; padding: 0 8px 10px; }
+  .message-row { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto; gap: 8px; padding: 10px 7px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+  .message-row:hover { background: var(--panel); }
+  .message-row.selected { border-color: color-mix(in srgb, var(--brand-deep) 35%, var(--line)); background: var(--wash); }
+  .message-dot { width: 6px; height: 6px; margin-top: 4px; border-radius: 50%; background: var(--brand-deep); }
+  .message-row.read .message-dot { background: transparent; }
+  .message-sender, .message-subject { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .message-sender { font-size: 11px; }
+  .message-subject { margin-top: 3px; color: var(--muted-strong); font-size: 10px; }
+  .message-time { color: var(--muted); font-size: 10px; }
+  .email-preview { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 14px 16px 16px; border-top: 1px solid var(--line); background: var(--panel); }
+  .preview-label { margin-bottom: 6px; color: var(--brand-deep); font-size: 10px; }
+  .email-preview h3 { margin: 0; font-size: 14px; font-weight: 400; letter-spacing: -.02em; }
+  .email-meta { margin-top: 6px; color: var(--muted); font-size: 10px; }
+  .email-body { flex: 1; overflow: auto; margin-top: 14px; color: var(--muted-strong); font-size: 11px; line-height: 1.55; }
+  .email-body p { margin: 0 0 10px; }
+  .context-actions { display: grid; gap: 7px; margin-top: 12px; }
+  .context-primary, .context-secondary { min-height: 31px; border-radius: 7px; cursor: pointer; }
+  .context-primary { border: 0; background: var(--brand-deep); color: var(--brand-ink); }
+  .context-secondary { border: 1px solid var(--line-strong); background: var(--panel-soft); color: var(--muted-strong); }
+  .context-primary:hover { filter: brightness(1.06); }
+  .context-secondary:hover { background: var(--wash); }
+  .status { min-height: 16px; margin-top: 8px; color: var(--brand-deep); font-size: 10px; }
+  .notes { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin: 14px 4px 0; }
+  .notes h2 { margin: 0 0 5px; font-size: 13px; font-weight: 600; }
+  .notes p, .notes li { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .notes p { margin: 0; }
+  .notes ul { margin: 0; padding-left: 16px; }
+  @media (max-width: 930px) { .app-shell { grid-template-columns: 64px minmax(0, 1fr) 300px; } .sidebar { align-items: center; padding: 18px 7px; } .wordmark { padding: 0; font-size: 0; } .wordmark::after { content: "C"; font-size: 15px; } .nav-label, .section-label, .session-row, .sidebar-bottom { display: none; } .nav-item { justify-content: center; padding: 0; } }
+  @media (max-width: 720px) { body { padding-top: 15px; } .topline { align-items: flex-start; flex-direction: column; } .app-shell { grid-template-columns: 56px minmax(0, 1fr); } .context-panel { display: none; } .notes { grid-template-columns: 1fr; } .chat-header, .transcript { padding-left: 16px; padding-right: 16px; } .composer { margin-left: 16px; margin-right: 16px; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+<div class="page">
+  <div class="topline">
+    <div><h1>Project mail context</h1><p>Project chat stays central. Mail is selected only when it helps.</p></div>
+    <button class="theme-toggle" id="theme-toggle" type="button">Toggle dark mode</button>
+  </div>
+  <main class="canvas" aria-label="Project mail context sketch">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <div class="wordmark">Clovy</div>
+        <nav class="nav" aria-label="Primary">
+          <div class="nav-item"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></div>
+          <div class="nav-item"><span class="nav-icon">＋</span><span class="nav-label">New session</span></div>
+          <div class="nav-item"><span class="nav-icon">▤</span><span class="nav-label">Meeting notes</span></div>
+          <div class="nav-item"><span class="nav-icon">▧</span><span class="nav-label">Projects</span></div>
+        </nav>
+        <div><div class="section-label">Sessions</div><div class="session-row selected">Client follow-up</div><div class="session-row">Launch planning</div></div>
+        <div class="sidebar-bottom">Client work</div>
+      </aside>
+      <section class="main" aria-label="Project conversation">
+        <div class="titlebar"><span>Projects&nbsp;&nbsp; / &nbsp;&nbsp;Client follow-up</span><span>Sandboxed</span></div>
+        <div class="chat">
+          <header class="chat-header"><div class="chat-eyebrow">Project conversation</div><h2>Client follow-up</h2><p>Project instructions and memory are available in this session.</p></header>
+          <div class="transcript" id="transcript">
+            <div class="assistant-line"><strong>Clovy</strong><br>I can help prepare the client follow-up. I can also look for supporting context in the Project and enabled vault sources.</div>
+            <div class="user-line">Find the latest email from Priya about the launch review, then compare it with our project notes.</div>
+            <div class="context-card" id="context-card"><div class="context-card-top"><span>Mail context added</span><span>Source: Outlook</span></div><h3>Re: Q3 launch timeline</h3><div class="context-meta">Priya Nair · Today, 09:42</div><div class="context-copy">Thursday works well for the launch review. Could you send over the latest rollout notes before then?</div></div>
+            <div class="assistant-line"><strong>Clovy</strong><br>I found the selected message. I can now compare it with the Client follow-up Project notes or search the enabled Obsidian vault. What should I check first?</div>
+          </div>
+          <div class="composer"><textarea aria-label="Message Clovy" placeholder="Ask about this Project and its selected context..."></textarea><div class="composer-footer"><button class="composer-action" id="add-context" type="button">＋ Add context</button><button class="send" type="button">Send ↑</button></div></div>
+        </div>
+      </section>
+      <aside class="context-panel" aria-label="Mail context">
+        <header class="panel-header"><div><h2>Mail context</h2><p>Search a message to add to this Project chat.</p></div><button class="panel-close" aria-label="Close mail context" id="panel-close" type="button">×</button></header>
+        <label class="mail-search"><span aria-hidden="true">⌕</span><input id="mail-search" type="search" placeholder="Search client mail" autocomplete="off" aria-label="Search client mail"></label>
+        <p class="related-note">Related to <strong>Client follow-up</strong></p>
+        <p class="list-note">Newest 20 received messages</p>
+        <div class="messages" id="messages" role="listbox" aria-label="Mail context results">
+          <div class="message-row selected" role="option" aria-selected="true" data-search="priya client follow up launch timeline" tabindex="0"><span class="message-dot" aria-hidden="true"></span><span><span class="message-sender">Priya Nair</span><span class="message-subject">Re: Q3 launch timeline</span></span><span class="message-time">9:42</span></div>
+          <div class="message-row" role="option" aria-selected="false" data-search="marcus client review notes" tabindex="0"><span class="message-dot" aria-hidden="true"></span><span><span class="message-sender">Marcus Chen</span><span class="message-subject">Notes from the design review</span></span><span class="message-time">8:16</span></div>
+          <div class="message-row read" role="option" aria-selected="false" data-search="elena customer research client" tabindex="0"><span class="message-dot" aria-hidden="true"></span><span><span class="message-sender">Elena Rossi</span><span class="message-subject">Customer research interviews</span></span><span class="message-time">Yesterday</span></div>
+          <div class="message-row read" role="option" aria-selected="false" data-search="finance invoice client" tabindex="0"><span class="message-dot" aria-hidden="true"></span><span><span class="message-sender">Finance team</span><span class="message-subject">April statement</span></span><span class="message-time">Yesterday</span></div>
+        </div>
+        <section class="email-preview" aria-label="Selected email preview"><div class="preview-label">Selected message · preview only</div><h3 id="preview-subject">Re: Q3 launch timeline</h3><div class="email-meta" id="preview-meta">Priya Nair · Today, 09:42</div><div class="email-body"><p>Thursday works well for the launch review.</p><p>Could you send over the latest rollout notes before then? I would also like to make sure we leave time to discuss the customer handoff.</p></div><div class="context-actions"><button class="context-primary" id="add-mail" type="button">Add to chat</button><button class="context-secondary" id="ask-clovy" type="button">Ask Clovy about this email</button><div class="status" id="status" aria-live="polite">Message is not in chat yet</div></div></section>
+      </aside>
+    </div>
+  </main>
+  <div class="notes"><section><h2>Interaction intent</h2><p>The Project conversation remains the main workspace. Mail context is a lightweight side panel: search, preview one message, then explicitly add it to chat. Ask Clovy is a deliberate mail-first handoff, not an automatic session creator.</p></section><section><h2>Reusable system blocks</h2><ul><li>Project agent workspace</li><li>Context picker panel</li><li>Selected source block</li><li>Explicit session handoff</li></ul></section></div>
+</div>
+<script>
+  (() => {
+    const root = document.documentElement;
+    const search = document.getElementById('mail-search');
+    const rows = Array.from(document.querySelectorAll('.message-row'));
+    const status = document.getElementById('status');
+    const subject = document.getElementById('preview-subject');
+    const meta = document.getElementById('preview-meta');
+    let selected = rows[0];
+    function select(row) {
+      selected = row;
+      rows.forEach((item) => { item.classList.toggle('selected', item === row); item.setAttribute('aria-selected', item === row ? 'true' : 'false'); });
+      subject.textContent = row.querySelector('.message-subject')?.textContent || 'Selected email';
+      meta.textContent = `${row.querySelector('.message-sender')?.textContent || 'Sender'} · ${row.querySelector('.message-time')?.textContent || ''}`;
+      status.textContent = 'Message is not in chat yet';
+    }
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      rows.forEach((row) => { row.hidden = Boolean(query) && !row.dataset.search.includes(query); });
+      const firstVisible = rows.find((row) => !row.hidden);
+      if (firstVisible) select(firstVisible);
+      else status.textContent = 'No matching mail';
+    });
+    rows.forEach((row) => row.addEventListener('click', () => select(row)));
+    document.getElementById('add-mail').addEventListener('click', () => { status.textContent = 'Email context added to Client follow-up'; });
+    document.getElementById('ask-clovy').addEventListener('click', () => { status.textContent = 'Ask Clovy handoff ready · no session opened yet'; });
+    document.getElementById('add-context').addEventListener('click', () => { status.textContent = 'Mail context is open'; });
+    document.getElementById('panel-close').addEventListener('click', () => { status.textContent = 'Mail context closed'; });
+    document.getElementById('theme-toggle').addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; });
+  })();
+</script>

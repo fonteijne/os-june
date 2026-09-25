@@ -1,0 +1,628 @@
+<title>New Session Picker</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f5f2;
+    --shell: #fbfcfa;
+    --sidebar: #eef0ed;
+    --panel: #ffffff;
+    --panel-soft: #f7f8f6;
+    --text: #1f2420;
+    --muted: #7d847e;
+    --muted-strong: #59615b;
+    --line: #e2e6e1;
+    --line-strong: #d5dbd5;
+    --wash: #e9eee9;
+    --brand: #94c598;
+    --brand-deep: #315f40;
+    --brand-ink: #173721;
+    --scrim: rgba(25, 32, 27, .34);
+    --shadow: 0 24px 70px rgba(30, 42, 34, .18), 0 4px 16px rgba(30, 42, 34, .08);
+    --radius-card: 16px;
+    --radius-control: 9px;
+    --radius-row: 10px;
+    --sans: "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #171a18;
+      --shell: #1d211e;
+      --sidebar: #141714;
+      --panel: #242a25;
+      --panel-soft: #202520;
+      --text: #eef2ed;
+      --muted: #8c958e;
+      --muted-strong: #b7c0b8;
+      --line: #343c36;
+      --line-strong: #465048;
+      --wash: #2d3a30;
+      --brand: #9bcfa0;
+      --brand-deep: #b4e0b8;
+      --brand-ink: #112117;
+      --scrim: rgba(4, 7, 5, .62);
+      --shadow: 0 28px 90px rgba(0, 0, 0, .48), 0 6px 22px rgba(0, 0, 0, .28);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #171a18;
+    --shell: #1d211e;
+    --sidebar: #141714;
+    --panel: #242a25;
+    --panel-soft: #202520;
+    --text: #eef2ed;
+    --muted: #8c958e;
+    --muted-strong: #b7c0b8;
+    --line: #343c36;
+    --line-strong: #465048;
+    --wash: #2d3a30;
+    --brand: #9bcfa0;
+    --brand-deep: #b4e0b8;
+    --brand-ink: #112117;
+    --scrim: rgba(4, 7, 5, .62);
+    --shadow: 0 28px 90px rgba(0, 0, 0, .48), 0 6px 22px rgba(0, 0, 0, .28);
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    padding: 24px 16px 32px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+  }
+  button, input { font: inherit; }
+  button { color: inherit; }
+  .page {
+    width: min(1320px, 100%);
+    margin: 0 auto;
+  }
+  .topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin: 0 4px 14px;
+    color: var(--muted);
+  }
+  .topline h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+  .topline p { margin: 0; font-size: 12px; }
+  .theme-toggle {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel-soft);
+    color: var(--muted-strong);
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { background: var(--wash); }
+  .canvas {
+    position: relative;
+    min-height: 720px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--shell);
+    box-shadow: 0 12px 36px rgba(25, 35, 28, .08);
+  }
+  .app-shell {
+    display: grid;
+    grid-template-columns: 224px 1fr;
+    min-height: 720px;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 22px 14px 16px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--line);
+  }
+  .wordmark {
+    padding: 0 10px;
+    color: var(--brand-deep);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -.04em;
+  }
+  .sidebar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .nav { display: grid; gap: 3px; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted-strong);
+    text-align: left;
+  }
+  .nav-item.active { background: var(--wash); color: var(--text); }
+  .nav-item.new { color: var(--text); }
+  .nav-icon { width: 15px; color: var(--muted); text-align: center; }
+  .nav-item.new .nav-icon { color: var(--brand-deep); }
+  .nav-label { flex: 1; }
+  .key { color: var(--muted); font-size: 11px; }
+  .section-label {
+    margin: 8px 10px 5px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .session-row {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 8px;
+    color: var(--muted-strong);
+    font-size: 12px;
+  }
+  .session-row.selected { background: var(--wash); color: var(--text); }
+  .sidebar-bottom { margin-top: auto; color: var(--muted); padding: 0 10px; font-size: 12px; }
+  .main {
+    position: relative;
+    overflow: hidden;
+    background: var(--shell);
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .hero {
+    display: grid;
+    place-items: center;
+    min-height: 676px;
+    padding: 40px;
+  }
+  .hero-inner { width: min(590px, 100%); text-align: center; }
+  .hero-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+    background: var(--wash);
+    color: var(--brand-deep);
+    font-size: 20px;
+  }
+  .hero h2 { margin: 0; font-size: 24px; font-weight: 400; letter-spacing: -.035em; }
+  .hero p { margin: 10px auto 26px; color: var(--muted); line-height: 1.55; }
+  .composer {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel);
+    text-align: left;
+    box-shadow: 0 8px 26px rgba(28, 39, 31, .06);
+  }
+  .composer-placeholder { min-height: 50px; color: var(--muted); }
+  .composer-footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+  .fake-pill { padding: 5px 8px; border-radius: 999px; background: var(--wash); }
+  .send { padding: 5px 10px; border-radius: 7px; background: var(--brand-deep); color: var(--brand-ink); }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--scrim);
+    backdrop-filter: blur(4px);
+  }
+  .dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(484px, 100%);
+    height: 560px;
+    max-height: min(610px, calc(100vh - 72px));
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+    text-align: left;
+  }
+  .dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 22px 8px;
+  }
+  .dialog-header h3 { margin: 0; font-size: 16px; font-weight: 400; letter-spacing: -.02em; }
+  .dialog-header p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .close:hover { background: var(--wash); color: var(--text); }
+  .dialog-body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px 22px 18px;
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 36px;
+    padding: 0 11px;
+    border: 1px solid var(--brand-deep);
+    border-radius: var(--radius-control);
+    background: var(--panel-soft);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  }
+  .search-icon { color: var(--muted); font-size: 15px; }
+  .search input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .search input::placeholder { color: var(--muted); }
+  .list-label {
+    display: flex;
+    justify-content: space-between;
+    margin: 17px 2px 7px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .list-label span:last-child { color: var(--muted); }
+  .project-list {
+    display: grid;
+    align-content: start;
+    grid-auto-rows: 54px;
+    gap: 3px;
+    height: 280px;
+    max-height: 280px;
+    overflow: auto;
+    padding: 1px;
+  }
+  .project-row[hidden] { display: none; }
+  .project-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    height: 54px;
+    min-height: 54px;
+    flex: 0 0 54px;
+    padding: 7px 9px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-row);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .project-row:hover { background: var(--panel-soft); }
+  .project-row.active {
+    border-color: color-mix(in srgb, var(--brand-deep) 48%, var(--line));
+    background: var(--wash);
+  }
+  .project-icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--brand-deep);
+    font-size: 13px;
+  }
+  .project-row.active .project-icon { background: var(--panel); }
+  .project-copy { min-width: 0; }
+  .project-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .project-description { display: block; overflow: hidden; margin-top: 3px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  .project-check { color: var(--brand-deep); font-size: 15px; opacity: 0; }
+  .project-row.active .project-check { opacity: 1; }
+  .project-row.no-project .project-icon { color: var(--muted); }
+  .empty { padding: 28px 12px; color: var(--muted); text-align: center; font-size: 12px; }
+  .dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 22px 17px;
+    border-top: 1px solid var(--line);
+  }
+  .hint { color: var(--muted); font-size: 11px; }
+  .footer-actions { display: flex; gap: 8px; }
+  .action {
+    height: 32px;
+    padding: 0 13px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--muted-strong);
+    cursor: pointer;
+  }
+  .action:hover { background: var(--wash); }
+  .action.primary { border-color: var(--brand-deep); background: var(--brand-deep); color: var(--brand-ink); }
+  .action.primary:hover { filter: brightness(1.06); }
+  .status {
+    min-height: 18px;
+    padding: 0 22px 12px;
+    color: var(--brand-deep);
+    font-size: 11px;
+  }
+  .notes {
+    display: grid;
+    grid-template-columns: 1fr 250px;
+    gap: 16px;
+    align-items: start;
+    margin: 14px 4px 0;
+  }
+  .notes section { padding: 0 2px; }
+  .notes h2 { margin: 0 0 5px; font-size: 13px; font-weight: 600; }
+  .notes p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .notes ul { margin: 0; padding-left: 16px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .notes li::marker { color: var(--brand-deep); }
+  @media (max-width: 720px) {
+    body { padding-top: 16px; }
+    .topline { align-items: flex-start; flex-direction: column; }
+    .theme-toggle { align-self: flex-start; }
+    .app-shell { grid-template-columns: 62px 1fr; }
+    .sidebar { align-items: center; padding: 18px 8px; }
+    .wordmark { padding: 0; font-size: 0; }
+    .wordmark::after { content: "C"; font-size: 15px; }
+    .sidebar-search, .nav-label, .key, .section-label, .session-row, .sidebar-bottom { display: none; }
+    .nav { width: 100%; }
+    .nav-item { justify-content: center; padding: 0; }
+    .nav-icon { width: auto; }
+    .hero { padding: 24px 16px; }
+    .scrim { padding: 14px; }
+    .dialog-header, .dialog-body { padding-left: 16px; padding-right: 16px; }
+    .dialog-footer { align-items: flex-start; flex-direction: column; padding-left: 16px; padding-right: 16px; }
+    .footer-actions { width: 100%; justify-content: flex-end; }
+    .notes { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
+</style>
+<div class="page">
+  <div class="topline">
+    <div>
+      <h1>New session project picker</h1>
+      <p>A quiet modal sketch for the global New session flow</p>
+    </div>
+    <button class="theme-toggle" type="button" id="theme-toggle">Toggle dark mode</button>
+  </div>
+
+  <main class="canvas" aria-label="Clovy application sketch">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <div class="wordmark">Clovy</div>
+        <div class="sidebar-search"><span aria-hidden="true">⌕</span><span>Search</span><span class="key">⌘K</span></div>
+        <nav class="nav" aria-label="Primary">
+          <div class="nav-item"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></div>
+          <div class="nav-item new active"><span class="nav-icon">＋</span><span class="nav-label">New session</span><span class="key">⌘N</span></div>
+          <div class="nav-item"><span class="nav-icon">▤</span><span class="nav-label">Meeting notes</span></div>
+          <div class="nav-item"><span class="nav-icon">▧</span><span class="nav-label">Projects</span></div>
+        </nav>
+        <div>
+          <div class="section-label">Sessions</div>
+          <div class="session-row selected">Launch brief</div>
+          <div class="session-row">Quarterly planning</div>
+          <div class="session-row">Research notes</div>
+        </div>
+        <div class="sidebar-bottom">Alex's workspace</div>
+      </aside>
+      <section class="main" aria-label="Agent workspace">
+        <div class="titlebar">Session&nbsp;&nbsp; / &nbsp;&nbsp;New session</div>
+        <div class="hero">
+          <div class="hero-inner">
+            <div class="hero-mark" aria-hidden="true">✦</div>
+            <h2>What would you like to work on?</h2>
+            <p>Start a focused conversation and keep everything it produces in one place.</p>
+            <div class="composer">
+              <div class="composer-placeholder">Ask Clovy to help with something...</div>
+              <div class="composer-footer"><span class="fake-pill">Sandboxed</span><span class="send">Send&nbsp; ↑</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="scrim" id="scrim">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <header class="dialog-header">
+          <div>
+            <h3 id="dialog-title">Start a new session</h3>
+            <p>Choose a project before you begin. You can change this later.</p>
+          </div>
+          <button class="close" type="button" aria-label="Close" id="close">×</button>
+        </header>
+        <div class="dialog-body">
+          <label class="search" for="project-search">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="project-search" type="search" autocomplete="off" placeholder="Search projects" aria-label="Search projects" aria-controls="project-list" aria-activedescendant="project-no-project" />
+          </label>
+          <div class="list-label"><span>Projects</span><span id="count">5 available</span></div>
+          <div class="project-list" id="project-list" role="listbox" aria-label="Choose a project" tabindex="-1">
+            <button class="project-row no-project active" id="project-no-project" role="option" aria-selected="true" data-name="No project" data-description="Keep this session in your general list" type="button">
+              <span class="project-icon" aria-hidden="true">◌</span>
+              <span class="project-copy"><span class="project-name">No project</span><span class="project-description">Keep this session in your general list</span></span>
+              <span class="project-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="project-row" id="project-launch" role="option" aria-selected="false" data-name="Launch planning" data-description="Brief, milestones, and next steps" type="button">
+              <span class="project-icon" aria-hidden="true">▧</span>
+              <span class="project-copy"><span class="project-name">Launch planning</span><span class="project-description">Brief, milestones, and next steps</span></span>
+              <span class="project-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="project-row" id="project-research" role="option" aria-selected="false" data-name="Customer research" data-description="Interviews, insights, and evidence" type="button">
+              <span class="project-icon" aria-hidden="true">▧</span>
+              <span class="project-copy"><span class="project-name">Customer research</span><span class="project-description">Interviews, insights, and evidence</span></span>
+              <span class="project-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="project-row" id="project-personal" role="option" aria-selected="false" data-name="Personal system" data-description="Habits, ideas, and everyday projects" type="button">
+              <span class="project-icon" aria-hidden="true">▧</span>
+              <span class="project-copy"><span class="project-name">Personal system</span><span class="project-description">Habits, ideas, and everyday projects</span></span>
+              <span class="project-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="project-row" id="project-q3" role="option" aria-selected="false" data-name="Quarterly planning" data-description="Goals, decisions, and reviews" type="button">
+              <span class="project-icon" aria-hidden="true">▧</span>
+              <span class="project-copy"><span class="project-name">Quarterly planning</span><span class="project-description">Goals, decisions, and reviews</span></span>
+              <span class="project-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+          <p class="empty" id="project-empty" hidden>No projects match that search.</p>
+        </div>
+        <div class="status" id="status" aria-live="polite">Selected: No project</div>
+        <footer class="dialog-footer">
+          <span class="hint">↑ ↓ to move · Enter to start</span>
+          <div class="footer-actions">
+            <button class="action" type="button" id="cancel">Cancel</button>
+            <button class="action primary" type="button" id="start">Start session</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  </main>
+
+  <div class="notes">
+    <section>
+      <h2>Interaction intent</h2>
+      <p>The search field owns focus on open. Typing narrows the list, arrow keys move the highlighted row, and Enter starts the session for the active choice. The modal stays light enough to feel like a short step, not a separate workflow.</p>
+    </section>
+    <section>
+      <h2>Reusable system blocks</h2>
+      <ul><li>Dialog and focus trap</li><li>Searchable project rows</li><li>Neutral hover and quiet sage selection</li></ul>
+    </section>
+  </div>
+</div>
+<script>
+  (() => {
+    const root = document.documentElement;
+    const input = document.getElementById('project-search');
+    const list = document.getElementById('project-list');
+    const count = document.getElementById('count');
+    const empty = document.getElementById('project-empty');
+    const status = document.getElementById('status');
+    const rows = Array.from(document.querySelectorAll('.project-row'));
+    const scrim = document.getElementById('scrim');
+    let visibleRows = rows;
+    let activeIndex = 0;
+    let closed = false;
+
+    function renderActive() {
+      visibleRows.forEach((row, index) => {
+        const active = index === activeIndex;
+        row.classList.toggle('active', active);
+        row.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      const active = visibleRows[activeIndex];
+      input.setAttribute('aria-activedescendant', active ? active.id : '');
+      if (active) {
+        active.scrollIntoView({ block: 'nearest' });
+        status.textContent = 'Selected: ' + active.dataset.name;
+      }
+    }
+
+    function filterRows() {
+      const query = input.value.trim().toLowerCase();
+      visibleRows = rows.filter((row) => {
+        const text = `${row.dataset.name} ${row.dataset.description}`.toLowerCase();
+        const matches = !query || text.includes(query);
+        row.hidden = !matches;
+        return matches;
+      });
+      activeIndex = 0;
+      count.textContent = `${visibleRows.length} available`;
+      empty.hidden = visibleRows.length > 0;
+      list.hidden = visibleRows.length === 0;
+      if (visibleRows.length) renderActive();
+      else {
+        input.setAttribute('aria-activedescendant', '');
+        status.textContent = 'No projects match that search';
+      }
+    }
+
+    input.addEventListener('input', filterRows);
+    input.addEventListener('keydown', (event) => {
+      if (!visibleRows.length) return;
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, visibleRows.length - 1);
+        renderActive();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        renderActive();
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        activeIndex = 0;
+        renderActive();
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        activeIndex = visibleRows.length - 1;
+        renderActive();
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        status.textContent = 'Starting session for ' + visibleRows[activeIndex].dataset.name;
+      }
+    });
+
+    rows.forEach((row) => row.addEventListener('click', () => {
+      activeIndex = visibleRows.indexOf(row);
+      renderActive();
+      status.textContent = 'Starting session for ' + row.dataset.name;
+    }));
+
+    document.getElementById('start').addEventListener('click', () => {
+      if (visibleRows[activeIndex]) status.textContent = 'Starting session for ' + visibleRows[activeIndex].dataset.name;
+    });
+    function closeSketch() {
+      closed = true;
+      scrim.style.display = 'none';
+    }
+    document.getElementById('close').addEventListener('click', closeSketch);
+    document.getElementById('cancel').addEventListener('click', closeSketch);
+    scrim.addEventListener('click', (event) => { if (event.target === scrim) closeSketch(); });
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    });
+    input.focus();
+  })();
+</script>

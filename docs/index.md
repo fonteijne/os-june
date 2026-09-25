@@ -150,7 +150,7 @@ Per-repo config the engineering skills read before acting (see the
 - [private-connectors-implementation-plan.md](private-connectors-implementation-plan.md) — implementation plan for private connectors phases (Phases 1-2 local mode implemented; see [adr/0016](adr/0016-private-connectors-local-mode.md))
 - [private-connectors-threat-model.md](private-connectors-threat-model.md) — local-mode threat model: the source of truth for all connector privacy copy (what OpenSoftware can and cannot see, the trust surface, agent protections, the known runtime limitation)
 - [configuration.md](configuration.md) — env + config reference (desktop client + Clovy API)
-- [whitelabel-implementation-plan.md](whitelabel-implementation-plan.md) — proposed plan to enable whitelabel branding (app identity, icons, UI copy, backend copy, per-brand OS Accounts/updater identity) while keeping fork updates from upstream `os-june` conflict-free; superseded by the updated plan and [ADR-0056](adr/0056-whitelabel-branding-as-additive-config-layer.md) on the still-open whitelabel PR, not yet merged into this branch
+- [whitelabel-implementation-plan.md](whitelabel-implementation-plan.md) — proposed plan to enable whitelabel branding (app identity, icons, UI copy, backend copy, per-brand OS Accounts/updater identity) while keeping fork updates from upstream `os-june` conflict-free; the separate implementation branch has an accepted renumbered ADR-0056, but that file is not yet merged here, so this branch's current ADR is [0054-whitelabel-branding-as-additive-config-layer.md](adr/0054-whitelabel-branding-as-additive-config-layer.md)
 - [auto-model-rollout.md](auto-model-rollout.md) — canary, enablement, and rollback steps for automatic private model routing
 - [development.md](development.md) — local development: quick start, running against staging or an ephemeral Phala CVM, local data, permissions, agent skills, verification commands
 - [os-accounts-login.md](os-accounts-login.md) — Login with Open Software: PKCE, keychain, account gates
@@ -191,9 +191,20 @@ tasks / contracts / checklists`.
 - `specs/002-system-audio-source-mode` — audio source modes (shipped)
 - `specs/003-conversation-turns` — dual-source conversation turns (current; the tech + structure entrypoint)
 
+## Roadmap
+
+- [roadmap/README.md](roadmap/README.md) — roadmap map, project statuses, phase-status conventions, and links to future capability plans
+  - [Task management](roadmap/local-task-management/plan.md) — proposed future local task-management capability, with a Clovy-owned SQLite foundation, Tasks view, agent host tools, and later workflow/connector extensions; [interactive sketch](roadmap/local-task-management/sketch.html)
+  - [Project-aware new sessions](roadmap/new-session-project-picker/plan.md) — proposed searchable Project picker for global New session entry points, with focused keyboard selection and existing session-filing handoff; [interactive sketch](roadmap/new-session-project-picker/sketch.html)
+  - [Mail context for Project conversations](roadmap/outlook-mail-workspace/plan.md) — proposed Project-first Mail context with explicit email selection, optional Ask Clovy handoff, and draft-only reply support; [interactive sketch](roadmap/outlook-mail-workspace/sketch.html)
+  - [Parallel-install Clovy development build](roadmap/fork-parallel-install/plan.md) — proposed local development bundle with a separate app identity, independent state and credentials, local no-account defaults, and no first-release updater
+  - [Bonzai product rebrand](roadmap/rebrand-to-bonzai/plan.md) — proposed separate Bonzai product identity and production release migration while preserving Clovy-canonical and June-era compatibility boundaries
+  - [Bonzai/iO operator instructions](roadmap/bonzai-io-operator-instructions/plan.md) — proposed build-selected operator policy for an iO deployment, preserving Clovy identity, user Project instructions, Bonzai no-account behavior, and runtime safety boundaries
+  - [Microsoft Entra access gate](roadmap/microsoft-sso-access-gate/plan.md) — fork-only, post-MVP: future Microsoft Entra ID work/school OAuth access gate; the Bonzai MVP remains in no-account mode, with billing and credits external to Clovy; builds on the existing PKCE connector infrastructure; [interactive sketch](roadmap/microsoft-sso-access-gate/sketch.html)
+
 ## Gaps (no doc yet — candidates for new docs/ADRs)
 
-- **Roadmap / MVP scope** — no single sequenced source of truth across the active tracks (admin surfaces, reliability).
+- **Roadmap / MVP scope** — no single sequenced source of truth across the active tracks (admin surfaces, reliability). The task-management proposal is a feature roadmap entry, not a complete product-wide sequence.
 - **Dictation ADR** — the low-latency request shape + charge timing (flagged in CONTEXT.md).
 
 ## Security
