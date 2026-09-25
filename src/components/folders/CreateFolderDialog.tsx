@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogField } from "../ui/Dialog";
+import { useBonzaiCreateKey } from "./BonzaiCreateKeyField";
 
 type CreateFolderDialogProps = {
   open: boolean;
@@ -18,12 +19,14 @@ export function CreateFolderDialog({
   const [name, setName] = useState(defaultName ?? "");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const bonzai = useBonzaiCreateKey();
 
   useEffect(() => {
     if (!open) return;
     setName(defaultName ?? "");
     setDescription("");
     setSubmitting(false);
+    bonzai.reset();
   }, [open, defaultName]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -32,7 +35,9 @@ export function CreateFolderDialog({
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
-      await onCreate(trimmed, description.trim() ? description.trim() : undefined);
+      if (!(await bonzai.prepare())) return;
+      const folder = await onCreate(trimmed, description.trim() ? description.trim() : undefined);
+      await bonzai.attach(folder);
       onClose();
     } finally {
       setSubmitting(false);
@@ -90,6 +95,7 @@ export function CreateFolderDialog({
             maxLength={400}
           />
         </DialogField>
+        {bonzai.field}
       </form>
     </Dialog>
   );

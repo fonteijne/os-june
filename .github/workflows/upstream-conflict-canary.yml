@@ -1,0 +1,136 @@
+name: upstream conflict canary
+
+# Tests both merges of the fork topology described in UPSTREAM.md without
+# pushing anything:
+#
+#   1. upstream/main -> main          (is upstream's change mergeable?)
+#   2. main          -> bonzai-main   (is our Bonzai layer still mergeable?)
+#
+# Reporting which step conflicts is the point: step 1 red means upstream did
+# something to the mirror, step 2 red means our additive layer has drifted
+# into upstream's way. See ADR-0058.
+
+on:
+  schedule:
+    # 07:00 UTC on weekdays, so a conflict surfaces before the working day
+    # rather than during a release.
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: "Upstream repository to test against"
+        required: false
+        default: "https://github.com/open-software-network/os-clovy"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-conflict-canary
+  cancel-in-progress: true
+
+env:
+  UPSTREAM_REPO: ${{ github.event.inputs.upstream_repo || 'https://github.com/open-software-network/os-clovy' }}
+  UPSTREAM_BRANCH: main
+  MIRROR_BRANCH: main
+  FORK_TRUNK: bonzai-main
+
+jobs:
+  canary:
+    name: Upstream merge canary
+    # Deliberately a stock runner rather than the blacksmith pool the rest of
+    # the workflows use: this is a git-only job with no build, and a canary
+    # that cannot start when the pool is busy is a canary nobody reads.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream and fork branches
+        run: |
+          set -euo pipefail
+          git remote add upstream "$UPSTREAM_REPO"
+          git fetch --no-tags upstream "$UPSTREAM_BRANCH"
+          git fetch --no-tags origin "$MIRROR_BRANCH" "$FORK_TRUNK"
+          # A merge needs an identity even when the result is thrown away.
+          git config user.name "upstream-conflict-canary"
+          git config user.email "canary@users.noreply.github.com"
+
+      - name: Report divergence
+        run: |
+          set -euo pipefail
+          behind=$(git rev-list --count "origin/$MIRROR_BRANCH..upstream/$UPSTREAM_BRANCH")
+          ahead=$(git rev-list --count "upstream/$UPSTREAM_BRANCH..origin/$MIRROR_BRANCH")
+          trunk_behind=$(git rev-list --count "origin/$FORK_TRUNK..origin/$MIRROR_BRANCH")
+          {
+            echo "## Divergence"
+            echo ""
+            echo "| Comparison | Commits |"
+            echo "| --- | ---: |"
+            echo "| \`$MIRROR_BRANCH\` behind upstream | $behind |"
+            echo "| \`$MIRROR_BRANCH\` ahead of upstream | $ahead |"
+            echo "| \`$FORK_TRUNK\` behind \`$MIRROR_BRANCH\` | $trunk_behind |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Step 1 - upstream into the mirror
+        id: step1
+        run: |
+          set -euo pipefail
+          git worktree add --detach ../canary-mirror "origin/$MIRROR_BRANCH"
+          cd ../canary-mirror
+          if git merge --no-commit --no-ff "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+            echo "Step 1 clean: upstream merges into $MIRROR_BRANCH." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            {
+              echo ""
+              echo "### Step 1 CONFLICT - upstream into \`$MIRROR_BRANCH\`"
+              echo ""
+              echo "Upstream changed files the mirror also carries."
+              echo ""
+              echo '```'
+              git diff --name-only --diff-filter=U
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # A --no-commit merge leaves the index dirty; the worktree is
+          # discarded either way, so reset before reusing the checkout.
+          git merge --abort 2>/dev/null || git reset --hard >/dev/null
+
+      - name: Step 2 - mirror into the fork trunk
+        id: step2
+        run: |
+          set -euo pipefail
+          git worktree add --detach ../canary-trunk "origin/$FORK_TRUNK"
+          cd ../canary-trunk
+          # Merge both the mirror and upstream in one go. After step 1 the
+          # mirror contains upstream, so this models the state the sync
+          # runbook actually produces rather than today's stale mirror.
+          if git merge --no-commit --no-ff \
+              "origin/$MIRROR_BRANCH" "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+            echo "Step 2 clean: \`$MIRROR_BRANCH\` merges into \`$FORK_TRUNK\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            {
+              echo ""
+              echo "### Step 2 CONFLICT - \`$MIRROR_BRANCH\` into \`$FORK_TRUNK\`"
+              echo ""
+              echo "Our Bonzai layer collides with an upstream change."
+              echo "Check the fork ledger in UPSTREAM.md - a prologue may have drifted."
+              echo ""
+              echo '```'
+              git diff --name-only --diff-filter=U
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git merge --abort 2>/dev/null || git reset --hard >/dev/null
+
+      - name: Fail if either merge conflicts
+        if: steps.step1.outputs.result == 'conflict' || steps.step2.outputs.result == 'conflict'
+        run: |
+          echo "Conflict detected. See the job summary and follow the sync runbook in UPSTREAM.md." >&2
+          exit 1

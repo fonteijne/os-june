@@ -1,3 +1,4 @@
+import { encodeLocalOptionId, decodeLocalOptionId, isLoopbackUrl } from "./local-endpoint";
 import type { LocalGenerationSettingsDto, VeniceModelDto } from "./tauri";
 
 // Bring-your-own local text generation. The model catalog is derived
@@ -12,7 +13,7 @@ export const LOCAL_GENERATION_OPTION_ID_PREFIX = "__june_local_generation__:";
  * never collide with a real remote model id (finding: a raw local id that
  * matched a remote id let the picker persist it as the remote model). */
 export function localGenerationOptionId(modelId: string) {
-  return `${LOCAL_GENERATION_OPTION_ID_PREFIX}${encodeURIComponent(modelId.trim())}`;
+  return encodeLocalOptionId(LOCAL_GENERATION_OPTION_ID_PREFIX, modelId);
 }
 
 /** Inverse of {@link localGenerationOptionId}: the raw local model id encoded
@@ -21,15 +22,7 @@ export function localGenerationOptionId(modelId: string) {
  * retain upstream provenance; Clovy's on-device integration uses this inverse
  * only when it needs to display or forward the raw local id. */
 export function rawLocalGenerationModelId(optionId: string): string | null {
-  if (!optionId.startsWith(LOCAL_GENERATION_OPTION_ID_PREFIX)) return null;
-  try {
-    const decoded = decodeURIComponent(
-      optionId.slice(LOCAL_GENERATION_OPTION_ID_PREFIX.length),
-    ).trim();
-    return decoded || null;
-  } catch {
-    return null;
-  }
+  return decodeLocalOptionId(LOCAL_GENERATION_OPTION_ID_PREFIX, optionId);
 }
 
 /** Display-only row for a session whose tagged local choice no longer matches
@@ -51,30 +44,6 @@ export function unavailableLocalGenerationOption(optionId: string): VeniceModelD
     priceUnit: "local",
     priceDescription: "Local",
   };
-}
-
-/** True when the endpoint resolves to this machine: localhost, any
- * *.localhost name, the 127.0.0.0/8 loopback block, or the IPv6 [::1]
- * literal. Invalid input is treated as non-loopback (returns false) so the
- * caller shows the "leaves your device" warning rather than a false
- * reassurance. */
-export function isLoopbackUrl(url: string): boolean {
-  let host: string;
-  try {
-    host = new URL(url).hostname.toLowerCase();
-  } catch {
-    return false;
-  }
-  // URL.hostname keeps the brackets on IPv6 literals ("[::1]").
-  const bare = host.replace(/^\[|\]$/g, "");
-  if (bare === "localhost" || bare.endsWith(".localhost")) return true;
-  if (bare === "::1") return true;
-  const octets = bare.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (octets) {
-    const parts = octets.slice(1).map(Number);
-    if (parts.every((part) => part <= 255) && parts[0] === 127) return true;
-  }
-  return false;
 }
 
 /** Prepends the user's configured local endpoint as a synthetic catalog

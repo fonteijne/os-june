@@ -97,6 +97,12 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
+vi.mock("../lib/feature-flags", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/feature-flags")>()),
+  // This fork ships dictation switched off; these upstream tests exercise the
+  // dictation surface, so they run with the switch on.
+  DICTATION_ENABLED: true,
+}));
 vi.mock("@tauri-apps/api/event", () => ({
   listen: mocks.listen,
 }));

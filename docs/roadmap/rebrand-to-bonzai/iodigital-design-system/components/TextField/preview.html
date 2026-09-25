@@ -1,0 +1,9 @@
+<!-- @dsCard group="Forms" height=260 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><title>TextField</title>
+<style>body{margin:0;padding:var(--space-7);background:var(--surface);font-family:var(--font-sans)}</style></head>
+<body><div id="root"></div>
+<script>
+var I=window.IO,h=React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h('div',{style:{display:'grid',gap:'var(--space-6)',maxWidth:'560px'}},h('div',{className:'io-newsletter'},h(I.TextField,{label:'Email address',type:'email',placeholder:'you@company.com'}),h(I.Button,null,'Subscribe')),h(I.TextField,{label:'Email address',defaultValue:'you@company',error:'Enter a complete email address.'})));
+</script></body></html>

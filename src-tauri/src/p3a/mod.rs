@@ -229,6 +229,9 @@ pub fn record_question_best_effort(app: AppHandle, question: Question) {
 }
 
 pub async fn record_question(app: &AppHandle, question: Question) -> Result<(), AppError> {
+    if crate::bonzai::severance::no_account_mode() {
+        return Ok(());
+    }
     let state = app.state::<P3aSettingsState>();
     let _transition = state.transition_gate.read().await;
     if !reporting_enabled(app)? {

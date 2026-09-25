@@ -16,6 +16,12 @@ const mocks = vi.hoisted(() => ({
   deleteMemory: vi.fn(),
 }));
 
+vi.mock("../lib/feature-flags", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/feature-flags")>()),
+  // This fork ships dictation switched off; these upstream tests exercise the
+  // dictation surface, so they run with the switch on.
+  DICTATION_ENABLED: true,
+}));
 vi.mock("../lib/tauri", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../lib/tauri")>();
 

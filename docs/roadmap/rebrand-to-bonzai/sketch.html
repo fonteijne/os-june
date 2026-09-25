@@ -1,0 +1,345 @@
+<title>Bonzai Visual Field</title>
+<meta name="description" content="A light and dark visual styling study for Bonzai, using the bundled semantic colors and Manrope.">
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
+
+  :root {
+    color-scheme: light;
+    --surface: #ffffff;
+    --surface-alt: #f4f4f2;
+    --surface-raised: #ffffff;
+    --surface-inverse: #0a0a0a;
+    --ink: #0a0a0a;
+    --ink-muted: #595959;
+    --ink-inverse: #ffffff;
+    --line: #e2e2df;
+    --line-strong: #8a8a8a;
+    --accent: #365fd9;
+    --accent-hover: #2a4bb3;
+    --accent-soft: #e9eefc;
+    --on-accent: #ffffff;
+    --success: #1b7446;
+    --danger: #b93c0a;
+    --wash: color-mix(in srgb, var(--accent-soft) 48%, var(--surface));
+    --focus: var(--accent);
+    --radius: 12px;
+    --shadow: 0 18px 38px rgba(10, 10, 10, 0.08);
+    --font: "Manrope", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #0a0a0a;
+      --surface-alt: #151515;
+      --surface-raised: #1c1c1c;
+      --surface-inverse: #f4f4f2;
+      --ink: #f4f4f2;
+      --ink-muted: #a6a6a6;
+      --ink-inverse: #0a0a0a;
+      --line: #2b2b2b;
+      --line-strong: #6b6b6b;
+      --accent: #8aa4f2;
+      --accent-hover: #a9bdf6;
+      --accent-soft: #172240;
+      --on-accent: #0a0a0a;
+      --success: #5ccf92;
+      --danger: #ff9a6b;
+      --wash: color-mix(in srgb, var(--accent-soft) 56%, var(--surface));
+      --shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #0a0a0a;
+    --surface-alt: #151515;
+    --surface-raised: #1c1c1c;
+    --surface-inverse: #f4f4f2;
+    --ink: #f4f4f2;
+    --ink-muted: #a6a6a6;
+    --ink-inverse: #0a0a0a;
+    --line: #2b2b2b;
+    --line-strong: #6b6b6b;
+    --accent: #8aa4f2;
+    --accent-hover: #a9bdf6;
+    --accent-soft: #172240;
+    --on-accent: #0a0a0a;
+    --success: #5ccf92;
+    --danger: #ff9a6b;
+    --wash: color-mix(in srgb, var(--accent-soft) 56%, var(--surface));
+    --shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+  }
+
+  * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--surface); }
+  body {
+    min-width: 0;
+    margin: 0;
+    padding-block: 28px 56px;
+    padding-inline: 16px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+  button { font: inherit; }
+  button:focus-visible, [tabindex="0"]:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .page { width: min(1080px, 100%); margin: 0 auto; }
+  .eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  h1, h2, p { margin: 0; }
+  h1 {
+    max-width: 720px;
+    margin-top: 10px;
+    font-size: clamp(32px, 6vw, 58px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
+  }
+  .lede { max-width: 620px; margin-top: 18px; color: var(--ink-muted); font-size: 17px; }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .mode-switch { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mode-switch button, .quiet-button {
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 7px 12px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .mode-switch button[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .toolbar-note { color: var(--ink-muted); font-size: 12px; }
+  .section { margin-top: 42px; }
+  .section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  h2 { font-size: 19px; letter-spacing: -0.02em; }
+  .section-heading p { color: var(--ink-muted); font-size: 12px; }
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--line);
+  }
+  .role {
+    min-width: 0;
+    padding: 14px;
+    background: var(--surface);
+  }
+  .swatch {
+    width: 100%;
+    height: 56px;
+    border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+    border-radius: 8px;
+    background: var(--swatch);
+  }
+  .role-name { display: block; margin-top: 10px; font-weight: 600; }
+  .role-value { display: block; margin-top: 3px; color: var(--ink-muted); font-family: var(--mono); font-size: 11px; }
+  .role-use { display: block; margin-top: 7px; color: var(--ink-muted); font-size: 12px; }
+  .shell {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    min-height: 360px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+  }
+  .sidebar { padding: 18px 14px; background: var(--surface-alt); border-right: 1px solid var(--line); }
+  .mark { color: var(--ink); font-weight: 700; letter-spacing: -0.04em; }
+  .nav { display: grid; gap: 4px; margin-top: 24px; }
+  .nav-item { padding: 9px 10px; border-radius: 7px; color: var(--ink-muted); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .workspace { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+  .workspace-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+  .workspace-top strong { font-size: 16px; }
+  .workspace-top span { color: var(--ink-muted); font-size: 12px; }
+  .content { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 18px; padding: 20px; }
+  .note { min-width: 0; }
+  .note p + p { margin-top: 12px; }
+  .note .muted { color: var(--ink-muted); }
+  .accent-line { width: 44px; height: 3px; margin-bottom: 14px; border-radius: 2px; background: var(--accent); }
+  .side-card { align-self: start; padding: 14px; border-radius: 9px; background: var(--wash); }
+  .side-card strong { display: block; font-size: 13px; }
+  .side-card span { display: block; margin-top: 6px; color: var(--ink-muted); font-size: 12px; }
+  .workspace-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--line); }
+  .primary { border: 0; border-radius: 999px; padding: 9px 14px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  .primary:hover { background: var(--accent-hover); }
+  .bottom-note { color: var(--ink-muted); font-size: 12px; }
+  .state-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .state { padding: 15px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .state-label { color: var(--ink-muted); font-size: 12px; }
+  .state-value { display: block; margin-top: 10px; font-weight: 600; }
+  .state-value.accent { color: var(--accent); }
+  .state-value.success { color: var(--success); }
+  .state-value.danger { color: var(--danger); }
+  .focus-demo { margin-top: 12px; border: 1px solid var(--line-strong); border-radius: 7px; padding: 9px 10px; background: var(--surface-raised); color: var(--ink); cursor: pointer; }
+  .focus-demo:focus { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; color: var(--ink-muted); font-size: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; background: var(--dot); }
+  .footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    .role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+    .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
+    .content { grid-template-columns: 1fr; }
+    .state-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 430px) {
+    body { padding-block-start: 20px; }
+    .role-grid { grid-template-columns: 1fr; }
+    .nav { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 38px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
+</style>
+<main class="page">
+  <header>
+    <p class="eyebrow">Bonzai visual styling</p>
+    <h1>A quiet visual field for a focused desktop app</h1>
+    <p class="lede">A visual styling study using the bundled semantic reference. Neutral surfaces carry the structure; Manrope and blue appear where the approved presentation needs them.</p>
+    <div class="toolbar" aria-label="Theme controls">
+      <div class="mode-switch" role="group" aria-label="Choose theme">
+        <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+        <button type="button" data-theme-choice="system" aria-pressed="true">System</button>
+      </div>
+      <span class="toolbar-note">The sketch changes presentation roles only.</span>
+    </div>
+  </header>
+
+  <section class="section" aria-labelledby="roles-heading">
+    <div class="section-heading">
+      <h2 id="roles-heading">Semantic color roles</h2>
+      <p>Reference values switch with the theme.</p>
+    </div>
+    <div class="role-grid">
+      <div class="role"><div class="swatch" style="--swatch: var(--surface)"></div><span class="role-name">Surface</span><span class="role-value" data-role-value="surface">#ffffff</span><span class="role-use">The default ground.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--surface-alt)"></div><span class="role-name">Surface alt</span><span class="role-value" data-role-value="surface-alt">#f4f4f2</span><span class="role-use">A calm alternate band.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--surface-raised)"></div><span class="role-name">Surface raised</span><span class="role-value" data-role-value="surface-raised">#ffffff</span><span class="role-use">A raised card or input.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--surface-inverse)"></div><span class="role-name">Surface inverse</span><span class="role-value" data-role-value="surface-inverse">#0a0a0a</span><span class="role-use">An intentional contrast band.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--ink)"></div><span class="role-name">Ink</span><span class="role-value" data-role-value="ink">#0a0a0a</span><span class="role-use">Primary text and icons.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--ink-muted)"></div><span class="role-name">Ink muted</span><span class="role-value" data-role-value="ink-muted">#595959</span><span class="role-use">Metadata and support copy.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--line)"></div><span class="role-name">Line</span><span class="role-value" data-role-value="line">#e2e2df</span><span class="role-use">Quiet separation.</span></div>
+      <div class="role"><div class="swatch" style="--swatch: var(--accent)"></div><span class="role-name">Accent</span><span class="role-value" data-role-value="accent">#365fd9</span><span class="role-use">Primary emphasis and links.</span></div>
+    </div>
+    <div class="legend" aria-label="Additional roles">
+      <span><i style="--dot: var(--accent-hover)"></i>Accent hover</span>
+      <span><i style="--dot: var(--accent-soft)"></i>Accent soft</span>
+      <span><i style="--dot: var(--success)"></i>Success</span>
+      <span><i style="--dot: var(--danger)"></i>Danger</span>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="shell-heading">
+    <div class="section-heading">
+      <h2 id="shell-heading">Representative app surface</h2>
+      <p>Same structure, different color behavior.</p>
+    </div>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Example navigation">
+        <div class="mark">Clovy</div>
+        <nav class="nav">
+          <div class="nav-item active" tabindex="0">Notes</div>
+          <div class="nav-item" tabindex="0">Projects</div>
+          <div class="nav-item" tabindex="0">Settings</div>
+        </nav>
+      </aside>
+      <div class="workspace">
+        <div class="workspace-top"><strong>Focus notes</strong><span>Example state</span></div>
+        <div class="content">
+          <article class="note">
+            <div class="accent-line"></div>
+            <p>Accent is reserved for the active path and the one clear moment of emphasis.</p>
+            <p class="muted">Neutral text and quiet lines keep the working surface calm in both themes.</p>
+            <button class="focus-demo" type="button">Tab here to see focus</button>
+          </article>
+          <div class="side-card"><strong>Accent soft</strong><span>A tinted ground for selected or highlighted content.</span></div>
+        </div>
+        <div class="workspace-bottom"><span class="bottom-note">No copy, layout, or component changes are implied.</span><button class="primary" type="button">Start a note</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="states-heading">
+    <div class="section-heading">
+      <h2 id="states-heading">States and contrast</h2>
+      <p>Semantic status remains explicit.</p>
+    </div>
+    <div class="state-grid">
+      <div class="state"><span class="state-label">Active state</span><span class="state-value accent">Ready to continue</span></div>
+      <div class="state"><span class="state-label">Positive status</span><span class="state-value success">Saved successfully</span></div>
+      <div class="state"><span class="state-label">Destructive status</span><span class="state-value danger">Needs attention</span></div>
+    </div>
+  </section>
+
+  <p class="footer">Candidate visual styling study for roadmap review. The bundled reference is the source for these roles; final mapping into Bonzai presentation tokens still requires design approval.</p>
+</main>
+<script>
+  const root = document.documentElement;
+  const choices = [...document.querySelectorAll('[data-theme-choice]')];
+  const roleValues = {
+    light: {
+      surface: '#ffffff', 'surface-alt': '#f4f4f2', 'surface-raised': '#ffffff', 'surface-inverse': '#0a0a0a',
+      ink: '#0a0a0a', 'ink-muted': '#595959', line: '#e2e2df', accent: '#365fd9'
+    },
+    dark: {
+      surface: '#0a0a0a', 'surface-alt': '#151515', 'surface-raised': '#1c1c1c', 'surface-inverse': '#f4f4f2',
+      ink: '#f4f4f2', 'ink-muted': '#a6a6a6', line: '#2b2b2b', accent: '#8aa4f2'
+    }
+  };
+  function resolvedTheme(choice) {
+    return choice === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : choice;
+  }
+  function setTheme(choice) {
+    if (choice === 'system') root.removeAttribute('data-theme');
+    else root.dataset.theme = choice;
+    choices.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === choice)));
+    Object.entries(roleValues[resolvedTheme(choice)]).forEach(([role, value]) => {
+      const node = document.querySelector(`[data-role-value="${role}"]`);
+      if (node) node.textContent = value;
+    });
+  }
+  choices.forEach((button) => button.addEventListener('click', () => setTheme(button.dataset.themeChoice)));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+    if (!root.dataset.theme) setTheme('system');
+  });
+</script>

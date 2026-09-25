@@ -634,6 +634,37 @@ the account snapshot until the grant lands rather than assuming credits are
 present the instant the plan changes.
 _Avoid_: top-up (a user-initiated purchase), refill.
 
+**Bonzai**:
+This fork's own LiteLLM deployment, on an external managed server, and the
+only inference destination: agent chat, note generation, and note
+transcription all go there and nowhere else. A Bonzai build is one that
+carries a Bonzai base URL; that presence, not a setting, is what activates
+routing. Enforced by a compiled host allowlist and a source-level guard
+(ADR-0059).
+_Avoid_: the gateway, the proxy, LiteLLM (say Bonzai; LiteLLM is the
+software it runs).
+
+**Bonzai key**:
+A LiteLLM virtual key held by this fork, scoping model access and accruing
+spend for one project. Lives in the OS keychain, never in the notes database,
+and is never round-tripped to the frontend in plaintext - the UI sees only
+whether one exists and a last-four hint. Managed by hand in LiteLLM.
+_Avoid_: API key, virtual key, LiteLLM key, provider key.
+
+**Global Bonzai key**:
+The Bonzai key used for work not attributable to a project, and the key a
+project without its own falls back to. No key anywhere refuses before work
+starts; there is no fallback past it.
+_Avoid_: default key, fallback key.
+
+**No-account mode**:
+This fork's operating mode with no OS Accounts contact at all: a synthetic,
+always-signed-in account satisfies the sign-in and funding gates locally, and
+nothing is metered. Carries `localDev` on the wire because that is the flag
+the frontend already reads as "synthetic account, no billing surface".
+_Avoid_: local dev mode (that is upstream's dev affordance, which this mode
+reuses but does not depend on), offline mode (unrelated to network state).
+
 ### Clovy companion
 
 **Clovy Companion**:

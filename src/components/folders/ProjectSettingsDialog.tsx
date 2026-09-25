@@ -8,6 +8,7 @@ import {
 } from "../../lib/tauri";
 import { Dialog, DialogField } from "../ui/Dialog";
 import { Switch } from "../ui/Switch";
+import { BonzaiProjectKeyField } from "./BonzaiProjectKeyField";
 
 const INSTRUCTIONS_MAX_CHARS = 4_000;
 const INSTRUCTIONS_COUNT_FROM = 3_600;
@@ -222,6 +223,7 @@ export function ProjectSettingsDialog({
             </p>
           ) : null}
         </DialogField>
+        <BonzaiProjectKeyField folderId={folder.id} />
 
         {error ? (
           <p className="settings-row-error" role="alert">

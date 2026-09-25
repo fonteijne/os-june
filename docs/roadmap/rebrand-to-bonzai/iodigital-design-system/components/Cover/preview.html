@@ -1,0 +1,39 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>iO Digital</title>
+<style>
+html,body{margin:0;height:100%}
+body{background:var(--surface);color:var(--ink);font-family:var(--font-sans);overflow:hidden}
+.cover{position:relative;height:288px;overflow:hidden}
+.art{position:absolute;top:0;left:480px;width:480px;height:288px;overflow:hidden}
+.art svg{display:block;width:480px;height:288px}
+.inv{fill:var(--surface-inverse)}
+.acc{fill:var(--accent)}
+.soft{fill:var(--accent-soft)}
+.hole{fill:var(--surface)}
+.dot{fill:var(--ink-inverse)}
+.blk{rx:var(--radius-md)}
+.words{position:absolute;left:var(--space-7);bottom:var(--space-7);max-width:440px}
+.name{margin:0;font-size:96px;line-height:.95;font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+.tag{margin:var(--space-3) 0 0 4px;font-size:14px;line-height:20px;color:var(--ink-muted)}
+</style></head>
+<body><div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      surface-inverse slab 176 wide bled top and bottom (the brand is black-and-white first) · accent ring 208 across (the one hue, as the O) · accent-soft 96-wide tint bled off the top-right — about a third of 960x288
+  arrangement one tall inverse slab with the O as satellite, space-4 gutters, the tint bleeding top-right
+  pattern     discs from radius-pill: the O itself (a surface disc cut from the accent one) plus a 5x3 grid of 8px dots on the slab, echoing the dot of the i — the mark is literally a line and a circle
+  scales      gutters space-4; dot pitch space-5 (24); ring 208 across; corners radius-md, discs radius-pill
+-->
+<rect class="inv blk" x="0" y="-16" width="176" height="320" rx="16"/>
+<circle class="dot" cx="32" cy="192" r="4"/><circle class="dot" cx="56" cy="192" r="4"/><circle class="dot" cx="80" cy="192" r="4"/><circle class="dot" cx="104" cy="192" r="4"/><circle class="dot" cx="128" cy="192" r="4"/>
+<circle class="dot" cx="32" cy="216" r="4"/><circle class="dot" cx="56" cy="216" r="4"/><circle class="dot" cx="80" cy="216" r="4"/><circle class="dot" cx="104" cy="216" r="4"/><circle class="dot" cx="128" cy="216" r="4"/>
+<circle class="dot" cx="32" cy="240" r="4"/><circle class="dot" cx="56" cy="240" r="4"/><circle class="dot" cx="80" cy="240" r="4"/><circle class="dot" cx="104" cy="240" r="4"/><circle class="dot" cx="128" cy="240" r="4"/>
+<circle class="acc" cx="296" cy="168" r="104"/>
+<circle class="hole" cx="296" cy="168" r="56"/>
+<rect class="soft blk" x="416" y="-16" width="96" height="112" rx="16"/>
+</svg></div>
+<div class="words"><h1 class="name">iO<br>Digital</h1>
+<p class="tag">Where design, marketing and technology move business forward.</p></div>
+</div></body></html>

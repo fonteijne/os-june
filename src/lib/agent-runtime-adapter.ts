@@ -3,6 +3,7 @@ import {
   type AgentChatTurn,
   UPSTREAM_PROVIDER_FAILURE_NOTICE_BODY,
 } from "./agent-chat-runtime";
+import { bonzaiNoticePart } from "./bonzai";
 import {
   AGENT_RUNTIME_PROTOCOL_VERSION,
   type AgentItemDto,
@@ -458,6 +459,10 @@ export function agentItemsToChatTurns(items: AgentItemDto[]): AgentChatTurn[] {
               role: "system",
               parts: [{ type: "notice", kind: "credits", text: item.message }],
             };
+          }
+          {
+            const bonzai = bonzaiNoticePart(item);
+            if (bonzai) return { ...base, role: "system", parts: [bonzai] };
           }
           return {
             ...base,
