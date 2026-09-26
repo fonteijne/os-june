@@ -53,6 +53,7 @@ and repeat the phase status in both its summary table and its detailed sections.
 | Bonzai visual styling migration | **Proposed** | Phase 1: design artifact and presentation contract | [Bonzai visual styling plan](rebrand-to-bonzai/plan.md) · [Color field](rebrand-to-bonzai/sketch.html) · [App shell](rebrand-to-bonzai/app-colors.html) | Approve the light/dark color matrix, Manrope font contract, visible-name inventory, technical-identity exceptions, and contrast evidence before implementation |
 | Bonzai logo replacement | **Proposed** | Phase 0: asset intake and provenance | [Bonzai logo replacement plan](bonzai-logo-replacement/plan.md) | Supply the approved vector mark, wordmark source, usage rights, platform treatments, and provenance before implementation |
 | Bonzai/iO operator instructions | **Proposed** | Phase 0: baseline and boundary | [Bonzai/iO operator instructions plan](bonzai-io-operator-instructions/plan.md) | Accept the iO policy owner, disclosure wording, profile selection, and runtime surfaces before implementation |
+| MCP form URL field on Bonzai builds | **Shipped** | Phase 2: MCP allowlist policy done | [MCP form URL field plan](mcp-form-url-field-fix/plan.md) · [Sketch](mcp-form-url-field-fix/sketch.html) | Form and release loopback HTTP policy are implemented; decide separately which external HTTPS MCP hosts, if any, should be compiled in |
 
 ## What belongs here
 

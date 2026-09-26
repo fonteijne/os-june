@@ -216,7 +216,7 @@ treatment:
 | Path | Location | Enforcement |
 | --- | --- | --- |
 | Model calls | `clovy_api::http_client()` | Host allowlist at the chokepoint |
-| MCP over HTTP | `agent_mcp.rs` — its **own** `reqwest::Client` instances (`:626`, `:689`, `:762`, `:966`, `:2688`) | Second allowlist, same list |
+| MCP over HTTP | `agent_mcp.rs` — its **own** `reqwest::Client` instances (`:626`, `:689`, `:762`, `:966`, `:2688`) | MCP policy: exact loopback HTTP/HTTPS exception, otherwise HTTPS plus compiled external MCP allowlist |
 | **MCP over stdio** | `Command::new(executable)` (`agent_mcp.rs:2415`, `:2429`) | **Not enforceable in-process** |
 
 A stdio MCP server is a third-party binary making its own network calls. No
@@ -225,11 +225,13 @@ constrains filesystem access, not egress.
 
 **Requirements:**
 
-- A single allowlist of permitted hosts (Bonzai, plus any approved MCP host),
-  enforced at both HTTP chokepoints, failing closed with a distinct error.
-- A CI test asserting no egress outside the allowlist, so an upstream merge
-  that introduces a new provider call **fails the build** rather than
-  shipping.
+- Inference uses a compiled host allowlist and is HTTPS-only, failing closed
+  with a distinct error at the request helper.
+- MCP uses a distinct compiled policy: exact loopback hosts may use HTTP or
+  HTTPS; external MCP hosts require HTTPS and an exact compiled allowlist match.
+- A CI test asserts no raw reqwest client is constructed outside the guarded
+  module, so an upstream merge that introduces a new provider call **fails the
+  build** rather than shipping.
 
 ### 7.6 MCP policy
 
@@ -249,9 +251,10 @@ rule splits into two claims that are each true and enforceable:
    per-server admin decision against an allowlist that is empty by default.
 
 **v1 policy:** permit `streamable_http` MCP servers whose host is on the
-allowlist. Keep `stdio` disabled. This keeps the guarantee anchored to a real
-chokepoint. Relax later, deliberately, if a stdio server is worth the
-trade.
+compiled allowlist, plus `http://` or `https://` for exact loopback addresses
+(`localhost`, `127.0.0.1`, `::1`). Keep `stdio` disabled. This keeps the
+guarantee anchored to a real chokepoint while supporting common local Docker
+MCP servers. Relax later, deliberately, if a stdio server is worth the trade.
 
 A single blanket "never third party" claim would not survive a security
 review once MCP is enabled. Splitting it now is the honest framing.

@@ -201,10 +201,12 @@ tasks / contracts / checklists`.
   - [Bonzai visual styling migration](roadmap/rebrand-to-bonzai/plan.md) — proposed light/dark semantic colors, Manrope UI font, and approved visible Clovy-to-Bonzai naming from the bundled design reference; type scale, spacing, components, technical identity, inference, account, packaging, and release work remain outside the MVP; [color field](roadmap/rebrand-to-bonzai/sketch.html) · [app shell](roadmap/rebrand-to-bonzai/app-colors.html)
   - [Bonzai logo replacement](roadmap/bonzai-logo-replacement/plan.md) — proposed approved-source intake and later renderer/native icon replacement; blocked until the correct vector mark, wordmark source, platform treatments, usage rights, and provenance are supplied
   - [Bonzai/iO operator instructions](roadmap/bonzai-io-operator-instructions/plan.md) — proposed build-selected operator policy for an iO deployment, preserving Clovy identity, user Project instructions, Bonzai no-account behavior, and runtime safety boundaries
+  - [MCP form URL field on Bonzai builds](roadmap/mcp-form-url-field-fix/plan.md) — shipped: Add MCP server dialog now opens correctly on Bonzai builds, and the compiled release policy permits exact loopback HTTP/HTTPS for local Docker MCP servers; external host admission remains separate
   - [Microsoft Entra access gate](roadmap/microsoft-sso-access-gate/plan.md) — fork-only, post-MVP: future Microsoft Entra ID work/school OAuth access gate; the Bonzai MVP remains in no-account mode, with billing and credits external to Clovy; builds on the existing PKCE connector infrastructure; [interactive sketch](roadmap/microsoft-sso-access-gate/sketch.html)
 
-## Gaps (no doc yet — candidates for new docs/ADRs)
+## Gaps and readiness
 
+- [Bonzai MVP readiness](luna-bonzai-mvp-readiness.md) — branch history, release blockers, unresolved architecture, and the recommended integration route for the initial Bonzai release
 - **Roadmap / MVP scope** — no single sequenced source of truth across the active tracks (admin surfaces, reliability). The task-management proposal is a feature roadmap entry, not a complete product-wide sequence.
 - **Dictation ADR** — the low-latency request shape + charge timing (flagged in CONTEXT.md).
 

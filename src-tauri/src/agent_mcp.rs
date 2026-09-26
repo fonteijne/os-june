@@ -253,6 +253,15 @@ pub struct McpServerDefinition {
     pub safety: McpSafetyPolicy,
 }
 
+fn is_loopback_mcp_host(host: &str) -> bool {
+    let host = host.trim();
+    let host = host
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .unwrap_or(host);
+    matches!(host, "localhost" | "127.0.0.1" | "::1")
+}
+
 impl McpServerDefinition {
     pub fn new(name: impl Into<String>, transport: McpTransport) -> Self {
         Self {
@@ -322,9 +331,7 @@ impl McpServerDefinition {
                     .map_err(|_| AgentMcpError::InvalidDefinition("HTTP url is invalid".into()))?;
                 let secure_transport = parsed.scheme() == "https"
                     || (parsed.scheme() == "http"
-                        && parsed
-                            .host_str()
-                            .is_some_and(|host| matches!(host, "localhost" | "127.0.0.1" | "::1")));
+                        && parsed.host_str().is_some_and(is_loopback_mcp_host));
                 if !secure_transport || self.command.is_some() || !self.args.is_empty() {
                     return Err(AgentMcpError::InvalidDefinition(
                         "streamable HTTP requires HTTPS or a loopback HTTP url".into(),
@@ -487,10 +494,7 @@ fn oauth_now_unix() -> i64 {
 fn secure_oauth_url(raw: &str) -> Result<reqwest::Url, AgentMcpError> {
     let parsed = reqwest::Url::parse(raw).map_err(|_| AgentMcpError::Protocol)?;
     let secure = parsed.scheme() == "https"
-        || (parsed.scheme() == "http"
-            && parsed
-                .host_str()
-                .is_some_and(|host| matches!(host, "localhost" | "127.0.0.1" | "::1")));
+        || (parsed.scheme() == "http" && parsed.host_str().is_some_and(is_loopback_mcp_host));
     if !secure
         || parsed.username() != ""
         || parsed.password().is_some()
@@ -626,6 +630,7 @@ async fn discover_oauth_metadata(
     let resource_url = secure_oauth_url(endpoint)?;
     let client = crate::bonzai::egress::guarded_builder()
         .redirect(reqwest::redirect::Policy::none())
+        .no_proxy()
         .build()
         .map_err(|_| AgentMcpError::Transport)?;
     let resource = match get_first_oauth_metadata::<OAuthResourceMetadata>(
@@ -687,7 +692,10 @@ async fn register_oauth_client(
         .registration_endpoint
         .as_deref()
         .ok_or(AgentMcpError::Protocol)?;
-    let response = crate::bonzai::egress::guarded_client()
+    let response = crate::bonzai::egress::guarded_builder()
+        .no_proxy()
+        .build()
+        .map_err(|_| AgentMcpError::Transport)?
         .post(endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .json(&OAuthRegistrationRequest {
@@ -760,7 +768,10 @@ async fn exchange_oauth_code(
     if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
         form.push(("client_secret", secret));
     }
-    let response = crate::bonzai::egress::guarded_client()
+    let response = crate::bonzai::egress::guarded_builder()
+        .no_proxy()
+        .build()
+        .map_err(|_| AgentMcpError::Transport)?
         .post(&auth.token_endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .form(&form)
@@ -964,7 +975,10 @@ async fn refresh_oauth_bundle(
     if let Some(client_secret) = bundle.oauth.get("client_secret") {
         form.push(("client_secret", client_secret.as_str()));
     }
-    let response = crate::bonzai::egress::guarded_client()
+    let response = crate::bonzai::egress::guarded_builder()
+        .no_proxy()
+        .build()
+        .map_err(|_| AgentMcpError::Transport)?
         .post(token_endpoint)
         .timeout(OAUTH_HTTP_TIMEOUT)
         .form(&form)
@@ -2689,6 +2703,7 @@ async fn start_http_session(
 ) -> Result<HttpMcpSession, AgentMcpError> {
     let client = crate::bonzai::egress::guarded_builder()
         .redirect(reqwest::redirect::Policy::none())
+        .no_proxy()
         .build()
         .map_err(|_| AgentMcpError::Transport)?;
     let (_, session_id) = http_post(
@@ -3428,6 +3443,7 @@ pub async fn test_agent_mcp_server(
 ) -> Result<Vec<McpDiscoveredTool>, crate::domain::types::AppError> {
     let repository = command_repository(&app).await.map_err(app_error)?;
     let server = repository.get(&server_id).await.map_err(app_error)?;
+    crate::bonzai::mcp_policy::check(&server).map_err(app_error)?;
     let mut secrets = match server.secret_ref.as_deref() {
         Some(secret_ref) => KeychainMcpSecretStore
             .get(secret_ref)
@@ -3458,6 +3474,7 @@ pub async fn connect_agent_mcp_oauth(
 ) -> Result<McpServerDefinition, crate::domain::types::AppError> {
     let repository = command_repository(&app).await.map_err(app_error)?;
     let existing = repository.get(&server_id).await.map_err(app_error)?;
+    crate::bonzai::mcp_policy::check(&existing).map_err(app_error)?;
     let store = KeychainMcpSecretStore;
     let old_bundle = match existing.secret_ref.as_deref() {
         Some(secret_ref) => store
@@ -4203,6 +4220,8 @@ mod tests {
         http.url = Some("http://tools.example.test/mcp".into());
         assert!(http.validate().is_err());
         http.url = Some("http://127.0.0.1:8787/mcp".into());
+        assert!(http.validate().is_ok());
+        http.url = Some("http://[::1]:8787/mcp".into());
         assert!(http.validate().is_ok());
     }
     #[test]

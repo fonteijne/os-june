@@ -2,8 +2,8 @@ import { IconArrowRotateClockwise } from "central-icons/IconArrowRotateClockwise
 import { IconPlusMedium } from "central-icons/IconPlusMedium";
 import { IconSettingsGear4 } from "central-icons/IconSettingsGear4";
 import { IconTrashCan } from "central-icons/IconTrashCan";
-import { useCallback, useEffect, useState } from "react";
-import { useBonzaiActive } from "../../lib/bonzai";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { bonzaiActive as getBonzaiActive, useBonzaiActive } from "../../lib/bonzai";
 import {
   createAgentMcpServer,
   connectAgentMcpOauth,
@@ -87,6 +87,7 @@ export function AgentMcpServersSection() {
   const [toDelete, setToDelete] = useState<AgentMcpServerDto>();
   const [saveError, setSaveError] = useState<string>();
   const [testResults, setTestResults] = useState<Record<string, string>>({});
+  const dialogRequestRef = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,21 +171,28 @@ export function AgentMcpServersSection() {
     }
   }
 
-  function openCreate() {
+  async function openCreate() {
+    const request = ++dialogRequestRef.current;
     setEditing(undefined);
+    setSaveError(undefined);
+    const active = await getBonzaiActive();
+    if (request !== dialogRequestRef.current) return;
     setDraft({
       ...EMPTY_DRAFT,
-      transport: bonzaiActive ? "streamable_http" : EMPTY_DRAFT.transport,
+      transport: active ? "streamable_http" : EMPTY_DRAFT.transport,
     });
-    setSaveError(undefined);
     setAddOpen(true);
   }
 
-  function openEdit(server: AgentMcpServerDto) {
+  async function openEdit(server: AgentMcpServerDto) {
+    const request = ++dialogRequestRef.current;
     setEditing(server);
+    setSaveError(undefined);
+    const active = await getBonzaiActive();
+    if (request !== dialogRequestRef.current) return;
     setDraft({
       name: server.name,
-      transport: server.transport,
+      transport: active && server.transport === "stdio" ? "streamable_http" : server.transport,
       command: server.command ?? "",
       args: server.args.join("\n"),
       url: server.url ?? "",
@@ -197,7 +205,6 @@ export function AgentMcpServersSection() {
       allowSandboxed: server.safety.allowSandboxed,
       oauth: server.metadata.auth === "oauth" || server.metadata.legacyAuth === "oauth",
     });
-    setSaveError(undefined);
     setAddOpen(true);
   }
 
@@ -380,6 +387,7 @@ export function AgentMcpServersSection() {
       <Dialog
         open={addOpen}
         onClose={() => {
+          ++dialogRequestRef.current;
           setAddOpen(false);
           setEditing(undefined);
         }}
@@ -395,6 +403,7 @@ export function AgentMcpServersSection() {
               type="button"
               className="primary-action"
               onClick={() => {
+                ++dialogRequestRef.current;
                 setAddOpen(false);
                 setEditing(undefined);
               }}
@@ -412,8 +421,8 @@ export function AgentMcpServersSection() {
           </>
         }
       >
+        {saveError ? <InlineNotice tone="warning" body={saveError} /> : null}
         <div className="dialog-body">
-          {saveError ? <InlineNotice tone="warning" body={saveError} /> : null}
           {editing?.metadata.legacyAuth === "oauth" ? (
             <InlineNotice
               tone="warning"

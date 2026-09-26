@@ -214,3 +214,22 @@ that its budget be revised in a superseding ADR rather than quietly exceeded,
 and that decision is due before Phase 5. Narrowing the guard's scope to buy
 the lines back is not an option on the table - a guard that reads only the
 files we already know about is the failure mode Correction 2 exists to close.
+
+## Addendum - loopback HTTP permitted for MCP in all builds (2026-09-26)
+
+The original decision states HTTPS only for every permitted destination. This addendum
+modifies that rule for MCP loopback addresses only.
+
+Local Docker MCP servers are a common coworker workflow. Requiring TLS termination for
+`http://localhost:<port>/mcp` adds operational burden without protecting against a remote
+third-party destination: exact loopback addresses cannot leave the local machine.
+
+`assert_mcp_allowed()` now permits `http://` as well as `https://` for the exact loopback
+hosts `localhost`, `127.0.0.1`, and `::1`. The HTTPS requirement remains in place for all
+non-loopback MCP hosts. The loopback set is a separate compiled constant and cannot be
+expanded by runtime configuration.
+
+Inference egress (`assert_allowed()`), stdio MCP, external MCP host admission, the
+compiled `MCP_ALLOWED_HOSTS` list, and the source-level client-construction guard are
+unchanged. The inference egress guarantee is unaffected. This addendum does not restore
+managed hosted MCP or web search; those remain separate allowlist decisions.

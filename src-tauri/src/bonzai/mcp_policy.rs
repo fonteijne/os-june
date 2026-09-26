@@ -1,7 +1,7 @@
 //! The MCP policy (PRD section 7.6, ADR-0059): tool egress is governed, not
 //! closed. A Bonzai build permits `streamable_http` MCP servers whose host is
-//! on the compiled MCP allowlist and nothing else. `stdio` stays off because a
-//! spawned binary makes its own network calls, which no in-process check can
+//! on the compiled MCP allowlist, plus exact loopback hosts over HTTP or HTTPS.
+//! `stdio` stays off because a spawned binary makes its own network calls, which no in-process check can
 //! observe.
 //!
 //! Enforced twice, at the two points upstream already funnels through: when
@@ -22,7 +22,7 @@ pub fn check(definition: &McpServerDefinition) -> Result<(), AgentMcpError> {
 fn apply(definition: &McpServerDefinition) -> Result<(), AgentMcpError> {
     match definition.transport {
         McpTransport::Stdio => Err(AgentMcpError::InvalidDefinition(
-            "local process (stdio) MCP servers are switched off in this build; only streamable HTTP servers on allowlisted hosts are permitted".into(),
+            "local process (stdio) MCP servers are switched off in this build; only streamable HTTP servers on allowlisted or loopback hosts are permitted".into(),
         )),
         McpTransport::StreamableHttp => {
             let url = definition
@@ -49,6 +49,13 @@ mod tests {
         assert!(
             matches!(error, AgentMcpError::InvalidDefinition(message) if message.contains("stdio"))
         );
+    }
+
+    #[test]
+    fn a_loopback_http_server_is_permitted() {
+        let mut server = McpServerDefinition::new("local", McpTransport::StreamableHttp);
+        server.url = Some("http://localhost:9989/mcp".into());
+        assert!(apply(&server).is_ok());
     }
 
     #[test]

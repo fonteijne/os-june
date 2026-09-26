@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../lib/bonzai", () => ({
+  bonzaiActive: vi.fn(() => Promise.resolve(mocks.bonzaiActive)),
   useBonzaiActive: () => mocks.bonzaiActive,
 }));
 
@@ -98,7 +99,7 @@ describe("AgentMcpServersSection", () => {
 
     await screen.findByText("No custom servers");
     await user.click(screen.getByRole("button", { name: "Add server" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Name"), "Private tools");
     await user.type(within(dialog).getByLabelText("Command"), "node");
     fireEvent.change(within(dialog).getByLabelText("Environment variables (JSON)"), {
@@ -119,6 +120,12 @@ describe("AgentMcpServersSection", () => {
   });
 
   it("opens Bonzai server creation on the HTTP transport", async () => {
+    let resolveActive!: (value: boolean) => void;
+    const activePromise = new Promise<boolean>((resolve) => {
+      resolveActive = resolve;
+    });
+    const bonzaiModule = await import("../lib/bonzai");
+    (bonzaiModule.bonzaiActive as ReturnType<typeof vi.fn>).mockReturnValueOnce(activePromise);
     mocks.bonzaiActive = true;
     mocks.list.mockResolvedValue([]);
     const user = userEvent.setup();
@@ -126,12 +133,18 @@ describe("AgentMcpServersSection", () => {
 
     await screen.findByText("No custom servers");
     await user.click(screen.getByRole("button", { name: "Add server" }));
-    const dialog = screen.getByRole("dialog");
+    // Dialog should not appear while the Bonzai status lookup is still in-flight.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    resolveActive(true);
+    const dialog = await screen.findByRole("dialog");
 
     expect(within(dialog).getByLabelText("Transport")).toHaveValue("streamable_http");
     expect(within(dialog).getByLabelText("URL")).toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Command")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Arguments, one per line")).not.toBeInTheDocument();
+    // The stdio option must not be present in the transport select.
+    expect(within(dialog).queryByRole("option", { name: /stdio/i })).not.toBeInTheDocument();
   });
 
   it("creates an OAuth HTTP server disabled until browser sign-in", async () => {
@@ -146,7 +159,7 @@ describe("AgentMcpServersSection", () => {
 
     await screen.findByText("No custom servers");
     await user.click(screen.getByRole("button", { name: "Add server" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Name"), "OAuth tools");
     await user.selectOptions(within(dialog).getByLabelText("Transport"), "streamable_http");
     await user.type(within(dialog).getByLabelText("URL"), "https://example.test/mcp");
@@ -176,7 +189,7 @@ describe("AgentMcpServersSection", () => {
 
     await screen.findByText("No custom servers");
     await user.click(screen.getByRole("button", { name: "Add server" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Name"), "Private tools");
     await user.type(within(dialog).getByLabelText("Command"), "node");
     await user.click(within(dialog).getByRole("button", { name: "Add server" }));
@@ -184,6 +197,7 @@ describe("AgentMcpServersSection", () => {
     expect(
       await within(dialog).findByText("Server configuration could not be saved."),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeInTheDocument();
     expect(within(dialog).queryByText("[object Object]")).not.toBeInTheDocument();
   });
 
@@ -193,7 +207,7 @@ describe("AgentMcpServersSection", () => {
 
     await screen.findByText("Tasks");
     await user.click(screen.getByRole("button", { name: "Configure Tasks" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Allowed tools, one per line"), "list_tasks");
     await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
 
