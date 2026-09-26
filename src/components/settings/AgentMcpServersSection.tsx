@@ -172,7 +172,10 @@ export function AgentMcpServersSection() {
 
   function openCreate() {
     setEditing(undefined);
-    setDraft(EMPTY_DRAFT);
+    setDraft({
+      ...EMPTY_DRAFT,
+      transport: bonzaiActive ? "streamable_http" : EMPTY_DRAFT.transport,
+    });
     setSaveError(undefined);
     setAddOpen(true);
   }

@@ -5,12 +5,17 @@ import { AgentMcpServersSection } from "../components/settings/AgentMcpServersSe
 import type { AgentMcpServerDto } from "../lib/agent-mcp";
 
 const mocks = vi.hoisted(() => ({
+  bonzaiActive: false,
   list: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
   test: vi.fn(),
   connectOauth: vi.fn(),
+}));
+
+vi.mock("../lib/bonzai", () => ({
+  useBonzaiActive: () => mocks.bonzaiActive,
 }));
 
 vi.mock("../lib/agent-mcp", async (importOriginal) => ({
@@ -44,6 +49,7 @@ const server: AgentMcpServerDto = {
 describe("AgentMcpServersSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.bonzaiActive = false;
     mocks.list.mockResolvedValue([server]);
     mocks.update.mockImplementation(async (input) => input);
     mocks.remove.mockResolvedValue(undefined);
@@ -110,6 +116,22 @@ describe("AgentMcpServersSection", () => {
       ),
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens Bonzai server creation on the HTTP transport", async () => {
+    mocks.bonzaiActive = true;
+    mocks.list.mockResolvedValue([]);
+    const user = userEvent.setup();
+    render(<AgentMcpServersSection />);
+
+    await screen.findByText("No custom servers");
+    await user.click(screen.getByRole("button", { name: "Add server" }));
+    const dialog = screen.getByRole("dialog");
+
+    expect(within(dialog).getByLabelText("Transport")).toHaveValue("streamable_http");
+    expect(within(dialog).getByLabelText("URL")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Command")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Arguments, one per line")).not.toBeInTheDocument();
   });
 
   it("creates an OAuth HTTP server disabled until browser sign-in", async () => {
