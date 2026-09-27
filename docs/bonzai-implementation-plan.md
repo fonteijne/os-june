@@ -231,9 +231,10 @@ pub fn base_url() -> Result<Url, AppError> {
 - Host comparison is exact, after normalisation. No suffix matching -
   `bonzai.example.com.attacker.net` must not match `bonzai.example.com`. No
   wildcards.
-- **Development and release builds carry different allowlists**, and that
-  difference must be explicit in the build configuration rather than
-  incidental. A release build must never carry a localhost entry.
+- **Development and release builds carry different inference allowlists**, and that
+  difference must be explicit in the build configuration rather than incidental. The
+  separate compiled MCP loopback policy intentionally carries exact loopback entries in
+  both build types; external MCP hosts still follow the compiled external list.
 
 **Cost, accepted deliberately:** pointing the fork at a different gateway
 needs a rebuild. For a fork whose central promise is knowing where data goes,
@@ -341,11 +342,11 @@ will otherwise expect what this plan originally said:
   arrives - `chat.rs` in Phase 2, `audio.rs` in Phase 3 - all of them
   additive. Closing the *existing* paths is Phase 5's severance work, which
   is where it was always scheduled.
-- **`https` is required for every destination, including loopback.**
-  ADR-0059 says the scheme is checked alongside the host, with no carve-out.
-  A development build additionally allows `localhost`, `127.0.0.1`, and
-  `[::1]` as hosts, but a plaintext local gateway is unreachable by design.
-  If Phase 2 needs one, that is an ADR amendment, not a code tweak.
+- **Inference destinations remain HTTPS-only.** ADR-0059's scheme check remains
+  unchanged for `assert_allowed` and Bonzai model traffic. The MCP-specific policy
+  has a dated ADR-0059 addendum: exact loopback MCP endpoints may use HTTP or HTTPS
+  in release and debug builds. External MCP hosts remain HTTPS-only and compiled
+  allowlisted; stdio remains disabled.
 
 **Verified:** the guard passes with all sixteen sites routed, and fails with
 the offending file and line when a raw `reqwest::Client::new()` is
@@ -555,14 +556,16 @@ this should hold, but it is the change most likely to surprise.
 
 **Status: done.**
 
-**What landed.** An MCP allowlist in `egress.rs` (empty; a host joins it by
+**What landed.** An MCP allowlist in `egress.rs` (empty; an external host joins it by
 a rebuild) and `bonzai/mcp_policy.rs`, checked in `validate_custom` (save
 time) and `start_transport` (connect time, which also covers definitions that
 predate the policy and the managed Linear server). stdio is refused outright
-and the settings form hides it on a Bonzai build.
+and the settings form hides it on a Bonzai build. Exact loopback MCP hosts may
+use HTTP or HTTPS in release and debug builds for local Docker workflows.
 
 **Consequence to know about:** the managed Linear MCP server is refused until
-`api.linear.app` is added to the MCP allowlist and the build is cut again.
+`api.linear.app` is added to the MCP allowlist and the build is cut again. This
+loopback exception does not restore hosted MCP or web search.
 
 **Shared:** restrict server creation to `streamable_http`; validate the host
 against the allowlist at save time and at connect time.
