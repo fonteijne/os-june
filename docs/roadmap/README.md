@@ -96,3 +96,4 @@ the discrepancy before treating the roadmap as current.
 
 The roadmap is the navigation layer between long-term product ideas and those
 more specific execution records.
+| Original Clovy MCP integration | **Proposed** | Phase 0: decision and compatibility contract | [Original Clovy MCP integration plan](mcp-original-integration/plan.md) | Approve the no-whitelist restoration boundary, ADR treatment, and compatibility/evidence matrix |
