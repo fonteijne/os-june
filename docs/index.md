@@ -213,3 +213,4 @@ tasks / contracts / checklists`.
 ## Security
 
 - [../SECURITY.md](../SECURITY.md) — vulnerability reporting + supported versions
+  - [Original Clovy MCP integration](roadmap/mcp-original-integration/plan.md) — proposed prove-need-first restoration of the external MCP contract: globally enabled servers remain available to ordinary runs and routines, with no MCP host whitelist, while Rust transport/credential safety and Bonzai inference egress remain intact
