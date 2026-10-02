@@ -344,7 +344,6 @@ impl McpServerDefinition {
 
     fn validate_custom(&self) -> Result<(), AgentMcpError> {
         self.validate()?;
-        crate::bonzai::mcp_policy::check(self)?;
         self.validate_custom_id()
     }
 
@@ -1258,6 +1257,12 @@ pub struct RuntimeToolDescriptorJson {
     pub policy_fingerprint: Option<String>,
 }
 
+pub fn mcp_server_id_from_tool_id(tool_id: &str) -> Option<&str> {
+    let value = tool_id.strip_prefix("mcp:")?;
+    let (server_id, remote_name) = value.split_once('/')?;
+    (!server_id.is_empty() && !remote_name.is_empty()).then_some(server_id)
+}
+
 #[derive(Debug, Clone)]
 pub struct RegisteredMcpTool {
     pub server_id: String,
@@ -1911,11 +1916,7 @@ pub async fn snapshot_run_policies(
             .map_err(|_| AgentMcpError::Storage);
     }
     for descriptor in descriptors {
-        let Some(server_id) = descriptor
-            .id
-            .strip_prefix("mcp:")
-            .and_then(|value| value.split('/').next())
-        else {
+        let Some(server_id) = mcp_server_id_from_tool_id(&descriptor.id) else {
             continue;
         };
         let updated_at = if server_id == MANAGED_LINEAR_SERVER_ID {
@@ -1924,13 +1925,19 @@ pub async fn snapshot_run_policies(
                 .clone()
                 .ok_or(AgentMcpError::Storage)?
         } else {
-            query("SELECT updated_at FROM agent_mcp_servers WHERE id = ?")
+            let Some(updated_at) = query("SELECT updated_at FROM agent_mcp_servers WHERE id = ?")
                 .bind(server_id)
                 .fetch_optional(&mut *transaction)
                 .await
                 .map_err(|_| AgentMcpError::Storage)?
                 .map(|row| row.get::<String, _>("updated_at"))
-                .ok_or(AgentMcpError::NotFound)?
+            else {
+                // Discovery and deletion can race. The descriptor is stale,
+                // so do not abort the whole run or snapshot a server that no
+                // longer exists; invocation will remain unavailable.
+                continue;
+            };
+            updated_at
         };
         query(
             "INSERT INTO agent_run_mcp_policies
@@ -2406,7 +2413,6 @@ async fn start_transport(
     secrets: &McpSecretBundle,
     sandbox_workspace: Option<&std::path::Path>,
 ) -> Result<PersistentMcpTransport, AgentMcpError> {
-    crate::bonzai::mcp_policy::check(server)?;
     match server.transport {
         McpTransport::Stdio => start_stdio_session(server, secrets, sandbox_workspace)
             .await
@@ -3443,7 +3449,6 @@ pub async fn test_agent_mcp_server(
 ) -> Result<Vec<McpDiscoveredTool>, crate::domain::types::AppError> {
     let repository = command_repository(&app).await.map_err(app_error)?;
     let server = repository.get(&server_id).await.map_err(app_error)?;
-    crate::bonzai::mcp_policy::check(&server).map_err(app_error)?;
     let mut secrets = match server.secret_ref.as_deref() {
         Some(secret_ref) => KeychainMcpSecretStore
             .get(secret_ref)
@@ -3474,7 +3479,6 @@ pub async fn connect_agent_mcp_oauth(
 ) -> Result<McpServerDefinition, crate::domain::types::AppError> {
     let repository = command_repository(&app).await.map_err(app_error)?;
     let existing = repository.get(&server_id).await.map_err(app_error)?;
-    crate::bonzai::mcp_policy::check(&existing).map_err(app_error)?;
     let store = KeychainMcpSecretStore;
     let old_bundle = match existing.secret_ref.as_deref() {
         Some(secret_ref) => store
@@ -4153,6 +4157,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn snapshot_skips_a_custom_descriptor_deleted_after_discovery() {
+        let repo = repository().await;
+        query(
+            "CREATE TABLE agent_runs (
+                id TEXT PRIMARY KEY,
+                mcp_policy_snapshotted INTEGER NOT NULL DEFAULT 0
+             )",
+        )
+        .execute(&repo.pool)
+        .await
+        .unwrap();
+        for statement in include_str!("../migrations/028_agent_run_mcp_policy.sql")
+            .split(';')
+            .filter(|statement| !statement.trim().is_empty())
+        {
+            query(statement).execute(&repo.pool).await.unwrap();
+        }
+        query("INSERT INTO agent_runs (id) VALUES ('run-deleted-server')")
+            .execute(&repo.pool)
+            .await
+            .unwrap();
+
+        let descriptor = RuntimeToolDescriptorJson {
+            id: "mcp:deleted-server/search".into(),
+            name: "mcp_deleted_server_search".into(),
+            description: "Search deleted server".into(),
+            parameters: json!({"type":"object","properties":{}}),
+            strict: None,
+            requires_approval: Some(true),
+            approval_provider: None,
+            approval_remote_tool_name: None,
+            policy_fingerprint: None,
+        };
+
+        // The descriptor was discovered before the custom server was deleted.
+        // Snapshotting should drop that stale descriptor and still finish the
+        // run with a closed catalog rather than failing startup.
+        snapshot_run_policies(&repo.pool, "run-deleted-server", &[descriptor])
+            .await
+            .unwrap();
+        let policy_count: i64 = query(
+            "SELECT COUNT(*) AS count
+             FROM agent_run_mcp_policies
+             WHERE run_id = 'run-deleted-server'",
+        )
+        .fetch_one(&repo.pool)
+        .await
+        .unwrap()
+        .get("count");
+        assert_eq!(policy_count, 0);
+        let snapshotted: i64 = query(
+            "SELECT mcp_policy_snapshotted
+             FROM agent_runs
+             WHERE id = 'run-deleted-server'",
+        )
+        .fetch_one(&repo.pool)
+        .await
+        .unwrap()
+        .get("mcp_policy_snapshotted");
+        assert_eq!(snapshotted, 1);
+    }
+
+    #[tokio::test]
     async fn empty_run_policy_snapshot_cannot_gain_a_server_on_resume() {
         let repo = repository().await;
         query(
@@ -4206,7 +4273,44 @@ mod tests {
         .unwrap()
         .get("count");
         assert_eq!(policy_count, 0);
+        // A legacy run rebuilt with the restored global catalog may advertise
+        // a server it never snapshotted, but calling it fails closed rather
+        // than gaining a tool mid-run.
+        for requires_approval in [false, true] {
+            let current = McpToolPolicy {
+                server_id: server.id.clone(),
+                requires_approval,
+                policy_fingerprint: None,
+            };
+            assert!(
+                !run_policy_matches(&repo.pool, "run-empty", "mcp_later_search", &current)
+                    .await
+                    .unwrap()
+            );
+        }
     }
+    #[test]
+    fn mcp_server_id_parser_rejects_malformed_descriptor_ids() {
+        assert_eq!(
+            mcp_server_id_from_tool_id("mcp:custom-server/search"),
+            Some("custom-server")
+        );
+        for malformed in [
+            "custom-server/search",
+            "mcp:/search",
+            "mcp:custom-server/",
+            "mcp:custom-server",
+            "mcp:/",
+            "mcp:",
+        ] {
+            assert_eq!(
+                mcp_server_id_from_tool_id(malformed),
+                None,
+                "{malformed} should not identify an MCP server"
+            );
+        }
+    }
+
     #[test]
     fn transport_validation_rejects_ambiguous_and_unsafe_shapes() {
         let mut stdio = McpServerDefinition::new("x", McpTransport::Stdio);
@@ -4223,6 +4327,210 @@ mod tests {
         assert!(http.validate().is_ok());
         http.url = Some("http://[::1]:8787/mcp".into());
         assert!(http.validate().is_ok());
+    }
+    #[tokio::test]
+    async fn external_https_and_stdio_definitions_save_on_every_build() {
+        // No build-specific host list or transport refusal sits on top of the
+        // shared validation: this holds whether or not Bonzai is active.
+        let repo = repository().await;
+        let mut https = McpServerDefinition::new("remote docs", McpTransport::StreamableHttp);
+        https.url = Some("https://mcp.example.com/mcp".into());
+        repo.create(&https).await.unwrap();
+        let mut stdio = McpServerDefinition::new("local tools", McpTransport::Stdio);
+        stdio.command = Some("node".into());
+        stdio.args = vec!["server.js".into()];
+        repo.create(&stdio).await.unwrap();
+        let mut loopback = McpServerDefinition::new("docker tools", McpTransport::StreamableHttp);
+        loopback.url = Some("http://localhost:9998/mcp".into());
+        repo.create(&loopback).await.unwrap();
+        assert_eq!(repo.list().await.unwrap().len(), 3);
+
+        // Shared validation still refuses unsafe shapes.
+        for url in [
+            "http://mcp.example.com/mcp",
+            "http://192.168.1.100:9998/mcp",
+            "file:///tmp/server",
+        ] {
+            let mut rejected = McpServerDefinition::new("rejected", McpTransport::StreamableHttp);
+            rejected.url = Some(url.into());
+            assert!(
+                matches!(
+                    repo.create(&rejected).await,
+                    Err(AgentMcpError::InvalidDefinition(_))
+                ),
+                "{url} should be rejected"
+            );
+        }
+        let mut separators = McpServerDefinition::new("separators", McpTransport::Stdio);
+        separators.command = Some("node".into());
+        separators.args = vec!["server.js\n--inject".into()];
+        assert!(matches!(
+            repo.create(&separators).await,
+            Err(AgentMcpError::InvalidDefinition(_))
+        ));
+        assert_eq!(repo.list().await.unwrap().len(), 3);
+    }
+    #[tokio::test]
+    async fn global_discovery_registers_an_enabled_custom_stdio_server() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            let directory = tempfile::tempdir().unwrap();
+            let script = directory.path().join("catalog-mcp.sh");
+            std::fs::write(
+                &script,
+                r#"#!/bin/sh
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9][0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"initialize"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18","capabilities":{},"serverInfo":{"name":"catalog","version":"1"}}}\n' "$id"
+      ;;
+    *'"method":"tools/list"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"tools":[{"name":"lookup","description":"Lookup","inputSchema":{"type":"object","properties":{}}},{"name":"hidden","description":"Hidden","inputSchema":{"type":"object","properties":{}}}]}}\n' "$id"
+      ;;
+  esac
+done
+"#,
+            )
+            .unwrap();
+            let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+            permissions.set_mode(0o700);
+            std::fs::set_permissions(&script, permissions).unwrap();
+
+            let repo = repository().await;
+            let mut server = McpServerDefinition::new(
+                format!("catalog {}", &Uuid::new_v4().simple().to_string()[..8]),
+                McpTransport::Stdio,
+            );
+            server.command = Some(script.to_string_lossy().into_owned());
+            server.tool_visibility.exclude = vec!["hidden".into()];
+            repo.create(&server).await.unwrap();
+
+            let subsystem = AgentMcpSubsystem::new(repo, MemorySecrets::default());
+            let descriptors = subsystem.refresh_registry_for(false).await.unwrap();
+            retire_server_sessions(&server.id).await;
+
+            assert_eq!(descriptors.len(), 1, "include/exclude still applies");
+            assert_eq!(descriptors[0].id, format!("mcp:{}/lookup", server.id));
+            // Unknown custom tools keep requiring approval by default.
+            assert_eq!(descriptors[0].requires_approval, Some(true));
+            let policy = subsystem
+                .policy_for_tool(&descriptors[0].name)
+                .unwrap()
+                .unwrap();
+            assert_eq!(policy.server_id, server.id);
+            assert!(policy.requires_approval);
+        }
+    }
+    #[tokio::test]
+    async fn global_discovery_admits_enabled_servers_and_omits_unavailable_ones() {
+        let repo = repository().await;
+        let mut sandbox_ineligible = McpServerDefinition::new("desktop", McpTransport::Stdio);
+        sandbox_ineligible.command = Some("/nonexistent/must-not-spawn".into());
+        sandbox_ineligible.safety.allow_sandboxed = false;
+        repo.create(&sandbox_ineligible).await.unwrap();
+        let mut disabled = McpServerDefinition::new("disabled", McpTransport::Stdio);
+        disabled.command = Some("/nonexistent/must-not-spawn".into());
+        disabled.enabled = false;
+        repo.create(&disabled).await.unwrap();
+
+        // A sandboxed run never starts the sandbox-ineligible server, and no
+        // run ever starts a disabled one, so neither failed spawn is reached.
+        let subsystem = AgentMcpSubsystem::new(repo, MemorySecrets::default());
+        assert!(subsystem
+            .refresh_registry_for_workspace(true, Some(std::path::Path::new("/tmp/workspace")))
+            .await
+            .unwrap()
+            .is_empty());
+        assert!(subsystem
+            .policy_for_tool("mcp_desktop_anything")
+            .unwrap()
+            .is_none());
+    }
+    #[tokio::test]
+    async fn live_approval_tightening_fails_the_active_run_closed() {
+        // The harness pauses only for descriptors frozen at run start, so the
+        // run snapshot is the call-time guard against a server switched from
+        // read-only to approval-required mid-run.
+        let repo = repository().await;
+        query(
+            "CREATE TABLE agent_runs (
+                id TEXT PRIMARY KEY,
+                mcp_policy_snapshotted INTEGER NOT NULL DEFAULT 0
+             )",
+        )
+        .execute(&repo.pool)
+        .await
+        .unwrap();
+        for statement in include_str!("../migrations/028_agent_run_mcp_policy.sql")
+            .split(';')
+            .filter(|statement| !statement.trim().is_empty())
+        {
+            query(statement).execute(&repo.pool).await.unwrap();
+        }
+        query("INSERT INTO agent_runs (id) VALUES ('run-live')")
+            .execute(&repo.pool)
+            .await
+            .unwrap();
+        let mut server = McpServerDefinition::new("docs", McpTransport::StreamableHttp);
+        server.url = Some("https://mcp.example.com/mcp".into());
+        server.safety.requires_approval = false;
+        repo.create(&server).await.unwrap();
+        let mut registry = McpToolRegistry::default();
+        registry
+            .register(
+                &server,
+                vec![McpDiscoveredTool {
+                    name: "delete".into(),
+                    description: "Delete a page".into(),
+                    input_schema: json!({"type":"object","properties":{}}),
+                    annotations: McpToolAnnotations::default(),
+                }],
+            )
+            .unwrap();
+        let descriptors = registry.descriptors();
+        assert_eq!(descriptors[0].requires_approval, None);
+        snapshot_run_policies(&repo.pool, "run-live", &descriptors)
+            .await
+            .unwrap();
+        let at_start = McpToolPolicy {
+            server_id: server.id.clone(),
+            requires_approval: false,
+            policy_fingerprint: None,
+        };
+        assert!(
+            run_policy_matches(&repo.pool, "run-live", "mcp_docs_delete", &at_start)
+                .await
+                .unwrap()
+        );
+
+        let mut tightened = server.clone();
+        tightened.safety.requires_approval = true;
+        repo.replace(&tightened).await.unwrap();
+        let now = McpToolPolicy {
+            server_id: server.id.clone(),
+            requires_approval: true,
+            policy_fingerprint: None,
+        };
+        assert!(
+            !run_policy_matches(&repo.pool, "run-live", "mcp_docs_delete", &now)
+                .await
+                .unwrap()
+        );
+        // Even when the definition timestamp happens to be unchanged, the
+        // pinned approval bit alone refuses the tightened call.
+        query("UPDATE agent_run_mcp_policies SET server_updated_at = (SELECT updated_at FROM agent_mcp_servers WHERE id = ?) WHERE run_id = 'run-live'")
+            .bind(&server.id)
+            .execute(&repo.pool)
+            .await
+            .unwrap();
+        assert!(
+            !run_policy_matches(&repo.pool, "run-live", "mcp_docs_delete", &now)
+                .await
+                .unwrap()
+        );
     }
     #[test]
     fn sandboxed_stdio_requires_a_macos_workspace_boundary() {

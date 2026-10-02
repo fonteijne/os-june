@@ -314,7 +314,6 @@ async fn mcp_tool(context: &ToolContext, name: &str, arguments: Value) -> Result
         &context.repository.pool,
         &context.session_id,
         &current_policy.server_id,
-        &server_name,
         current_policy.requires_approval,
     )
     .await?

@@ -151,6 +151,23 @@ and loopback helpers hoisted into `src/lib/local-endpoint.ts`). Expect
 conflicts in these regions when upstream touches local generation; resolve
 towards upstream's shape and re-apply the transcription twin.
 
+**Global external MCP for routines**
+([plan](docs/roadmap/mcp-original-integration/plan.md),
+[implementation log](docs/roadmap/mcp-original-integration/implementation-log.md))
+is a deliberate behavior divergence, not a Bonzai guard: a routine receives
+every globally enabled external MCP server, exactly as an ordinary run does,
+instead of only the servers whose display name appears in its saved
+toolsets. The managed Linear identities (`june_linear`,
+`june_linear_actions`) and the MCP run-policy snapshot keep upstream's
+behavior. Edits: `src-tauri/src/routines.rs` (`routine_mcp_descriptors`
+appended; `unattended_tools` appends its result; `routine_mcp_server_enabled`
+and `routine_mcp_server_allowed_for_session` lose their `server_name`
+parameter and admit every custom server) and
+`src-tauri/src/agent_runtime/tools.rs` (one argument removed from the
+routine MCP gate call). Expect conflicts when upstream touches routine MCP
+filtering; keep upstream's managed Linear and snapshot logic and re-apply
+the custom-server pass-through.
+
 ### Shared files (merge risk)
 
 Every edit below is one of the four shapes ADR-0060 permits: **P** a one- or
@@ -163,7 +180,7 @@ with re-indented lines under a wrap counted (the pessimistic reading).
 | --- | ---: | :-: | --- | --- |
 | `src-tauri/src/clovy_api.rs` | 23 | S, P | Phase 1: 7 client-constructor substitutions. Phase 2: prologues in `generate_note_from_transcript` and `proxy_agent_chat_completions`. Phase 3: prologue in `transcribe_saved_audio`. Phase 5: `refuse_clovy_api` in `authed_send`, `send_multipart`, `list_models`, `fetch_browser_transport_policy`, `computer_use_rollout`; `refuse_dictation` in `dictate_transcribe`, `cleanup_text` | The functions upstream dispatches through are the only place a prologue can intercept |
 | `src-tauri/src/os_accounts.rs` | 8 | S, P | Phase 1: 2 substitutions. Phase 5: prologues in `local_dev_enabled` (covers all 17 OS Accounts short-circuits) and `local_dev_account_status` | One prologue in the predicate every short-circuit consults |
-| `src-tauri/src/agent_mcp.rs` | 7 | S, P | Phase 1: 5 substitutions. Phase 6: `mcp_policy::check` in `validate_custom` and `start_transport` | Save-time and connect-time are upstream's two funnels |
+| `src-tauri/src/agent_mcp.rs` | 5 | S | Phase 1: 5 substitutions. Phase 6's `mcp_policy::check` prologues were removed when external MCP returned to the shared contract (ADR-0059 addendum of 2026-10-02) | - |
 | `src-tauri/src/providers/mod.rs` | 6 | S, P | Phase 1: 3 substitutions. Phase 2: prologue in `list_venice_models` | The picker's command is upstream's; Bonzai serves its shape |
 | `src-tauri/src/dictation.rs` | 5 | P | Phase 5: `refuse_dictation` in `spawn_helper` and `dictation_helper_command`; early return in `retry_helper_spawn` | The helper is spawned, retried, and driven from three functions |
 | `src-tauri/src/lib.rs` | 3 | P | Phase 1: `bonzai::setup(app)` first in the setup hook (2). Phase 2: one command registration (1) | Startup order and the command list live only here |
@@ -177,7 +194,6 @@ with re-indented lines under a wrap counted (the pessimistic reading).
 | `src-tauri/src/companion/mod.rs` | 1 | S | Phase 1 | - |
 | `src-tauri/src/video_download_url.rs` | 1 | S | Phase 1 | - |
 | `src/components/sidebar/Sidebar.tsx` | 29 | W | Phase 5: dictation nav button wrapped (13), palette entry wrapped (11), `HIDDEN_SETTINGS_TABS` gains `dictation` (3), import (1). Upstream keeps no flag for dictation, so a wrap is the only shape available | The nav, palette, and tab list are upstream's |
-| `src/components/settings/AgentMcpServersSection.tsx` | 11 | W, P | Phase 6: stdio option hidden on a Bonzai build (1), draft moved off stdio (8), hook and import (2) | The transport select is upstream's form |
 | `src/components/settings/AppSettings.tsx` | 5 | P, W | Phase 2: import and mount of the Bonzai section (2). Phase 5: hook, import, and the issue-report row gated (3) | The Models tab and the report row are upstream's |
 | `src/components/settings/PrivacySettingsSection.tsx` | 4 | P | Phase 5: returns null on a Bonzai build | The telemetry section is upstream's |
 | `src/components/folders/ProjectSettingsDialog.tsx` | 2 | P | Phase 4: import and mount of the project key field | Beside instructions, per the PRD |
@@ -195,12 +211,17 @@ with re-indented lines under a wrap counted (the pessimistic reading).
 | `src/test/folders-workspace.test.tsx` | 6 | P | As above | As above |
 | `agent-runtime/test/sanitize.test.ts` | 16 | P | Beta feedback: one appended test for the Bonzai classifier | Beside the classifier's own tests |
 
-**Running total: 148 counted lines in source (plus 28 in tests) against
+**Running total: 135 counted lines in source (plus 28 in tests) against
 ADR-0060's ceiling of 150.** By phase: 1 - 24, 2 - 12, 3 - 3, 4 - 5,
-5 - 62, 6 - 13, beta feedback - 29 (key at project creation 10, key in the
+5 - 62, 6 - 0, beta feedback - 29 (key at project creation 10, key in the
 edit dialog 2, Bonzai refusals shown with their reason 16, log output 1).
-Two lines of headroom remain; the next
-shared-line change needs a matching reduction or an ADR-0060 addendum. The
+Phase 6 spent 13 lines (2 prologues in `agent_mcp.rs`, 11 in
+`AgentMcpServersSection.tsx`); all were removed on 2026-10-02 when external
+MCP returned to the shared Clovy contract, leaving fifteen lines of headroom.
+The MCP settings form still differs from upstream by one moved line (the
+save-error notice rendered above the scrollable dialog body, from the shipped
+MCP form fix); it is a form correction rather than a Bonzai guard, so it is
+noted here and not counted. The
 28 test lines sit outside the count because a mock at
 the top of a test file carries no merge risk to the code under test; they are
 listed so the surface is whole.
@@ -234,7 +255,7 @@ capability visible to buy lines back was not an option on the table.
 | `docs/adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md` | ADR |
 | `docs/adr/0060-the-bonzai-touched-line-budget-is-a-shape-rule-with-an-inventoried-ceiling.md` | ADR |
 | `src-tauri/src/bonzai/mod.rs` | Module root, activation, startup validation, the session tag |
-| `src-tauri/src/bonzai/egress.rs` | The compiled allowlists (inference and MCP), `assert_allowed`, `assert_mcp_allowed`, and the only permitted client constructors |
+| `src-tauri/src/bonzai/egress.rs` | The compiled inference allowlist, `assert_allowed`, and the only permitted client constructors |
 | `src-tauri/src/bonzai/config.rs` | Base URL and default model resolution, checked against the allowlist |
 | `src-tauri/src/bonzai/http.rs` | The one request helper: allowlist, key, error mapping |
 | `src-tauri/src/bonzai/keys.rs` | Keychain-backed keys, global and per-project, with the project index |
@@ -243,9 +264,9 @@ capability visible to buy lines back was not an option on the table.
 | `src-tauri/src/bonzai/chat.rs` | Note generation and the streaming agent proxy |
 | `src-tauri/src/bonzai/audio.rs` | Note transcription |
 | `src-tauri/src/bonzai/severance.rs` | The no-account mode, disabled tools, Clovy API and dictation refusals |
-| `src-tauri/src/bonzai/mcp_policy.rs` | Streamable HTTP on allowlisted hosts only |
 | `src-tauri/src/bonzai/commands.rs` | The one dispatching Tauri command |
 | `src-tauri/tests/bonzai_egress_guard.rs` | The source-level CI guard |
+| `src-tauri/tests/mcp_build_parity_guard.rs` | Source-level check that external MCP carries no build-specific admission |
 | `src/lib/bonzai.ts` | Typed wrapper over the command, activation and index hooks |
 | `src/components/settings/BonzaiSettingsSection.tsx` | The global key, in Settings > Models |
 | `src/components/folders/BonzaiProjectKeyField.tsx` | A project's key, in project settings |

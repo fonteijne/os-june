@@ -2,7 +2,7 @@
 
 **Owner:** Desktop engineering and architecture
 **Date:** 2026-10-01
-**Status:** Proposed
+**Status:** In progress (Phases 0 to 3 implemented 2026-10-02; Phase 4 live evidence outstanding; see the [implementation log](implementation-log.md))
 **Scope:** Restore the original external MCP behavior across ordinary agent runs, unattended routines, and Bonzai builds by removing the unproven MCP-specific routine controls and Bonzai MCP host restrictions while preserving Rust ownership, Keychain custody, transport validation, approvals, bounds, cancellation, and Bonzai inference egress
 
 This document records product and architecture direction for a future capability. It is not an ADR, a product launch commitment, an implementation authorization, or a decision to remove safety boundaries. The file paths, line references, protocol details, and implementation inventory are starting points and must be re-verified when work is scheduled. A roadmap entry is not permission to change accepted ADRs, migrations, or release policy.
@@ -17,7 +17,7 @@ Restore the external MCP contract that existed before the Bonzai-only MCP overla
 2. The same globally enabled server catalog is available to an unattended routine. A routine does not need a separate MCP toolset grant.
 3. The routine `enabledToolsets` policy remains in place for Clovy-owned host tools and native connector toolsets. It is not made a no-op for the entire routine system; it simply stops being an MCP visibility mechanism.
 4. MCP calls no longer pass a routine-specific server allowlist gate.
-5. The MCP-specific run-policy snapshot is retired as a product control, while its schema and historical rows remain for compatibility and rollback.
+5. The MCP-specific run-policy snapshot is retired as a product control, while its schema and historical rows remain for compatibility and rollback. *(Resolved otherwise at implementation, 2026-10-02: the snapshot is retained as the call-time approval guard; it never filtered visibility. See resolution 3.)*
 6. Bonzai no longer applies a separate MCP host allowlist or disables stdio MCP. External HTTPS and stdio MCP return to the shared Clovy registry behavior.
 7. Bonzai inference remains separately restricted by `bonzai::egress::assert_allowed()` and the source-level guarded-client check.
 
@@ -71,11 +71,11 @@ The phrase **ordinary focused agent run** means the full agent session path that
 
 | Phase | Status | Exit criterion | Evidence or blocker |
 | --- | --- | --- | --- |
-| 0: decision and compatibility contract | **not started** | The restored behavior, retained safety boundaries, ADR gate, and before/after matrix are approved for implementation planning | User clarified the target; implementation is not authorized by this roadmap |
-| 1: restore global MCP availability | **not started** | Ordinary and unattended runs expose every globally enabled server that passes shared Rust availability checks | Requires runtime catalog and dispatch changes in Rust; no new UI is needed |
-| 2: restore Bonzai MCP parity | **not started** | Bonzai accepts configured external HTTPS and stdio MCP without weakening Bonzai inference egress | Requires removal of MCP-only policy checks, allowlist arrays, and stdio refusal |
-| 3: compatibility and non-destructive persistence | **not started** | Existing registry rows, Keychain references, routine data, run data, and migration history survive without destructive DDL or mutation replay | Migrations 027-029 and the append-only migration catalog are load-bearing |
-| 4: evidence, rollout, and rollback | **not started** | Deterministic tests and live ordinary/Bonzai walkthroughs prove restored behavior and retained safeguards | Requires disposable HTTPS and stdio fixtures plus release-build egress checks |
+| 0: decision and compatibility contract | **done** | The restored behavior, retained safety boundaries, ADR gate, and before/after matrix are approved for implementation planning | Decisions D1 to D4 in the [implementation log](implementation-log.md): run-policy snapshot retained as the only call-time approval guard; managed Linear keeps its connector gate; dated ADR-0059 addendum instead of a superseding ADR |
+| 1: restore global MCP availability | **done** | Ordinary and unattended runs expose every globally enabled server that passes shared Rust availability checks | `routines.rs` `routine_mcp_descriptors()`; routine and dispatch gates admit every custom server; unit tests prove a custom descriptor reaches a routine with an empty catalog while disabled and sandbox-ineligible servers stay absent |
+| 2: restore Bonzai MCP parity | **done** (deterministic); release-build walkthrough outstanding | Bonzai accepts configured external HTTPS and stdio MCP without weakening Bonzai inference egress | `bonzai/mcp_policy.rs` and the MCP host list removed; form offers stdio again; shared MCP suite green on a Bonzai-configured machine (baseline 9 failures); egress guard 4/4; new `tests/mcp_build_parity_guard.rs` |
+| 3: compatibility and non-destructive persistence | **done** | Existing registry rows, Keychain references, routine data, run data, and migration history survive without destructive DDL or mutation replay | No migration, schema, repository, or Keychain change; snapshot rows still written and consulted; migrations 23/23, runtime persistence 15/15 |
+| 4: evidence, rollout, and rollback | **in progress** | Deterministic tests and live ordinary/Bonzai walkthroughs prove restored behavior and retained safeguards | Deterministic Rust and frontend coverage done. Outstanding: live macOS walkthrough (ordinary and Bonzai builds), Bonzai release-build egress run, user-facing release note, rollback artifact |
 
 ---
 
@@ -209,7 +209,7 @@ The roadmap recommends leaving these structures in place initially. The runtime 
 | Bonzai external MCP host | Empty compiled MCP allowlist blocks non-loopback hosts | No MCP host membership allowlist; shared Rust validation governs transport shape |
 | Bonzai loopback MCP | Exact loopback exception | Ordinary shared MCP validation; no Bonzai-specific MCP list |
 | Bonzai inference | Compiled Bonzai inference allowlist | Unchanged |
-| Live server definition changes | MCP run snapshot may reject drift | Current descriptor and server policy remain host-owned; exact live-run behavior must be decided in Phase 0 and tested before rollout |
+| Live server definition changes | MCP run snapshot may reject drift | Unchanged: the run snapshot still rejects drift for the active run, and the next run uses the current definition (Phase 0 decision D1; tested) |
 | Outcome-unknown mutation | Never automatically replayed | Never automatically replayed |
 
 The key distinction is that **MCP availability is restored globally, while host-tool and native-connector policy remains routine-specific**.
@@ -218,7 +218,7 @@ The key distinction is that **MCP availability is restored globally, while host-
 
 ## Phase 0: decision and compatibility contract
 
-**Status: not started.**
+**Status: done.** Decisions recorded in the [implementation log](implementation-log.md) (D1 to D4).
 
 Before implementation, approve a short policy and compatibility contract containing:
 
@@ -258,7 +258,7 @@ Either path must preserve the accepted inference egress mechanism. No ADR outcom
 
 ## Phase 1: restore global MCP availability
 
-**Status: not started.**
+**Status: done.**
 
 Restore the same global external MCP catalog for ordinary focused runs and unattended routines.
 
@@ -284,7 +284,7 @@ In `src-tauri/src/agent_runtime/tools.rs`:
 - retain native connector dispatch and trust enforcement;
 - remove the MCP-specific call to `routine_mcp_server_allowed_for_session()`;
 - retain MCP registry refresh, server/tool resolution, current server availability, descriptor policy, elicitation, cancellation, and session retirement;
-- remove reliance on the MCP run-policy snapshot if Phase 0 accepts current host-owned policy evaluation;
+- remove reliance on the MCP run-policy snapshot if Phase 0 accepts current host-owned policy evaluation; *(Phase 0 did not: retained, decision D1)*
 - retain the `mcp_` namespace and fail-closed errors.
 
 The desired effect is not “routines can call any host tool.” It is “routines receive the same external MCP catalog, and external MCP remains constrained by the shared Rust MCP boundary.”
@@ -294,7 +294,7 @@ The desired effect is not “routines can call any host tool.” It is “routin
 In `src-tauri/src/agent_runtime/api.rs`:
 
 - retain ordinary discovery and descriptor serialization;
-- remove MCP policy snapshot creation from new run setup if Phase 0 accepts that product control is unnecessary;
+- remove MCP policy snapshot creation from new run setup if Phase 0 accepts that product control is unnecessary; *(Phase 0 did not: retained, decision D1)*
 - retain immutable `run_config_json` for resume and interruption compatibility;
 - preserve bounded discovery failures so one unhealthy server does not remove healthy tools.
 
@@ -304,7 +304,7 @@ In `src-tauri/src/agent_runtime/api.rs`:
 
 ## Phase 2: restore Bonzai MCP parity
 
-**Status: not started.**
+**Status: done** (deterministic); release-build walkthrough outstanding.
 
 Remove the Bonzai-only MCP admission overlay so external MCP behaves as it did in the original Clovy integration.
 
@@ -361,7 +361,7 @@ Restoring stdio in Bonzai means a user-owned MCP process can make network reques
 
 ## Phase 3: compatibility and non-destructive persistence
 
-**Status: not started.**
+**Status: done.**
 
 Do not rewrite the append-only migration history to erase the work being rolled back. Keep:
 
@@ -402,7 +402,7 @@ Use the existing migration and persistence test style to prove:
 
 ## Phase 4: evidence, rollout, and rollback
 
-**Status: not started.**
+**Status: in progress.** Deterministic coverage done; live and release-build evidence outstanding.
 
 ### Deterministic runtime and Rust checks
 
@@ -510,6 +510,17 @@ The restored contract needs a generic MCP matrix in QA. The current QA coverage 
 5. **External MCP OAuth egress:** Generic OAuth endpoint validation, same-origin checks, Keychain custody, refresh, and no-replay behavior remain required after removing the MCP host list. Confirm that OAuth metadata endpoints are still validated by shared MCP code.
 6. **Existing plan cleanup:** Should the shipped MCP form plan and local CLI plan be updated in the same implementation release, or in a docs-only follow-up? Avoid changing the dirty untracked local CLI plan without an explicit scope decision.
 
+### Resolutions (2026-10-02, at implementation)
+
+Details and evidence are in the [implementation log](implementation-log.md).
+
+1. **ADR treatment:** a dated addendum on ADR-0059 records the superseded MCP clauses and restates the unchanged inference decision; no superseding ADR. The change restores an existing contract (ADR-0039), adds no boundary, and is reversible.
+2. **Legacy active runs:** a run resumes from its immutable `run_config_json`, so it keeps its original catalog and serialized interruption contract. Nothing redispatches a `tools/call`. A prerelease run rebuilt without a persisted config can advertise a server it never snapshotted, but calling it fails closed (`agent_mcp_policy_changed`).
+3. **Live policy drift:** the run-policy snapshot is **retained**, not retired. It is the only call-time guard against an approval policy tightened mid-run, because the harness pauses only for the `requiresApproval` flags frozen at run start. It never filters which servers a run sees, so it does not conflict with global availability.
+4. **Bonzai stdio disclosure:** recorded in the ADR-0059 addendum and the PRD update; the user-facing release note is a Phase 4 deliverable and still outstanding.
+5. **External MCP OAuth egress:** confirmed in code. Every OAuth endpoint passes `secure_oauth_url()` (HTTPS or exact loopback HTTP, no embedded credentials), the metadata hint and declared resource are same-origin checked, discovery disables redirects, and tokens stay in the keychain bundle. None of it depended on the removed host list.
+6. **Existing plan cleanup:** deferred to a docs-only follow-up. The shipped MCP form plan stays a historical record, and the untracked local CLI plan is not touched.
+
 ---
 
 ## Explicit future ideas and follow-ups
@@ -540,6 +551,6 @@ An ADR candidate is appropriate only if the team confirms that removing the Bonz
 
 ## Decision summary
 
-The recommendation is to restore the original Clovy external MCP integration rather than build a new routine MCP control plane. All globally enabled, valid external MCP servers should be available to ordinary focused runs and unattended routines. The routine `enabledToolsets` machinery remains for Clovy-owned host tools and native connector policy, but no longer filters external MCP. The routine-specific MCP call gate and MCP product snapshot are retired without destructive schema cleanup.
+The recommendation is to restore the original Clovy external MCP integration rather than build a new routine MCP control plane. All globally enabled, valid external MCP servers should be available to ordinary focused runs and unattended routines. The routine `enabledToolsets` machinery remains for Clovy-owned host tools and native connector policy, but no longer filters external MCP. The routine-specific MCP call gate and MCP product snapshot are retired without destructive schema cleanup. *(At implementation the call gate kept only the managed Linear connector check and the snapshot was retained as the approval guard; see the resolutions above.)*
 
 Bonzai removes its MCP-only host whitelist and stdio prohibition, returning external MCP admission to shared Clovy validation. This does not remove Rust transport ownership, Keychain custody, server visibility, approval defaults, bounds, cancellation, no-replay behavior, or the separate Bonzai inference egress guard. The work starts with a decision and compatibility contract, proves the restored path with disposable and live evidence, and keeps a previous artifact and all local state available for rollback.

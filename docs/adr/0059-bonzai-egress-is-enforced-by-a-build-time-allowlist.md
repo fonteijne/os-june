@@ -233,3 +233,46 @@ Inference egress (`assert_allowed()`), stdio MCP, external MCP host admission, t
 compiled `MCP_ALLOWED_HOSTS` list, and the source-level client-construction guard are
 unchanged. The inference egress guarantee is unaffected. This addendum does not restore
 managed hosted MCP or web search; those remain separate allowlist decisions.
+
+## Addendum - external MCP returns to the shared Clovy contract (2026-10-02)
+
+This addendum supersedes the MCP clauses of this ADR: "Tool egress is governed, not
+closed" against an allowlist "empty by default", "stdio MCP stays disabled", the
+"only `streamable_http` servers on allowlisted hosts" rule, and the loopback addendum
+above, which only existed to carve an exception out of that MCP list. It does not touch
+the inference decision.
+
+**What changes.** A Bonzai build no longer applies its own MCP admission. The compiled
+MCP host list, the MCP assertion, the `bonzai/mcp_policy.rs` checks at save, connect,
+test, and OAuth time, and the settings form's hidden stdio option are removed. External
+MCP on a Bonzai build follows the shared Clovy registry contract recorded in
+[ADR-0039](0039-june-owned-routines-and-mcp.md): definitions and
+nonsecret policy in SQLite, secrets only in the operating-system keychain, Rust-owned
+stdio and Streamable HTTP transport, HTTPS for remote servers except exact loopback
+HTTP, bounded output and timeouts, server include and exclude visibility, approval by
+default for unknown custom tools, and the macOS Seatbelt boundary for sandboxed stdio.
+
+**What does not change.** Inference egress stays closed: `ALLOWED_HOSTS`,
+`assert_allowed()`, HTTPS-only inference, exact host matching, the redacted
+`egress_blocked` error, and the startup refusal of an unapproved base URL are
+unchanged. Every MCP HTTP client is still built by `guarded_builder()`, so the
+source-level guard in `tests/bonzai_egress_guard.rs` still sees each one. A new
+source-level test, `tests/mcp_build_parity_guard.rs`, fails if a build-specific MCP
+admission check, MCP host list, or MCP policy module is reintroduced.
+
+**Why.** The overlay was a fork-only layer over an integration that already had its own
+safety boundary, and it broke that integration's contract on Bonzai builds: local stdio
+servers could not be added at all, no external HTTPS server could be added without a
+rebuild, the managed Linear hosted MCP was refused, and the shared MCP test suite failed
+on any machine configured as a Bonzai build. Restoring the shared contract removes that
+divergence without adding a new boundary, and it is reversible by restoring the removed
+checks.
+
+**The trade-off, stated plainly.** The claim this fork makes is about inference: model
+traffic reaches Bonzai and nothing else. It is not a claim about tools. A user-configured
+stdio MCP server is a local process the user chose to run; its own network calls are not
+observed by this build, exactly as for any other program on the machine. A
+user-configured remote MCP server receives what the agent sends to its tools. Neither is
+inference egress, and neither is governed by the inference allowlist. Operating-system
+egress control remains the only mechanism that would govern a stdio subprocess, as the
+alternatives section above already notes.
