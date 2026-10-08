@@ -1,0 +1,377 @@
+<title>Bonzai mark</title>
+<meta name="description" content="A review sketch for placing the supplied Bonzai SVG in the existing app shell without deriving a native icon from the horizontal lockup.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f4f3ef;
+    --panel: #ffffff;
+    --panel-soft: #ecebe6;
+    --panel-dark: #11151d;
+    --panel-dark-soft: #1b222e;
+    --ink: #17191d;
+    --ink-muted: #686b71;
+    --ink-inverse: #f4f5f7;
+    --line: #deded8;
+    --line-dark: #303846;
+    --accent: #3158ce;
+    --accent-soft: #e7ecff;
+    --good: #277553;
+    --pending: #a76822;
+    --shadow: 0 18px 45px rgba(23, 25, 29, .09), 0 2px 8px rgba(23, 25, 29, .06);
+    --r-sm: .55rem;
+    --r-md: .9rem;
+    --r-lg: 1.25rem;
+    --sans: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0f1115;
+      --panel: #171a20;
+      --panel-soft: #20242c;
+      --panel-dark: #0a0c10;
+      --panel-dark-soft: #151a22;
+      --ink: #f0f1f3;
+      --ink-muted: #a2a7b0;
+      --ink-inverse: #f4f5f7;
+      --line: #2e333d;
+      --line-dark: #343c49;
+      --accent: #8da7ff;
+      --accent-soft: #202b4f;
+      --good: #6bd29b;
+      --pending: #efb76d;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .18);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0f1115;
+    --panel: #171a20;
+    --panel-soft: #20242c;
+    --panel-dark: #0a0c10;
+    --panel-dark-soft: #151a22;
+    --ink: #f0f1f3;
+    --ink-muted: #a2a7b0;
+    --ink-inverse: #f4f5f7;
+    --line: #2e333d;
+    --line-dark: #343c49;
+    --accent: #8da7ff;
+    --accent-soft: #202b4f;
+    --good: #6bd29b;
+    --pending: #efb76d;
+    --shadow: 0 18px 45px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .18);
+  }
+
+  * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--page); }
+  body {
+    min-height: 100%;
+    margin: 0;
+    padding-block: 2rem 3rem;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+  button { font: inherit; }
+  img { display: block; max-width: 100%; }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .page {
+    width: min(100%, 74rem);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  .masthead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.8rem;
+  }
+  .eyebrow {
+    margin: 0 0 .45rem;
+    color: var(--accent);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+  }
+  h1, h2, p { margin-top: 0; }
+  h1 {
+    max-width: 30rem;
+    margin-bottom: .65rem;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -.045em;
+    text-wrap: balance;
+  }
+  .intro {
+    max-width: 42rem;
+    margin-bottom: 0;
+    color: var(--ink-muted);
+    font-size: .95rem;
+  }
+  .theme-toggle {
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: .5rem .8rem;
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  }
+  .theme-toggle:hover { background: var(--panel-soft); }
+
+  .review-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(15rem, .85fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .shell-card, .note-card, .legend-card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+  .shell-card { overflow: hidden; }
+  .window-chrome {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-height: 2.8rem;
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--line-dark);
+    background: var(--panel-dark);
+    color: var(--ink-inverse);
+  }
+  .traffic { display: flex; gap: .35rem; }
+  .traffic i { width: .55rem; height: .55rem; border-radius: 50%; background: #5a6472; }
+  .traffic i:first-child { background: #db8e79; }
+  .traffic i:nth-child(2) { background: #d6b56b; }
+  .traffic i:last-child { background: #6cad86; }
+  .window-title { margin: 0 auto; color: #aeb6c4; font-size: .72rem; }
+  .shell-body {
+    display: grid;
+    grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+    min-height: 31rem;
+    background: var(--panel);
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    padding: 1rem .85rem;
+    border-right: 1px solid var(--line);
+    background: var(--panel-soft);
+  }
+  .brand-lockup {
+    display: block;
+    width: min(100%, 9.2rem);
+    padding: .65rem .7rem;
+    border-radius: var(--r-md);
+    background: var(--panel-dark);
+  }
+  .brand-lockup img { width: 100%; height: auto; }
+  .brand-caption { margin: .45rem 0 0; color: var(--ink-muted); font-size: .65rem; }
+  .nav { display: grid; gap: .3rem; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .55rem .6rem;
+    border-radius: var(--r-sm);
+    color: var(--ink-muted);
+    font-size: .78rem;
+  }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav-dot { width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; opacity: .7; }
+  .sidebar-footer { margin-top: auto; color: var(--ink-muted); font-size: .68rem; }
+  .workspace { padding: 1.25rem clamp(1rem, 3vw, 2rem); }
+  .workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.8rem; }
+  .workspace-label { margin-bottom: .35rem; color: var(--ink-muted); font-size: .72rem; }
+  h2 { margin-bottom: .25rem; font-size: 1.25rem; letter-spacing: -.025em; }
+  .workspace-subtitle { margin-bottom: 0; color: var(--ink-muted); font-size: .78rem; }
+  .accent-mark {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: .8rem;
+    background: var(--accent);
+    color: var(--ink-inverse);
+    font-size: .9rem;
+    font-weight: 600;
+  }
+  .note-list { display: grid; gap: .65rem; }
+  .note-row { padding: .75rem .8rem; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); }
+  .note-row.selected { border-color: color-mix(in srgb, var(--accent) 58%, var(--line)); background: var(--accent-soft); }
+  .note-row strong { display: block; margin-bottom: .15rem; font-size: .8rem; }
+  .note-row span { color: var(--ink-muted); font-size: .7rem; }
+
+  .side-stack { display: grid; gap: 1rem; }
+  .note-card, .legend-card { padding: 1.1rem; box-shadow: none; }
+  .card-kicker { margin-bottom: .55rem; color: var(--accent); font-size: .7rem; font-weight: 600; letter-spacing: .07em; }
+  .note-card h2, .legend-card h2 { font-size: 1rem; }
+  .note-card p, .legend-card p { margin-bottom: .8rem; color: var(--ink-muted); font-size: .78rem; }
+  .asset-stage {
+    display: grid;
+    place-items: center;
+    min-height: 8rem;
+    padding: 1rem;
+    border-radius: var(--r-md);
+    background: var(--panel-dark);
+  }
+  .asset-stage img { width: min(100%, 12rem); }
+  .asset-meta { display: grid; gap: .35rem; margin: .8rem 0 0; font-family: var(--mono); font-size: .67rem; }
+  .asset-meta div { display: flex; justify-content: space-between; gap: .75rem; }
+  .asset-meta dt { color: var(--ink-muted); }
+  .asset-meta dd { margin: 0; color: var(--ink); text-align: right; }
+  .pending-slot {
+    display: grid;
+    place-items: center;
+    min-height: 8rem;
+    border: 1px dashed var(--line);
+    border-radius: var(--r-md);
+    background: var(--panel-soft);
+    color: var(--ink-muted);
+    text-align: center;
+    font-size: .76rem;
+  }
+  .pending-slot strong { display: block; margin-bottom: .25rem; color: var(--pending); font-size: .78rem; }
+  .legend { display: grid; gap: .55rem; margin: 0; }
+  .legend-row { display: flex; align-items: flex-start; gap: .55rem; font-size: .75rem; }
+  .legend-row b { flex: 0 0 5.3rem; color: var(--ink); font-weight: 600; }
+  .legend-row span { color: var(--ink-muted); }
+  .footer-note { margin: 1.1rem 0 0; color: var(--ink-muted); font-size: .72rem; }
+  .footer-note a { color: var(--accent); }
+
+  @media (max-width: 680px) {
+    .masthead { display: block; }
+    .theme-toggle { margin-top: 1rem; }
+    .review-grid, .shell-body { grid-template-columns: 1fr; }
+    .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+    .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sidebar-footer { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+</style>
+
+<main class="page">
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Logo replacement sketch</p>
+      <h1>Bonzai in the existing app shell</h1>
+      <p class="intro">The supplied horizontal lockup is shown intact in a dark brand surface. This sketch tests placement and contrast without cropping it into a square native icon.</p>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">Use dark theme</button>
+  </header>
+
+  <section class="review-grid" aria-label="Bonzai logo placement review">
+    <article class="shell-card">
+      <div class="window-chrome">
+        <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+        <p class="window-title">Bonzai notes</p>
+      </div>
+      <div class="shell-body">
+        <aside class="sidebar" aria-label="Sidebar preview">
+          <div>
+            <div class="brand-lockup">
+              <img src="Logo-Bonzai.svg" alt="Bonzai logo lockup">
+            </div>
+            <p class="brand-caption">Candidate lockup, shown intact</p>
+          </div>
+          <nav class="nav" aria-label="Primary navigation">
+            <div class="nav-item active"><span class="nav-dot" aria-hidden="true"></span><span>Notes</span></div>
+            <div class="nav-item"><span class="nav-dot" aria-hidden="true"></span><span>Projects</span></div>
+            <div class="nav-item"><span class="nav-dot" aria-hidden="true"></span><span>Settings</span></div>
+          </nav>
+          <p class="sidebar-footer">Presentation preview only</p>
+        </aside>
+        <section class="workspace" aria-label="Notes preview">
+          <div class="workspace-head">
+            <div>
+              <p class="workspace-label">Project</p>
+              <h2>Product planning</h2>
+              <p class="workspace-subtitle">The application anatomy stays unchanged.</p>
+            </div>
+            <div class="accent-mark" aria-hidden="true">B</div>
+          </div>
+          <div class="note-list">
+            <div class="note-row selected"><strong>Design review</strong><span>Updated today · 12 minutes</span></div>
+            <div class="note-row"><strong>Launch checklist</strong><span>Updated yesterday · 8 minutes</span></div>
+            <div class="note-row"><strong>Research notes</strong><span>Updated Monday · 21 minutes</span></div>
+          </div>
+        </section>
+      </div>
+    </article>
+
+    <div class="side-stack">
+      <article class="note-card">
+        <p class="card-kicker">Supplied asset</p>
+        <h2>Horizontal lockup</h2>
+        <p>White mark and wordmark paths on a transparent canvas. The source remains unmodified in this placement.</p>
+        <div class="asset-stage"><img src="Logo-Bonzai.svg" alt="Bonzai horizontal logo lockup"></div>
+        <dl class="asset-meta">
+          <div><dt>ViewBox</dt><dd>154 × 64</dd></div>
+          <div><dt>Format</dt><dd>SVG paths</dd></div>
+          <div><dt>Checks</dt><dd>no refs or scripts</dd></div>
+        </dl>
+      </article>
+
+      <article class="note-card">
+        <p class="card-kicker">Native icon gate</p>
+        <h2>Square mark still needed</h2>
+        <p>The horizontal lockup is not cropped or redrawn here. A standalone mark or approved square composition is required before native icon generation.</p>
+        <div class="pending-slot"><div><strong>Pending source</strong><span>Finder · Dock · Cmd-Tab · taskbar</span></div></div>
+      </article>
+
+      <article class="legend-card">
+        <p class="card-kicker">Review notes</p>
+        <h2>What this sketch tests</h2>
+        <div class="legend">
+          <div class="legend-row"><b>In scope</b><span>Placement, contrast, intact asset treatment.</span></div>
+          <div class="legend-row"><b>Deferred</b><span>Wordmark contract and square native composition.</span></div>
+          <div class="legend-row"><b>Protected</b><span>Existing layout, technical identity, and default build.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <p class="footer-note">Roadmap source: <a href="plan.md">Bonzai logo replacement plan</a>. This is a review sketch, not production asset integration.</p>
+</main>
+
+<script>
+  (() => {
+    const button = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+    const storageKey = 'bonzai-logo-sketch-theme';
+    let saved = null;
+    try { saved = localStorage.getItem(storageKey); } catch (_) { saved = null; }
+    if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
+
+    const sync = () => {
+      const dark = root.dataset.theme === 'dark';
+      button.textContent = dark ? 'Use light theme' : 'Use dark theme';
+      button.setAttribute('aria-pressed', String(dark));
+    };
+    button.addEventListener('click', () => {
+      const dark = root.dataset.theme !== 'dark';
+      root.dataset.theme = dark ? 'dark' : 'light';
+      try { localStorage.setItem(storageKey, dark ? 'dark' : 'light'); } catch (_) {}
+      sync();
+    });
+    sync();
+  })();
+</script>

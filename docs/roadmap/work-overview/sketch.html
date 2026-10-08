@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Work overview</title>
+    <meta
+      name="description"
+      content="A static interaction sketch for Clovy's read-only Overview surface."
+    />
+    <style>
+      /* Layout: a quiet reading rail with one attention band and compact source sections. */
+      :root {
+        color-scheme: light;
+        --page: #eef1ec;
+        --surface: #fbfcf8;
+        --surface-raised: #ffffff;
+        --surface-subtle: #e5ebe3;
+        --line: #d4ddd2;
+        --line-strong: #b9c9b9;
+        --ink: #213026;
+        --muted: #64736a;
+        --faint: #89968d;
+        --accent: #477a49;
+        --accent-strong: #315f37;
+        --accent-wash: #dce9d8;
+        --accent-ink: #f4faf1;
+        --attention: #9b5d35;
+        --attention-wash: #f4e2d6;
+        --danger: #a54f46;
+        --danger-wash: #f3deda;
+        --shadow: 0 18px 42px rgba(39, 57, 42, 0.1), 0 2px 8px rgba(39, 57, 42, 0.05);
+        --radius-sm: 7px;
+        --radius-md: 12px;
+        --radius-lg: 18px;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --space-6: 24px;
+        --space-8: 32px;
+        --space-10: 40px;
+        --font-display: Georgia, "Iowan Old Style", serif;
+        --font-body: "Avenir Next", "Segoe UI", sans-serif;
+        --font-mono: "SFMono-Regular", Consolas, monospace;
+        --fs-xs: 11px;
+        --fs-sm: 12px;
+        --fs-md: 13px;
+        --fs-lg: 15px;
+        --fs-xl: 21px;
+        --fs-display: 34px;
+        --fs-display-small: 30px;
+        --fw-medium: 600;
+        --control-sm: 26px;
+        --control-md: 28px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --page: #161e18;
+          --surface: #202a23;
+          --surface-raised: #27332a;
+          --surface-subtle: #2c3b30;
+          --line: #3b4b3e;
+          --line-strong: #56715b;
+          --ink: #edf5eb;
+          --muted: #adbaae;
+          --faint: #819184;
+          --accent: #94c486;
+          --accent-strong: #afd99f;
+          --accent-wash: #304932;
+          --accent-ink: #172219;
+          --attention: #e2a376;
+          --attention-wash: #50382c;
+          --danger: #dd9188;
+          --danger-wash: #4d302d;
+          --shadow: 0 22px 52px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --page: #161e18;
+        --surface: #202a23;
+        --surface-raised: #27332a;
+        --surface-subtle: #2c3b30;
+        --line: #3b4b3e;
+        --line-strong: #56715b;
+        --ink: #edf5eb;
+        --muted: #adbaae;
+        --faint: #819184;
+        --accent: #94c486;
+        --accent-strong: #afd99f;
+        --accent-wash: #304932;
+        --accent-ink: #172219;
+        --attention: #e2a376;
+        --attention-wash: #50382c;
+        --danger: #dd9188;
+        --danger-wash: #4d302d;
+        --shadow: 0 22px 52px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      * { box-sizing: border-box; }
+      html { min-height: 100%; }
+      body {
+        min-height: 100%;
+        margin: 0;
+        padding: 28px 16px 48px;
+        overflow-x: hidden;
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: var(--fs-md);
+        line-height: 1.45;
+      }
+      button { font: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+      h1, h2, h3, p { margin: 0; }
+      h1, h2, h3 { text-wrap: balance; }
+      h1 { font-family: var(--font-display); font-size: var(--fs-display); font-weight: 400; line-height: 1.04; letter-spacing: -0.03em; }
+      h1 [data-scope-label] { display: block; color: var(--accent-strong); font-family: var(--font-body); font-size: var(--fs-lg); letter-spacing: 0; }
+      h2 { font-size: var(--fs-lg); font-weight: var(--fw-medium); line-height: 1.2; }
+      h3 { font-size: var(--fs-md); font-weight: var(--fw-medium); line-height: 1.25; }
+      a { color: inherit; }
+
+      .shell { width: min(1120px, 100%); margin: 0 auto; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-10); }
+      .wordmark { display: flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--fs-sm); }
+      .wordmark-mark { width: 20px; height: 20px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); box-shadow: inset 0 0 0 4px var(--surface-subtle); }
+      .theme-controls { display: flex; gap: var(--space-1); padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+      .theme-controls button, .filter-button, .text-button { border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font-size: var(--fs-xs); padding: 6px 10px; }
+      .theme-controls button[aria-pressed="true"], .filter-button[aria-pressed="true"] { background: var(--surface-subtle); color: var(--ink); }
+      .text-button { padding-inline: 0; color: var(--accent-strong); font-weight: 600; }
+      .text-button:hover, .filter-button:hover, .theme-controls button:hover { background: var(--surface-subtle); }
+
+      .intro { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); margin-bottom: var(--space-6); }
+      .intro-copy { min-width: 0; max-width: 650px; display: grid; gap: var(--space-3); }
+      .eyebrow { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: 0.03em; }
+      .lede { max-width: 60ch; color: var(--muted); font-size: var(--fs-lg); }
+      .scope-switcher { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+      .scope-button { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: var(--fs-sm); padding: 6px 10px; }
+      .scope-button[aria-pressed="true"] { border-color: var(--line-strong); background: var(--surface-subtle); color: var(--ink); font-weight: var(--fw-medium); }
+      .scope-button:hover { background: var(--surface-subtle); }
+      .summary-metrics { display: flex; flex-wrap: wrap; gap: var(--space-2); color: var(--muted); font-size: var(--fs-sm); }
+      .summary-metrics span { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+      .summary-metrics strong { color: var(--ink); font-weight: var(--fw-medium); }
+      .freshness { flex: 0 0 auto; display: grid; justify-items: end; gap: var(--space-1); color: var(--muted); font-size: var(--fs-xs); }
+      .freshness strong { color: var(--ink); font-weight: 600; }
+
+      .attention-band { display: grid; gap: var(--space-4); margin-bottom: var(--space-6); padding: var(--space-5); border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow); }
+      .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+      .section-head-copy { min-width: 0; display: grid; gap: 3px; }
+      .section-caption { color: var(--muted); font-size: var(--fs-sm); }
+      .section-actions { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-2); }
+      .filters { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+      .filter-button { border: 1px solid var(--line); border-radius: 999px; padding-block: 5px; }
+      .attention-list, .row-list, .project-list { display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--line); }
+      .attention-row, .work-row, .project-row { display: grid; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--surface); text-align: left; }
+      .attention-row { grid-template-columns: 9px minmax(0, 1fr) auto; cursor: pointer; border: 0; color: inherit; }
+      .attention-row:hover, .work-row:hover, .project-row:hover { background: var(--surface-subtle); }
+      .attention-row[hidden] { display: none; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+      .status-dot.attention { background: var(--attention); }
+      .status-dot.danger { background: var(--danger); }
+      .row-main { min-width: 0; display: grid; gap: 2px; }
+      .row-title { overflow-wrap: anywhere; font-weight: 600; }
+      .row-meta { min-width: 0; overflow-wrap: anywhere; color: var(--muted); font-size: var(--fs-sm); }
+      .row-trailing { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
+      .source-label { color: var(--faint); font-family: var(--font-mono); font-size: var(--fs-xs); }
+      .reason { color: var(--attention); font-size: var(--fs-xs); font-weight: 600; }
+      .priority-empty { padding: var(--space-4); color: var(--muted); font-size: var(--fs-sm); background: var(--surface); }
+
+      .section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-6); }
+      .panel { min-width: 0; display: grid; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-raised); }
+      .work-row { grid-template-columns: 9px minmax(0, 1fr) auto; }
+      .work-row.is-button, .project-row.is-button { border: 0; color: inherit; cursor: pointer; }
+      .work-row.is-button { text-align: left; }
+      .project-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .project-count { display: grid; justify-items: end; gap: 1px; color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
+      .project-count strong { color: var(--ink); font-size: var(--fs-lg); font-weight: 400; }
+      .panel-note { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-subtle); color: var(--muted); font-size: var(--fs-sm); }
+      .panel-note strong { color: var(--ink); font-weight: 600; }
+      .panel-note.attention { border-color: color-mix(in srgb, var(--attention) 40%, var(--line)); background: var(--attention-wash); }
+      .panel-note .status-dot { flex: 0 0 auto; margin-top: 5px; }
+      .unavailable { display: grid; gap: var(--space-3); padding: var(--space-5) var(--space-4); border: 1px dashed var(--line-strong); border-radius: var(--radius-md); background: var(--surface); }
+      .unavailable p { color: var(--muted); font-size: var(--fs-sm); }
+      .commitment-list { display: none; }
+      .commitment-list[data-connected="true"] { display: grid; }
+      .unavailable[data-connected="true"] { display: none; }
+      .commitment-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+      .commitment-row + .commitment-row { margin-top: var(--space-2); }
+      .provider-tag { color: var(--accent-strong); font-family: var(--font-mono); font-size: var(--fs-xs); }
+      .connected-note { display: none; color: var(--muted); font-size: var(--fs-xs); }
+      .connected-note[data-connected="true"] { display: block; }
+      /* Today section */
+      .today-header { display: flex; align-items: baseline; gap: var(--space-3); }
+      .today-date { font-size: var(--fs-lg); font-weight: var(--fw-medium); }
+      .today-dow { color: var(--muted); font-size: var(--fs-sm); }
+      .event-list { display: grid; gap: var(--space-2); }
+      .event-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; border: 0; text-align: left; color: inherit; }
+      .event-row:hover { background: var(--surface-subtle); }
+      .event-row.is-now { border-left: 3px solid var(--accent); padding-left: calc(var(--space-3) - 3px); }
+      .event-time { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-xs); padding-top: 3px; white-space: nowrap; }
+      .event-time.is-now { color: var(--accent-strong); font-weight: var(--fw-medium); }
+      .event-past .event-time, .event-past .row-title { opacity: 0.5; }
+      .today-list { display: none; }
+      .today-list[data-connected="true"] { display: grid; gap: var(--space-3); }
+
+      /* Involvement section - sequential 4-step single-hue ramp.
+         Hue: accent green family; steps dark->light so High is most emphatic.
+         Validated light/dark values (4 steps, ordered, same hue). */
+      .invol-root { display: grid; gap: var(--space-3); --inv-1: #008300; --inv-2: #2e9f3b; --inv-3: #76c77b; --inv-4: #b6e2b4; }
+      @media (prefers-color-scheme: dark) {
+        .invol-root:not([data-theme="light"]) { --inv-1: #008300; --inv-2: #2e9f3b; --inv-3: #76c77b; --inv-4: #b6e2b4; }
+      }
+      [data-theme="dark"] .invol-root { --inv-1: #008300; --inv-2: #2e9f3b; --inv-3: #76c77b; --inv-4: #b6e2b4; }
+      .invol-bars { display: grid; gap: var(--space-2); }
+      .invol-row { display: grid; grid-template-columns: 80px 1fr 36px; align-items: center; gap: var(--space-3); }
+      .invol-label { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; text-align: right; }
+      .invol-track { height: 16px; border-radius: 4px; background: var(--surface-subtle); overflow: hidden; }
+      .invol-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+      .invol-count { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-xs); text-align: right; white-space: nowrap; }
+      .invol-table-toggle { background: transparent; border: 0; color: var(--accent-strong); font-size: var(--fs-xs); font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
+      .invol-table-toggle:hover { text-decoration: underline; }
+      .invol-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+      .invol-table th, .invol-table td { text-align: left; padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--line); }
+      .invol-table th { color: var(--muted); font-weight: var(--fw-medium); }
+      .invol-table td { color: var(--ink); }
+      .invol-table[hidden] { display: none; }
+      .invol-unavail { display: grid; }
+      .invol-unavail[data-connected="true"] { display: none; }
+      .invol-chart { display: none; }
+      .invol-chart[data-connected="true"] { display: grid; gap: var(--space-3); }
+      .example-badge { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); font-size: var(--fs-xs); padding: 3px 7px; }
+      .footer-note { margin-top: var(--space-8); color: var(--faint); font-size: var(--fs-xs); }
+      .footer-note code { font-family: var(--font-mono); }
+
+      @media (max-width: 760px) {
+        body { padding-top: 20px; }
+        .topbar { margin-bottom: var(--space-8); }
+        .intro { align-items: flex-start; flex-direction: column; gap: var(--space-4); }
+        .freshness { justify-items: start; }
+        .section-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 460px) {
+        body { padding-inline: 16px; }
+        h1 { font-size: 30px; }
+        .attention-band, .panel { padding: var(--space-4); }
+        .attention-row, .work-row, .project-row { gap: var(--space-3); padding-inline: var(--space-3); }
+        .row-trailing { white-space: normal; text-align: right; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" aria-labelledby="page-title">
+      <header class="topbar">
+        <div class="wordmark"><span class="wordmark-mark" aria-hidden="true"></span><span>Clovy</span></div>
+        <div class="theme-controls" aria-label="Theme">
+          <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+          <button type="button" data-theme-choice="system" aria-pressed="true">System</button>
+        </div>
+      </header>
+
+      <section class="intro">
+        <div class="intro-copy">
+          <p class="eyebrow">Example interaction sketch</p>
+          <h1 id="page-title">Work overview <span data-scope-label>All Projects</span></h1>
+          <p class="lede">See what is happening now, what needs attention, what is next, and what changed recently.</p>
+          <div class="scope-switcher" role="group" aria-label="Project scope">
+            <button type="button" class="scope-button" data-scope="all" aria-pressed="true">All Projects</button>
+            <button type="button" class="scope-button" data-scope="website" aria-pressed="false">Website refresh</button>
+            <button type="button" class="scope-button" data-scope="research" aria-pressed="false">Research</button>
+          </div>
+          <div class="summary-metrics" aria-label="Overview summary">
+            <span><strong>2</strong> active</span><span><strong>3</strong> need you</span><span>next at <strong>14:30</strong></span>
+          </div>
+        </div>
+        <p class="freshness"><span>Local sources refreshed</span><strong>Just now</strong><span>Microsoft sources need connection</span></p>
+      </section>
+
+      <section class="attention-band" aria-labelledby="priority-title">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <h2 id="priority-title">Needs attention</h2>
+            <p class="section-caption">The short list of things that need a decision or next action.</p>
+          </div>
+          <div class="section-actions">
+            <span class="example-badge">Example data</span>
+            <div class="filters" aria-label="Priority filter">
+              <button type="button" class="filter-button" data-priority-filter="all" aria-pressed="true">All</button>
+              <button type="button" class="filter-button" data-priority-filter="attention" aria-pressed="false">Needs you</button>
+            </div>
+          </div>
+        </div>
+        <div class="attention-list" id="priority-list">
+          <button type="button" class="attention-row" data-priority-kind="attention" data-label="Open the agent session">
+            <span class="status-dot attention" aria-hidden="true"></span>
+            <span class="row-main"><span class="row-title">Prepare the launch notes</span><span class="row-meta"><span class="source-label">Agent session</span> · Website refresh</span></span>
+            <span class="row-trailing reason">Needs your answer</span>
+          </button>
+          <button type="button" class="attention-row" data-priority-kind="attention" data-label="Open the note">
+            <span class="status-dot danger" aria-hidden="true"></span>
+            <span class="row-main"><span class="row-title">Recording needs attention</span><span class="row-meta"><span class="source-label">Note</span> · Product review</span></span>
+            <span class="row-trailing reason">Recoverable recording</span>
+          </button>
+          <button type="button" class="attention-row" data-priority-kind="external" data-label="Open the commitment">
+            <span class="status-dot attention" aria-hidden="true"></span>
+            <span class="row-main"><span class="row-title">Send the revised agreement</span><span class="row-meta"><span class="source-label">Microsoft To Do</span> · Example commitment</span></span>
+            <span class="row-trailing reason">High importance</span>
+          </button>
+          <p class="priority-empty" id="priority-empty" hidden>No items match this lens.</p>
+        </div>
+      </section>
+
+      <div class="section-grid">
+        <section class="panel" aria-labelledby="now-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="now-title">Now</h2><p class="section-caption">What is active at this moment.</p></div>
+            <span class="example-badge">Example data</span>
+          </div>
+          <div class="row-list">
+            <button type="button" class="work-row is-button" data-label="Open the active session"><span class="status-dot" aria-hidden="true"></span><span class="row-main"><span class="row-title">Prepare the launch notes</span><span class="row-meta">Agent session · Running now</span></span><span class="row-trailing">2 min</span></button>
+            <button type="button" class="work-row is-button" data-label="Open the calendar event"><span class="status-dot" aria-hidden="true"></span><span class="row-main"><span class="row-title">Product review</span><span class="row-meta">Microsoft Calendar · In progress</span></span><span class="row-trailing">Until 13:30</span></button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="sessions-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="sessions-title">Active agent sessions</h2><p class="section-caption">Running, waiting, or interrupted.</p></div>
+            <a class="text-button" href="#sessions">View all</a>
+          </div>
+          <div class="row-list" id="sessions">
+            <button type="button" class="work-row is-button" data-label="Open the agent session"><span class="status-dot" aria-hidden="true"></span><span class="row-main"><span class="row-title">Prepare the launch notes</span><span class="row-meta">Website refresh · Running</span></span><span class="row-trailing">2 min ago</span></button>
+            <button type="button" class="work-row is-button" data-label="Open the agent session"><span class="status-dot attention" aria-hidden="true"></span><span class="row-main"><span class="row-title">Review customer feedback</span><span class="row-meta">Research · Needs you</span></span><span class="row-trailing">18 min ago</span></button>
+            <button type="button" class="work-row is-button" data-label="Open the agent session"><span class="status-dot danger" aria-hidden="true"></span><span class="row-main"><span class="row-title">Outline the next release</span><span class="row-meta">No Project · Interrupted</span></span><span class="row-trailing">Yesterday</span></button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="today-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="today-title">Today</h2><p class="section-caption">Microsoft Calendar agenda.</p></div>
+            <button type="button" class="text-button" id="today-toggle">Preview connected state</button>
+          </div>
+          <div class="unavailable" id="today-unavailable" data-connected="false">
+            <div class="panel-note attention"><span class="status-dot attention" aria-hidden="true"></span><span><strong>Microsoft Calendar is not connected.</strong><br />Today will appear when the calendar MCP read path is available.</span></div>
+            <p>No local calendar copy is implied.</p>
+          </div>
+          <div class="today-list" id="today-list" data-connected="false">
+            <div class="today-header"><span class="today-date">Tuesday, October 1</span><span class="today-dow">Example agenda</span></div>
+            <div class="event-list">
+              <button type="button" class="event-row event-past" data-label="Open the calendar event"><span class="event-time">09:00</span><span class="row-main"><span class="row-title">Weekly planning</span><span class="row-meta">Operations · Past</span></span></button>
+              <button type="button" class="event-row is-now" data-label="Open the calendar event"><span class="event-time is-now">Now</span><span class="row-main"><span class="row-title">Product review</span><span class="row-meta">Website refresh · In progress</span></span></button>
+              <button type="button" class="event-row" data-label="Open the calendar event"><span class="event-time">14:30</span><span class="row-main"><span class="row-title">Research interview</span><span class="row-meta">Research · 45 min</span></span></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="commitments-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="commitments-title">Commitments</h2><p class="section-caption">Microsoft To Do items.</p></div>
+            <button type="button" class="text-button" id="connection-toggle">Preview connected state</button>
+          </div>
+          <div class="unavailable" id="commitments-unavailable" data-connected="false">
+            <div class="panel-note attention"><span class="status-dot attention" aria-hidden="true"></span><span><strong>Microsoft To Do is not connected.</strong><br />Commitments will appear when the To Do MCP read path is available.</span></div>
+            <p>No local task list is implied.</p>
+          </div>
+          <div class="commitment-list" id="commitment-list" data-connected="false">
+            <p class="connected-note" data-connected="false">Example connected state. These are not real records.</p>
+            <div class="commitment-row"><div class="row-main"><span class="row-title">Send the revised agreement</span><span class="row-meta">Work list · Due today · High importance</span></div><span class="provider-tag">To Do</span></div>
+            <div class="commitment-row"><div class="row-main"><span class="row-title">Confirm the research interview</span><span class="row-meta">Work list · Due tomorrow</span></div><span class="provider-tag">To Do</span></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="involvement-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="involvement-title">Involvement</h2><p class="section-caption">Second-brain status distribution.</p></div>
+            <button type="button" class="text-button" id="involvement-toggle">Preview connected state</button>
+          </div>
+          <div class="unavailable invol-unavail" id="involvement-unavailable" data-connected="false">
+            <div class="panel-note attention"><span class="status-dot attention" aria-hidden="true"></span><span><strong>Involvement data is not connected.</strong><br />This distribution will appear when the second-brain MCP read path is available.</span></div>
+            <p>Four statuses are tracked: High, Medium, Low, and Simmering.</p>
+          </div>
+          <div class="invol-chart" id="involvement-chart" data-connected="false" role="img" aria-label="Involvement distribution example">
+            <div class="invol-root">
+              <div class="invol-bars" aria-hidden="true">
+                <div class="invol-row"><span class="invol-label">High</span><span class="invol-track"><span class="invol-fill" style="width: 26%; background: var(--inv-1);"></span></span><span class="invol-count">8</span></div>
+                <div class="invol-row"><span class="invol-label">Medium</span><span class="invol-track"><span class="invol-fill" style="width: 68%; background: var(--inv-2);"></span></span><span class="invol-count">21</span></div>
+                <div class="invol-row"><span class="invol-label">Low</span><span class="invol-track"><span class="invol-fill" style="width: 100%; background: var(--inv-3);"></span></span><span class="invol-count">31</span></div>
+                <div class="invol-row"><span class="invol-label">Simmering</span><span class="invol-track"><span class="invol-fill" style="width: 42%; background: var(--inv-4);"></span></span><span class="invol-count">13</span></div>
+              </div>
+              <button type="button" class="invol-table-toggle" id="involvement-table-toggle" aria-expanded="false">Show table</button>
+              <table class="invol-table" id="involvement-table" hidden>
+                <thead><tr><th scope="col">Status</th><th scope="col">Count</th></tr></thead>
+                <tbody><tr><td>High</td><td>8</td></tr><tr><td>Medium</td><td>21</td></tr><tr><td>Low</td><td>31</td></tr><tr><td>Simmering</td><td>13</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="projects-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="projects-title">Projects</h2><p class="section-caption">Where the work is happening.</p></div>
+            <a class="text-button" href="#projects">Open Projects</a>
+          </div>
+          <div class="project-list" id="projects">
+            <button type="button" class="project-row is-button" data-label="Open the Project"><span class="row-main"><span class="row-title">Website refresh</span><span class="row-meta">2 active sessions · 4 recent Notes</span></span><span class="project-count"><strong>2</strong>needs you</span></button>
+            <button type="button" class="project-row is-button" data-label="Open the Project"><span class="row-main"><span class="row-title">Research</span><span class="row-meta">1 active session · 2 recent Notes</span></span><span class="project-count"><strong>1</strong>active</span></button>
+            <button type="button" class="project-row is-button" data-label="Open the Project"><span class="row-main"><span class="row-title">Operations</span><span class="row-meta">No active sessions · 1 recent Note</span></span><span class="project-count"><strong>0</strong>needs you</span></button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="recent-title">
+          <div class="section-head">
+            <div class="section-head-copy"><h2 id="recent-title">Recent activity</h2><p class="section-caption">What happened or changed recently.</p></div>
+            <span class="example-badge">Last 24 hours</span>
+          </div>
+          <div class="row-list" id="recent-activity">
+            <button type="button" class="work-row is-button" data-label="Open the Note"><span class="status-dot" aria-hidden="true"></span><span class="row-main"><span class="row-title">Product review became ready</span><span class="row-meta">Note · Website refresh</span></span><span class="row-trailing">12 min ago</span></button>
+            <button type="button" class="work-row is-button" data-label="Open Routines"><span class="status-dot danger" aria-hidden="true"></span><span class="row-main"><span class="row-title">Weekly project digest failed</span><span class="row-meta">Routine · Operations</span></span><span class="row-trailing">2 hours ago</span></button>
+            <button type="button" class="work-row is-button" data-label="Open the agent session"><span class="status-dot attention" aria-hidden="true"></span><span class="row-main"><span class="row-title">Review customer feedback is waiting</span><span class="row-meta">Agent session · Research</span></span><span class="row-trailing">Yesterday</span></button>
+          </div>
+        </section>
+      </div>
+
+      <p class="footer-note">Static sketch for roadmap review. Example rows are intentionally not user records. The first scan is temporal: now, needs attention, next, recent activity, then context. Proposed code value: <code>overview</code>.</p>
+    </main>
+
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const themeButtons = [...document.querySelectorAll("[data-theme-choice]")];
+        const setTheme = (theme) => {
+          if (theme === "system") root.removeAttribute("data-theme");
+          else root.dataset.theme = theme;
+          themeButtons.forEach((button) => {
+            button.setAttribute("aria-pressed", String(button.dataset.themeChoice === theme));
+          });
+          try { localStorage.setItem("work-overview-theme", theme); } catch (_) {}
+        };
+        let initialTheme = "system";
+        try { initialTheme = localStorage.getItem("work-overview-theme") || "system"; } catch (_) {}
+        setTheme(initialTheme);
+        themeButtons.forEach((button) => button.addEventListener("click", () => setTheme(button.dataset.themeChoice)));
+
+        const priorityRows = [...document.querySelectorAll("[data-priority-kind]")];
+        const priorityEmpty = document.getElementById("priority-empty");
+        document.querySelectorAll("[data-priority-filter]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const filter = button.dataset.priorityFilter;
+            document.querySelectorAll("[data-priority-filter]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+            let visible = 0;
+            priorityRows.forEach((row) => {
+              const show = filter === "all" || row.dataset.priorityKind === "attention";
+              row.hidden = !show;
+              if (show) visible += 1;
+            });
+            priorityEmpty.hidden = visible !== 0;
+          });
+        });
+
+        const toggle = document.getElementById("connection-toggle");
+        const unavailable = document.getElementById("commitments-unavailable");
+        const commitmentList = document.getElementById("commitment-list");
+        const todayToggle = document.getElementById("today-toggle");
+        const todayUnavailable = document.getElementById("today-unavailable");
+        const todayList = document.getElementById("today-list");
+        const involvementToggle = document.getElementById("involvement-toggle");
+        const involvementUnavailable = document.getElementById("involvement-unavailable");
+        const involvementChart = document.getElementById("involvement-chart");
+        const involvementTableToggle = document.getElementById("involvement-table-toggle");
+        const involvementTable = document.getElementById("involvement-table");
+        let connected = false;
+        const updateConnectionState = () => {
+          unavailable.dataset.connected = String(connected);
+          commitmentList.dataset.connected = String(connected);
+          todayUnavailable.dataset.connected = String(connected);
+          todayList.dataset.connected = String(connected);
+          involvementUnavailable.dataset.connected = String(connected);
+          involvementChart.dataset.connected = String(connected);
+          toggle.textContent = connected ? "Show unavailable state" : "Preview connected state";
+          todayToggle.textContent = connected ? "Show unavailable state" : "Preview connected state";
+          involvementToggle.textContent = connected ? "Show unavailable state" : "Preview connected state";
+          document.querySelectorAll(".connected-note").forEach((note) => note.dataset.connected = String(connected));
+        };
+        toggle.addEventListener("click", () => { connected = !connected; updateConnectionState(); });
+        todayToggle.addEventListener("click", () => { connected = !connected; updateConnectionState(); });
+        involvementToggle.addEventListener("click", () => { connected = !connected; updateConnectionState(); });
+        involvementTableToggle.addEventListener("click", () => {
+          const expanded = involvementTableToggle.getAttribute("aria-expanded") === "true";
+          involvementTableToggle.setAttribute("aria-expanded", String(!expanded));
+          involvementTableToggle.textContent = expanded ? "Show table" : "Hide table";
+          involvementTable.hidden = expanded;
+        });
+
+        const scopeButtons = [...document.querySelectorAll("[data-scope]")];
+        scopeButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            scopeButtons.forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+            document.querySelectorAll("[data-scope-label]").forEach((label) => {
+              label.textContent = button.dataset.scope === "all" ? "All Projects" : button.textContent;
+            });
+          });
+        });
+
+        document.querySelectorAll("[data-label]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const label = button.dataset.label;
+            button.animate([{ backgroundColor: "var(--accent-wash)" }, { backgroundColor: "var(--surface)" }], { duration: 260, easing: "ease-out" });
+            button.setAttribute("aria-label", `${label}: example interaction`);
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

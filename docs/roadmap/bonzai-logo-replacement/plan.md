@@ -1,23 +1,24 @@
 # Roadmap: Bonzai logo replacement
 
 **Owner:** Product, design, desktop engineering, and release operations  
-**Date:** 2026-09-25  
+**Date:** 2026-09-28
 **Status:** Proposed  
-**Scope:** Replace the Clovy in-app mark, wordmark treatment, packaged Tauri icon assets, and approved live macOS Dock/Cmd-Tab icon behavior with an approved Bonzai identity package. The work is blocked until the correct Bonzai source files, usage permission, and platform requirements are supplied.
+**Scope:** Replace the Clovy graphic mark across approved renderer, packaged Tauri, live macOS Dock/Cmd-Tab, tray, HUD, helper, and supported platform icon surfaces with an approved Bonzai identity package. A canonical horizontal SVG lockup has been received for intake; the standalone mark, platform treatments, provenance record, and production package are still required. Wordmark replacement remains a separate follow-up.
 
 This document captures product and architecture direction. It is not implementation authorization, an ADR, a launch commitment, an Issue, or a release approval. File paths and asset formats are a starting inventory and must be re-verified when the source package arrives. This roadmap does not create assets, alter native configuration, change technical identities, create credentials, or change accepted ADRs.
 
 ## Executive recommendation
 
-Do not start logo replacement from the existing Clovy mark, a recolored Clovy mark, or the branch-only raster-derived Bonzai fixture. Request an approved Bonzai asset package first, then integrate it through the existing source and generation seams.
+Do not start production replacement from the existing Clovy mark, a recolored Clovy mark, or the branch-only raster-derived Bonzai fixture. The received SVG is accepted as the canonical intake candidate, then must be recorded with its package metadata, provenance, rights, and platform contract before implementation. Integrate the approved mark through the existing source and generation seams only after the identity matrix is accepted.
 
-The asset package must establish one canonical Bonzai mark and the permitted treatments for:
+The first release should establish one approved Bonzai graphic mark and permitted treatments for:
 
-1. the in-app mark and wordmark;
-2. the sidebar app tile and other renderer-owned brand surfaces;
-3. the packaged Tauri icon set for macOS and Windows;
-4. any other packaged platform icon outputs that this product still ships; and
-5. the live macOS Dock/Cmd-Tab icon when a Bonzai build is running.
+1. renderer-owned mark surfaces, including the sidebar app tile, onboarding, settings, provider/referral/update surfaces, styleguide, and accepted secondary windows;
+2. the packaged Tauri icon set for macOS and Windows;
+3. tray, HUD, helper, extension, companion, and any other supported platform icon outputs selected by the matrix; and
+4. the live macOS Dock/Cmd-Tab icon when a Bonzai build is running, using a fixed Bonzai icon independent of UI appearance accents.
+
+The supplied horizontal lockup may be retained as a separately tracked future wordmark input, but it must not be cropped, redrawn, or used as a square native icon source. The first implementation targets the graphic mark only; wordmark replacement requires its own approved source or rendered-text decision.
 
 The default Clovy build must remain unchanged until a separate build-selection or product-identity decision authorizes a Bonzai artifact. A logo replacement must not be treated as permission to change bundle identifiers, storage keys, deep links, updater identity, native helper identities, or inference behavior.
 
@@ -38,7 +39,7 @@ Desktop and frontend owners
         v
 QA and release operations
         |
-        +--> verify in-app mark and wordmark
+        +--> verify in-app mark surfaces and deferred wordmark boundary
         +--> verify packaged Finder, Dock, Cmd-Tab, taskbar, and installer assets
         +--> verify Clovy default regression and technical identity boundaries
 ```
@@ -51,22 +52,24 @@ This is a logo and native icon workstream, separate from the Bonzai visual styli
 
 | Term | Meaning | Roadmap treatment |
 | --- | --- | --- |
-| **Bonzai mark** | The approved graphic symbol supplied by the design owner | Required input, currently unavailable |
-| **Bonzai wordmark** | The approved wordmark artwork or wordmark usage direction | Required input if the visible product name uses a graphic wordmark |
-| **In-app identity** | Renderer-owned mark, wordmark, app tile, onboarding mark, and approved brand illustrations | In scope after asset approval |
-| **Packaged icon** | Tauri-generated PNG, ICNS, ICO, and any still-supported platform outputs | In scope after asset approval |
-| **Live Dock icon** | Runtime macOS application icon used by Dock and Cmd-Tab | In scope only with an explicit fixed-icon or variant policy |
+| **Bonzai mark** | The approved graphic symbol supplied by the design owner | Canonical horizontal SVG lockup received for intake; standalone mark or approved derivation remains required |
+| **Bonzai wordmark** | The approved wordmark artwork or wordmark usage direction | Separate follow-up; the received lockup is not yet an approved first-release wordmark contract |
+| **In-app identity** | Renderer-owned mark, app tile, onboarding mark, and approved platform-facing mark surfaces | Full mark-bearing surface package in scope after the identity matrix is accepted |
+| **Packaged icon** | Tauri-generated PNG, ICNS, ICO, and any still-supported platform outputs | In scope after approved square mark/composition and build-selection policy |
+| **Live Dock icon** | Runtime macOS application icon used by Dock and Cmd-Tab | In scope with the resolved fixed Bonzai icon policy |
 | **Technical identity** | Bundle identifiers, storage keys, deep-link schemes, native helper names, updater coordinates, and released artifact names | Out of scope and protected by ADR-0055 unless a later product decision changes them |
 
 A logo replacement changes presentation. It does not by itself create a separate installed product, migrate existing state, or change the technical identity bridge.
 
 ## Asset request and blocking gate
 
-### Current blocker
+### Current intake state
 
-The correct Bonzai logo and icon source files are not available in the current working tree. No production logo replacement can begin until the asset intake gate below is complete. The roadmap must remain **Proposed**, with Phase 0 **blocked**.
+The supplied [`Logo-Bonzai.svg`](Logo-Bonzai.svg) is now stored beside this plan as the canonical intake candidate. Its SHA-256 is `982039721236cc4ae6f9496719214deadbecb5fb7075925a3dce082a548d1005`; it is 39 lines and 12,324 bytes with `viewBox="0 0 154 64"`. It is a horizontal white mark-plus-wordmark lockup with no external references, fonts, scripts, or images. The project-local copy is the reviewable source; the original Downloads location is no longer required.
 
-The user should request the following from the Bonzai design or brand owner:
+The file is not yet a complete production identity package: it is not square, supplies only one white treatment, and does not provide a standalone mark, square composition, safe-area/minimum-size rules, platform treatments, or owner/rights/provenance/version metadata. Phase 0 is therefore **in progress**, while the project remains **Proposed**. No production logo replacement should begin until the intake ledger and identity matrix are complete.
+
+The design or brand owner must still supply or approve the following:
 
 ### Required source package
 
@@ -114,27 +117,30 @@ The branch-only fixture at `origin/claude/whitelabel-implementation-nqe5ds` cont
 
 | Phase | Status | Exit criterion | Evidence or blocker |
 | --- | --- | --- | --- |
-| 0: asset intake and provenance | **blocked** | The approved Bonzai source package, usage rights, platform guidance, and identity decisions are received and reviewed | Correct logo/icon files are not currently available; no implementation should start from the raster fixture or a guessed mark |
-| 1: identity contract and asset matrix | **not started** | Product, design, desktop, and release owners accept the mark, wordmark, treatments, surface inventory, and technical-identity boundary | Depends on Phase 0 and a written decision about fixed versus accent-variant native icons |
-| 2: renderer asset integration | **not started** | In-app mark, wordmark, app tile, onboarding, and approved renderer surfaces use the accepted Bonzai assets without changing layout or component contracts | Depends on approved assets and an inventory of current Clovy asset consumers |
-| 3: packaged icon generation and native integration | **not started** | Tauri-generated platform assets and any accepted runtime macOS icon path use the approved Bonzai source, while the default Clovy build remains unchanged | Depends on Phase 1's build-selection policy, source SVG validation, generated asset checks, and platform runners |
-| 4: visual, platform, and regression evidence | **not started** | In-app and packaged identity evidence passes light/dark, small-size, platform, default-build, and technical-identity checks | Requires real generated artifacts and macOS/Windows verification; `tauri:dev` alone is insufficient for packaged icon evidence |
+| 0: asset intake and provenance | **in progress** | The received SVG is recorded as a canonical intake candidate, with package metadata, rights/provenance, source checks, standalone-mark decision, and platform guidance reviewed | Candidate lockup is present, but the external file is not yet a versioned repository package and lacks square mark/composition, treatment guidance, and provenance metadata |
+| 1: identity contract and asset matrix | **not started** | Product, design, desktop, and release owners accept the mark-only surface matrix, fixed Bonzai native icon policy, platform treatments, and technical-identity boundary | Depends on Phase 0 and approval of a standalone mark or deterministic derivation; wordmark remains separate |
+| 2: renderer asset integration | **not started** | Approved renderer-owned mark surfaces use the Bonzai graphic mark without changing layout or component contracts; wordmark consumers remain intentionally unchanged | Depends on Phase 1 and the current mark-consumer inventory |
+| 3: packaged icon generation and native integration | **not started** | Tauri-generated platform assets, tray/HUD/helper outputs, and the live macOS icon path use the approved Bonzai mark with a fixed native policy, while the default Clovy build remains unchanged | Depends on an approved square composition, additive build selection, generated asset checks, and platform runners |
+| 4: visual, platform, and regression evidence | **not started** | Mark-only renderer and packaged evidence passes light/dark, small-size, platform, default-build, accent-change, accessibility, and technical-identity checks | Requires real generated artifacts and macOS/Windows/platform verification; `tauri:dev` alone is insufficient for packaged icon evidence |
 | 5: packaged Bonzai product identity and release | **deferred** | Separate installation, bundle identity, updater, signing, release hosting, and co-installation have their own approved product and release gate | Native logo replacement alone does not make a production Bonzai product or authorize technical identity changes |
 
 ## Goals
 
-- Obtain an approved and traceable Bonzai vector asset package before changing any production logo or icon.
-- Replace renderer-owned Clovy marks and wordmarks only where the accepted identity matrix says Bonzai should appear.
-- Generate Tauri platform icon outputs from the accepted source rather than hand-editing derived PNGs.
-- Make the live macOS Dock/Cmd-Tab behavior deliberate instead of allowing appearance preset changes to silently restore a Clovy icon.
+- Formalize the received Bonzai SVG as an approved, traceable source package, and obtain or approve a standalone graphic mark for square/platform contexts.
+- Replace renderer-owned Clovy marks only where the accepted mark-only identity matrix says Bonzai should appear; keep wordmark replacement separate.
+- Generate Tauri platform icon outputs from the accepted square mark/composition rather than hand-editing derived PNGs.
+- Make the live macOS Dock/Cmd-Tab behavior deliberate and fixed to Bonzai instead of allowing appearance preset changes to silently restore a Clovy icon.
+- Cover the accepted tray, HUD, helper, extension, companion, and other maintained platform mark consumers through the same matrix rather than discovering them during implementation.
 - Preserve the default Clovy build, its technical compatibility bridge, and its current native identity unless a separate decision changes them.
 - Produce visual, asset, and packaged evidence that can be traced to the exact approved source package.
 - Keep the work mergeable with the existing additive branding direction rather than scattering brand-specific files through shared code.
 
 ## First-release non-goals
 
-- Creating or guessing the Bonzai mark or wordmark.
-- Replacing the correct source asset with the existing raster-derived branch fixture without approval.
+- Creating or guessing the Bonzai mark or wordmark; obtaining a standalone mark or approving a deterministic derivation remains an intake/design gate.
+- Replacing the received source package with the existing raster-derived branch fixture without approval.
+- Replacing or shipping the horizontal wordmark/lockup in the first mark-only release.
+- Cropping, redrawing, simplifying, or recoloring the received horizontal lockup to make a square icon without explicit design approval.
 - Changing the Tauri bundle identifier, product identity contract, deep-link schemes, storage keys, credential namespaces, updater endpoint, updater public key, helper names, or released artifact coordinates.
 - Creating a separate install, updater feed, signing identity, releases repository, OS Accounts client, or Bonzai deployment.
 - Recoloring the Clovy character, primary identity actions, recording signal, or unrelated illustrations merely because the icon changes.
@@ -188,7 +194,7 @@ The whitelabel branch documents an additive `branding/<brand-id>/` layer and a s
 After the asset gate is complete, the Bonzai presentation should show one coherent approved mark wherever the accepted surface matrix says the product identity is visible:
 
 - the sidebar and app tile use the approved mark treatment;
-- any visible wordmark uses the approved wordmark or approved rendered-name direction;
+- mark-bearing surfaces use the approved graphic mark, while wordmark consumers remain unchanged until a separate wordmark contract is accepted;
 - onboarding and approved identity surfaces do not mix Clovy and Bonzai marks accidentally;
 - a Bonzai packaged build uses the approved native icon set in Finder, Dock, Cmd-Tab, installer, and taskbar contexts; and
 - a fixed Bonzai native icon remains stable when the user changes the UI appearance accent, unless the contract explicitly chooses generated variants.
@@ -212,45 +218,45 @@ The default Clovy build retains its current source SVG, generated outputs, in-ap
 
 ### Phase 0: asset intake and provenance
 
-**Status: blocked.**
+**Status: in progress.**
 
-Request the approved source package listed above. Record the package version, source owner, permission, license, supplied formats, checksums, platform guidance, and explicit decisions about in-app marks, wordmarks, native icons, and accent variants.
+Record the project-local `Logo-Bonzai.svg` checksum, dimensions, format checks, source owner, permission, license, provenance, package version, and source date in the intake ledger. Obtain or approve a standalone graphic mark or a deterministic derivation rule, plus square composition, safe-area, minimum-size, alpha, contrast, light/dark, reversed, monochrome, and platform guidance. The horizontal lockup remains separately tracked input for later wordmark decisions.
 
-Do not create a placeholder asset or edit `src-tauri/icons/clovy-app-icon.svg`. Do not promote the branch-only raster fixture to production source.
+Do not create a placeholder asset or edit `src-tauri/icons/clovy-app-icon.svg`. Do not promote the branch-only raster fixture to production source, and do not crop or redraw the lockup into a square mark without design approval.
 
-**Exit criterion:** the correct Bonzai source files and usage rights are present in a reviewable location, the asset package passes the source-format checks, and design/product owners accept the asset and platform matrix. Until then this phase remains blocked.
+**Exit criterion:** the candidate source and metadata are reviewable and provenance-traceable, a standalone mark or approved derivation is accepted, and design/product owners accept the mark-only surface and platform matrix. Until then this phase remains in progress.
 
 ### Phase 1: identity contract and asset matrix
 
 **Status: not started.**
 
-Build a surface matrix that names every renderer and native consumer, the approved Bonzai treatment, the source file, and the expected generated output. Decide whether a Bonzai build uses a fixed native icon or generated accent variants. Classify each current Clovy and June value as presentation, compatibility, historical, or immutable technical identity.
+Build a mark-only surface matrix that names every renderer, packaged, tray, HUD, helper, extension, companion, and supported platform consumer; the approved Bonzai treatment; the source file; and the expected generated output. Mark wordmark/lockup consumers as intentionally deferred unless a later contract supplies the wordmark. Adopt the fixed Bonzai native icon policy: UI appearance accents must not select the existing Clovy-themed Dock/Cmd-Tab assets. Classify each current Clovy and June value as presentation, compatibility, historical, or immutable technical identity.
 
-**Exit criterion:** design, product, desktop, and release owners accept the surface matrix, fixed-versus-variant native policy, small-size guidance, and technical-identity boundary. Evidence is a reviewed matrix and source package reference.
+**Exit criterion:** design, product, desktop, and release owners accept the mark-only surface matrix, fixed Bonzai native policy, platform treatments, small-size guidance, wordmark deferral, and technical-identity boundary. Evidence is a reviewed matrix and source package reference.
 
 ### Phase 2: renderer asset integration
 
 **Status: not started.**
 
-Replace only the approved renderer-owned marks and wordmarks using the accepted source or generated asset path. Update accessible labels and titles consistently, preserving layout, component contracts, sanctioned icon rules, and the visual styling plan's Manrope and color decisions. Keep the default Clovy path intact.
+Replace only the approved renderer-owned graphic marks and app tiles using the accepted standalone source or generated asset path. Cover the accepted sidebar, onboarding, account, settings, provider, referral, update, styleguide, HUD, and other mark-bearing surfaces from the matrix. Keep wordmark consumers intentionally unchanged until a separate wordmark contract is accepted. Update accessible labels and titles consistently, preserving layout, component contracts, sanctioned icon rules, and the visual styling plan's Manrope and color decisions. Keep the default Clovy path intact.
 
-**Exit criterion:** every approved renderer surface shows the correct Bonzai mark or wordmark, no unapproved Clovy mark remains in the accepted inventory, and technical strings are unchanged. Evidence is focused UI tests, asset references, and light/dark screenshots.
+**Exit criterion:** every approved renderer mark surface shows the Bonzai mark, no unapproved Clovy mark remains in the accepted mark inventory, deferred wordmark consumers are documented, and technical strings are unchanged. Evidence is focused UI tests, asset references, accessibility checks, and light/dark screenshots.
 
 ### Phase 3: packaged icon generation and native integration
 
 **Status: not started.**
 
-Generate platform outputs from the approved source using the Tauri icon pipeline. Integrate them through an additive build-selected configuration rather than overwriting the default Clovy icon source. If live macOS Dock/Cmd-Tab behavior is included, implement and test the fixed-icon or variant policy through the existing runtime seam.
+Generate platform outputs from the approved standalone mark or square composition using the Tauri icon pipeline. Integrate them through an additive build-selected configuration rather than overwriting the default Clovy icon source. Apply the fixed Bonzai icon policy to live macOS Dock/Cmd-Tab behavior by preventing the existing appearance-change callback from restoring a Clovy-themed asset. Add the accepted tray, HUD, helper, extension, companion, and other maintained platform outputs through their actual packaging seams.
 
-**Exit criterion:** the selected Bonzai build contains valid RGBA PNG, ICNS, ICO, and any required platform outputs; runtime icon behavior follows the accepted policy; and the default Clovy build remains byte- or behavior-equivalent where required. Evidence is generated asset verification and a real packaged build.
+**Exit criterion:** the selected Bonzai build contains valid RGBA PNG, ICNS, ICO, and any required platform outputs; the fixed Bonzai runtime icon remains stable across UI accent changes; accepted auxiliary surfaces use the approved mark; and the default Clovy build remains byte- or behavior-equivalent where required. Evidence is generated asset verification and a real packaged build.
 
 ### Phase 4: visual, platform, and regression evidence
 
 **Status: not started.**
 
-Verify in-app renderer surfaces in light and dark themes, small-size legibility, reversed and monochrome treatments, transparent edges, and no accidental Clovy/Bonzai mixing. Verify a real packaged macOS app in Finder, Dock, and Cmd-Tab and a real Windows artifact in installer, taskbar, and app metadata contexts. Test the default Clovy build separately.
+Verify mark-only renderer and auxiliary surfaces in light and dark themes, small-size legibility, reversed and monochrome treatments, transparent edges, accessibility labels, and no accidental Clovy/Bonzai mixing. Verify a real packaged macOS app in Finder, Dock, and Cmd-Tab, a real Windows artifact in installer, taskbar, and app metadata contexts, and each accepted tray, HUD, helper, extension, companion, or other supported platform context. Exercise UI accent changes and prove the Bonzai native icon remains fixed. Test the default Clovy build separately and show wordmark surfaces remain intentionally deferred.
 
-**Exit criterion:** design, product, desktop, QA, and release owners accept dated evidence for every supported context, including asset hashes, source package version, build selection, platform, and technical-identity regression results.
+**Exit criterion:** design, product, desktop, QA, and release owners accept dated evidence for every supported context, including source hash, package version, build selection, platform, auxiliary-surface treatment, accent-change regression, and technical-identity regression results.
 
 ### Phase 5: packaged Bonzai product identity and release
 
@@ -264,9 +270,9 @@ Separate installation, bundle identifier, deep-link identity, credential isolati
 
 ### Asset intake
 
-- Confirm the source package contains approved vector master files and no unresolved external references.
-- Record file hashes, package version, owner, license, permission, and source date.
-- Validate square icon composition, safe area, alpha, color profile, and small-size guidance.
+- Confirm the received horizontal SVG is the approved vector intake source and contains no unresolved external references.
+- Record its SHA-256 (`982039721236cc4ae6f9496719214deadbecb5fb7075925a3dce082a548d1005`), dimensions, package version, owner, license, permission, provenance, and source date.
+- Obtain or validate the approved standalone square mark or deterministic square composition, including safe area, alpha, color profile, and small-size guidance.
 - Confirm the supplied source renders consistently in the approved design tooling and the pinned Tauri generation path.
 - Reject raster-only or unknown-provenance substitutions unless the design owner explicitly accepts them as temporary.
 
@@ -277,11 +283,11 @@ Separate installation, bundle identifier, deep-link identity, credential isolati
 - Verify ICNS and ICO outputs contain the expected sizes and do not reference the Clovy source.
 - Verify stale Bonzai or Clovy themed variants cannot be selected accidentally.
 - Verify the generated output is reproducible from the source package and build selection.
-- Test runtime macOS icon mapping for fixed Bonzai and every accepted accent variant, or prove the runtime path is bypassed for a fixed icon.
+- Test the fixed Bonzai runtime icon mapping and prove the runtime path cannot restore a Clovy-themed asset after an appearance accent change.
 
 ### Renderer and accessibility
 
-- Test the sidebar app tile, wordmark, onboarding, settings, HUD, and any other accepted renderer consumers.
+- Test the sidebar app tile, onboarding, settings, HUD, and any other accepted mark-bearing renderer consumers; record deferred wordmark consumers separately.
 - Verify accessible names and SVG titles say Bonzai where the surface is presentation-facing.
 - Verify the mark remains legible at compact sizes, in dark mode, on inverse surfaces, and in any monochrome treatment.
 - Verify no layout or component contract changes were smuggled into the asset replacement.
@@ -297,27 +303,23 @@ Separate installation, bundle identifier, deep-link identity, credential isolati
 
 ## Open questions and decision gates
 
-1. **Which approved Bonzai source package should be used?**
+1. **How is the received source package formalized?**
 
-   The correct files are currently unavailable. This is the blocker for Phase 0. Request the vector mark, wordmark source, platform exports or generation guidance, usage rights, provenance, and versioned package.
+   The canonical intake candidate is [`Logo-Bonzai.svg`](Logo-Bonzai.svg) with SHA-256 `982039721236cc4ae6f9496719214deadbecb5fb7075925a3dce082a548d1005`. Record its owner, permission, license, provenance, source date, and package version before implementation.
 
-2. **Is the supplied mark a vector master or only a reference image?**
+2. **Where does the standalone mark come from?**
 
-   The branch fixture is raster-derived from a favicon. A production icon should prefer a real vector master so small-size and platform outputs are controllable and reproducible.
+   The supplied file is a 154x64 horizontal white lockup, not a square source. Obtain an approved standalone mark or written deterministic derivation and square composition rule. Do not crop or redraw it by assumption.
 
 3. **Should the wordmark be artwork or rendered Manrope text?**
 
-   This changes asset intake, localization, accessibility, and font-loading behavior. Resolve with the design owner before renderer integration.
+   This changes asset intake, localization, accessibility, and font-loading behavior. The first release is mark-only; resolve the wordmark contract before changing wordmark consumers.
 
-4. **Should the Bonzai native icon be fixed or follow UI appearance accents?**
+4. **Which mark-bearing surfaces are maintained?**
 
-   The current Clovy runtime swaps themed Dock icons when the appearance accent changes. The recommendation is a fixed Bonzai native icon for a Bonzai build so the native identity does not silently revert to a Clovy icon.
+   The selected scope is the full identity package: renderer, packaged, Dock/Cmd-Tab, tray, HUD, helper, extension, companion, and supported platform surfaces. Phase 1 must verify which of these are actually shipped and assign each its treatment.
 
-5. **Which renderer surfaces are in scope?**
-
-   At minimum, decide sidebar tile, wordmark, onboarding, settings, HUDs, and any extension or companion surfaces. Do not infer scope from the existence of a current Clovy asset consumer.
-
-6. **Does this work include technical package identity?**
+5. **Does this work include technical package identity?**
 
    The recommendation is no. Bundle identifiers, deep links, updater coordinates, helper identities, storage keys, and released artifact names remain under ADR-0055 and the later packaged-product plan.
 
@@ -344,13 +346,13 @@ Do not reserve an ADR number, create an Issue, create assets, or provision relea
 
 ## Explicit future ideas and follow-ups
 
-- Obtain a real vector Bonzai mark and wordmark package from the design owner.
+- Formalize the received vector lockup and obtain or approve a standalone Bonzai mark; resolve the wordmark package separately.
 - Add small-size and monochrome variants only if the approved brand guide requires them.
 - Decide whether the same Bonzai mark should be applied to extension, helper, companion, tray, and mobile outputs.
-- Revisit the current themed Dock icon mechanism after the fixed-versus-variant decision.
+- Replace or bypass the current themed Dock icon mechanism for the Bonzai build after the fixed-icon implementation is authorized; keep the default Clovy path intact.
 - Keep the existing Clovy asset set available for the default build and rollback paths.
 - Reconcile the separate logo plan with the broader visual styling plan before implementation begins, without merging their scopes or silently changing either status.
 
 ## Decision summary
 
-The correct next step is an asset request, not an implementation. The Bonzai logo replacement remains Proposed and Phase 0 blocked until an approved, provenance-traceable vector source package and platform usage contract arrive. After that gate, integrate the mark through renderer-owned asset seams and generate packaged native icons through the Tauri pipeline, with a deliberate fixed Bonzai Dock/Cmd-Tab policy. Preserve the default Clovy build and all technical compatibility identities. No implementation, Issue, ADR, asset creation, commit, or push is part of this roadmap plan.
+The correct next step is to formalize the received SVG intake and complete the standalone-mark and platform contract, not to implement production assets immediately. The Bonzai logo replacement remains Proposed and Phase 0 is in progress: the candidate is a 154x64 horizontal white lockup with a recorded checksum, but the versioned source package, provenance metadata, square mark/composition, and platform treatments remain open. After that gate, integrate the graphic mark across the accepted full identity surface matrix and generate packaged native icons through the Tauri pipeline, with a fixed Bonzai Dock/Cmd-Tab policy. Keep wordmark replacement separate, preserve the default Clovy build and all technical compatibility identities, and do not create an Issue, ADR, asset, commit, or push as part of this roadmap plan.
