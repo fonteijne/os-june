@@ -1,0 +1,473 @@
+<title>Local tool settings</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f3ee;
+    --surface: #fbfaf7;
+    --surface-raised: #ffffff;
+    --surface-subtle: #eeece5;
+    --text: #252622;
+    --muted: #6f716b;
+    --faint: #9b9c94;
+    --line: #dad9d1;
+    --line-strong: #c7c6bc;
+    --accent: #6f875c;
+    --accent-soft: #e5ecdF;
+    --accent-ink: #34452d;
+    --warning: #9a6a32;
+    --warning-soft: #f3e8d5;
+    --danger: #a45243;
+    --danger-soft: #f2dfda;
+    --shadow: 0 14px 36px rgba(37, 38, 34, 0.1), 0 2px 8px rgba(37, 38, 34, 0.05);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-7: 32px;
+    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
+    --font-mono: "SFMono-Regular", Consolas, monospace;
+    --fs-xs: 11px;
+    --fs-sm: 12px;
+    --fs-md: 14px;
+    --fs-lg: 16px;
+    --fs-xl: 22px;
+    --fw-medium: 600;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1d1f1c;
+      --surface: #242622;
+      --surface-raised: #2b2e29;
+      --surface-subtle: #30332d;
+      --text: #eeeee7;
+      --muted: #a3a69c;
+      --faint: #7b7e76;
+      --line: #41443d;
+      --line-strong: #555950;
+      --accent: #a8c58d;
+      --accent-soft: #35422f;
+      --accent-ink: #d2e5be;
+      --warning: #e5b774;
+      --warning-soft: #483a28;
+      --danger: #e08f80;
+      --danger-soft: #4a302b;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1d1f1c;
+    --surface: #242622;
+    --surface-raised: #2b2e29;
+    --surface-subtle: #30332d;
+    --text: #eeeee7;
+    --muted: #a3a69c;
+    --faint: #7b7e76;
+    --line: #41443d;
+    --line-strong: #555950;
+    --accent: #a8c58d;
+    --accent-soft: #35422f;
+    --accent-ink: #d2e5be;
+    --warning: #e5b774;
+    --warning-soft: #483a28;
+    --danger: #e08f80;
+    --danger-soft: #4a302b;
+    --shadow: 0 18px 42px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--bg); }
+  body {
+    min-width: 0;
+    margin: 0;
+    padding-block: 24px 48px;
+    padding-inline: 16px;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    line-height: 1.45;
+  }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    outline-offset: 2px;
+  }
+  .page { width: min(1120px, 100%); margin: 0 auto; }
+  .eyebrow { color: var(--muted); font-size: var(--fs-xs); letter-spacing: .04em; }
+  h1, h2, h3, p { margin: 0; }
+  h1 { font-family: var(--font-serif); font-size: clamp(28px, 4vw, 42px); font-weight: 400; line-height: 1.08; text-wrap: balance; }
+  h2 { font-size: var(--fs-xl); font-weight: 400; line-height: 1.2; text-wrap: balance; }
+  h3 { font-size: var(--fs-lg); font-weight: var(--fw-medium); line-height: 1.25; }
+  .muted { color: var(--muted); }
+  .mono { font-family: var(--font-mono); font-size: var(--fs-sm); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-7); }
+  .brand { display: flex; align-items: center; gap: var(--sp-2); color: var(--text); font-weight: var(--fw-medium); }
+  .brand-mark { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .theme-toggle { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--muted); padding: 7px 10px; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: var(--sp-7); align-items: end; margin-bottom: var(--sp-7); }
+  .hero-copy { display: grid; gap: var(--sp-3); max-width: 640px; }
+  .hero-copy p { color: var(--muted); max-width: 60ch; }
+  .boundary-note { display: grid; gap: var(--sp-2); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+  .boundary-note strong { color: var(--accent-ink); font-weight: var(--fw-medium); }
+  .boundary-note p { color: var(--muted); font-size: var(--fs-sm); }
+  .build-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+  .build-switch label { color: var(--muted); font-size: var(--fs-sm); }
+  .build-switch select { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text); padding: 6px 8px; }
+  .workspace { display: grid; grid-template-columns: minmax(230px, .38fr) minmax(0, .62fr); min-height: 560px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow); }
+  .list-pane { border-right: 1px solid var(--line); }
+  .pane-header { display: flex; justify-content: space-between; align-items: start; gap: var(--sp-3); padding: var(--sp-5); border-bottom: 1px solid var(--line); }
+  .pane-header-copy { display: grid; gap: var(--sp-1); }
+  .pane-header p { color: var(--muted); font-size: var(--fs-sm); }
+  .add-button, .primary-button, .secondary-button, .quiet-button { border-radius: var(--radius-sm); padding: 8px 11px; border: 1px solid transparent; }
+  .add-button, .primary-button { background: var(--accent); color: #243020; font-weight: var(--fw-medium); }
+  .secondary-button { border-color: var(--line-strong); background: var(--surface-raised); color: var(--text); }
+  .quiet-button { background: transparent; color: var(--muted); padding-inline: 7px; }
+  .quiet-button:hover, .secondary-button:hover, .theme-toggle:hover { background: var(--surface-subtle); }
+  .tool-list { display: grid; gap: 1px; padding: var(--sp-2); }
+  .tool-row { display: grid; gap: var(--sp-1); width: 100%; padding: var(--sp-3); text-align: left; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--text); }
+  .tool-row:hover { background: var(--surface-subtle); }
+  .tool-row[aria-current="true"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+  .tool-row-top { display: flex; justify-content: space-between; gap: var(--sp-2); align-items: center; }
+  .tool-row small { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .status { display: inline-flex; align-items: center; gap: 5px; width: fit-content; border-radius: 999px; padding: 3px 7px; font-size: var(--fs-xs); color: var(--muted); background: var(--surface-subtle); }
+  .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+  .status.ready { color: var(--accent-ink); background: var(--accent-soft); }
+  .status.ready::before { background: var(--accent); }
+  .status.review { color: var(--warning); background: var(--warning-soft); }
+  .status.review::before { background: var(--warning); }
+  .detail-pane { min-width: 0; background: var(--surface-raised); }
+  .detail-header { display: flex; justify-content: space-between; gap: var(--sp-4); align-items: start; padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--line); }
+  .detail-header-copy { display: grid; gap: var(--sp-2); min-width: 0; }
+  .detail-header-copy p { color: var(--muted); overflow-wrap: anywhere; }
+  .detail-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: end; }
+  .detail-body { display: grid; gap: var(--sp-6); padding: var(--sp-6); }
+  .notice { display: grid; gap: var(--sp-1); padding: var(--sp-3) var(--sp-4); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--line)); border-radius: var(--radius-md); background: var(--warning-soft); color: var(--text); }
+  .notice strong { color: var(--warning); font-weight: var(--fw-medium); }
+  .notice p { color: var(--muted); font-size: var(--fs-sm); }
+  .section { display: grid; gap: var(--sp-3); }
+  .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+  .section-heading p { color: var(--muted); font-size: var(--fs-sm); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+  .field { display: grid; gap: var(--sp-1); min-width: 0; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { color: var(--muted); font-size: var(--fs-sm); }
+  .field input, .field textarea, .field select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); padding: 9px 10px; }
+  .field textarea { min-height: 72px; resize: vertical; }
+  .field input:disabled, .field textarea:disabled { color: var(--faint); }
+  .policy-card { display: grid; gap: var(--sp-3); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+  .policy-row { display: flex; justify-content: space-between; align-items: start; gap: var(--sp-4); }
+  .policy-row + .policy-row { padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+  .policy-copy { display: grid; gap: 2px; }
+  .policy-copy strong { font-weight: 400; }
+  .policy-copy span { color: var(--muted); font-size: var(--fs-sm); }
+  .toggle { position: relative; flex: 0 0 auto; width: 34px; height: 20px; margin-top: 2px; border: 0; border-radius: 999px; background: var(--line-strong); }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface-raised); transition: transform 160ms ease-out; }
+  .toggle[aria-checked="true"] { background: var(--accent); }
+  .toggle[aria-checked="true"]::after { transform: translateX(14px); }
+  .inventory { display: grid; gap: 1px; border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+  .inventory-row { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(0, .65fr); gap: var(--sp-4); padding: var(--sp-3) var(--sp-4); background: var(--surface); }
+  .inventory-row + .inventory-row { border-top: 1px solid var(--line); }
+  .inventory-row strong { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 400; overflow-wrap: anywhere; }
+  .inventory-row span { color: var(--muted); font-size: var(--fs-sm); }
+  .approval-panel { display: grid; gap: var(--sp-4); padding: var(--sp-5); border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+  .approval-heading { display: flex; justify-content: space-between; gap: var(--sp-3); align-items: start; }
+  .approval-heading p { color: var(--muted); font-size: var(--fs-sm); }
+  .approval-body { display: grid; gap: var(--sp-2); }
+  .approval-body code { display: block; padding: var(--sp-3); overflow-x: auto; border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-family: var(--font-mono); font-size: var(--fs-sm); }
+  .approval-footer { display: flex; justify-content: end; gap: var(--sp-2); flex-wrap: wrap; }
+  .approval-footer .quiet-button { color: var(--danger); }
+  .footnote { margin-top: var(--sp-5); color: var(--muted); font-size: var(--fs-sm); }
+  .toast { position: fixed; right: 20px; bottom: 20px; max-width: min(360px, calc(100% - 40px)); padding: 10px 13px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow); color: var(--text); }
+  .toast[hidden] { display: none; }
+  @media (max-width: 760px) {
+    body { padding-block: 16px 32px; }
+    .hero { grid-template-columns: 1fr; gap: var(--sp-5); }
+    .workspace { grid-template-columns: 1fr; }
+    .list-pane { border-right: 0; border-bottom: 1px solid var(--line); }
+    .tool-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .detail-header { padding-inline: var(--sp-5); }
+    .detail-body { padding: var(--sp-5); }
+  }
+  @media (max-width: 480px) {
+    .topbar { align-items: start; }
+    .workspace { border-radius: var(--radius-md); }
+    .tool-list, .form-grid { grid-template-columns: 1fr; }
+    .field.full { grid-column: auto; }
+    .detail-header, .approval-heading { display: grid; }
+    .detail-actions, .approval-footer { justify-content: start; }
+    .inventory-row { grid-template-columns: 1fr; gap: var(--sp-1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+
+<main class="page">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Clovy settings</span></div>
+    <button class="theme-toggle" id="theme-toggle" type="button">Toggle theme</button>
+  </header>
+
+  <section class="hero" aria-labelledby="page-title">
+    <div class="hero-copy">
+      <span class="eyebrow">Settings / local tools</span>
+      <h1 id="page-title">Bring your local tools into Clovy</h1>
+      <p>Register a tool you already own. Clovy can discover read-only capabilities without opening a second shell surface or sending your credentials to a service.</p>
+    </div>
+    <aside class="boundary-note" aria-label="Trust boundary">
+      <strong>Rust owns the boundary</strong>
+      <p>Clovy starts and stops the configured process, keeps secrets in the system keychain, and applies approval policy. The selected executable can still read the credentials you provide to it.</p>
+      <div class="build-switch">
+        <label for="build-select">Example build</label>
+        <select id="build-select">
+          <option value="standard">Standard macOS build</option>
+          <option value="bonzai">Bonzai build</option>
+        </select>
+      </div>
+    </aside>
+  </section>
+
+  <section class="workspace" aria-label="Local tools settings example">
+    <div class="list-pane">
+      <div class="pane-header">
+        <div class="pane-header-copy">
+          <h2>Local tools</h2>
+          <p>Example configurations</p>
+        </div>
+        <button class="add-button" id="add-button" type="button">Add tool</button>
+      </div>
+      <div class="tool-list" role="listbox" aria-label="Configured local tools">
+        <button class="tool-row" type="button" role="option" aria-current="true" data-tool="bridge">
+          <span class="tool-row-top"><strong>Bridge adapter</strong><span class="status ready">Ready</span></span>
+          <small class="mono">/Users/example/bin/bridge-mcp</small>
+        </button>
+        <button class="tool-row" type="button" role="option" aria-current="false" data-tool="slack">
+          <span class="tool-row-top"><strong>Slack CLI</strong><span class="status review">Needs review</span></span>
+          <small class="mono">Loopback HTTP adapter</small>
+        </button>
+      </div>
+    </div>
+
+    <div class="detail-pane">
+      <div class="detail-header">
+        <div class="detail-header-copy">
+          <span class="eyebrow">Example configuration</span>
+          <h2 id="detail-title">Bridge adapter</h2>
+          <p id="detail-subtitle" class="mono">/Users/example/bin/bridge-mcp</p>
+        </div>
+        <div class="detail-actions">
+          <button class="secondary-button" id="test-button" type="button">Test connection</button>
+          <button class="primary-button" id="save-button" type="button">Save changes</button>
+        </div>
+      </div>
+
+      <div class="detail-body">
+        <div class="notice" id="build-notice" hidden>
+          <strong>Local process is unavailable in Bonzai</strong>
+          <p>Use a Streamable HTTP adapter on an exact loopback address. Direct stdio would make network traffic that the compiled Bonzai policy cannot observe.</p>
+        </div>
+
+        <section class="section" aria-labelledby="connection-heading">
+          <div class="section-heading">
+            <h3 id="connection-heading">Connection</h3>
+            <p id="transport-hint">Local process owned by Clovy</p>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="tool-name">Name</label>
+              <input id="tool-name" value="Bridge adapter" />
+            </div>
+            <div class="field">
+              <label for="transport">Transport</label>
+              <select id="transport">
+                <option value="stdio">Local process (stdio)</option>
+                <option value="http">Streamable HTTP</option>
+              </select>
+            </div>
+            <div class="field full" id="command-field">
+              <label for="command">Executable path</label>
+              <input id="command" class="mono" value="/Users/example/bin/bridge-mcp" />
+            </div>
+            <div class="field full" id="args-field">
+              <label for="arguments">Arguments, one per line</label>
+              <textarea id="arguments" class="mono">--config
+/Users/example/.config/bridge.json</textarea>
+            </div>
+            <div class="field full" id="url-field" hidden>
+              <label for="url">Loopback URL</label>
+              <input id="url" class="mono" value="http://127.0.0.1:8765/mcp" />
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="policy-heading">
+          <div class="section-heading">
+            <h3 id="policy-heading">Policy</h3>
+            <p>Read-only first</p>
+          </div>
+          <div class="policy-card">
+            <div class="policy-row">
+              <div class="policy-copy"><strong>Require approval for every tool</strong><span>Keep this on until the tool's output and side effects are understood.</span></div>
+              <button class="toggle" type="button" role="switch" aria-checked="true" aria-label="Require approval for every tool"></button>
+            </div>
+            <div class="policy-row">
+              <div class="policy-copy"><strong>Allow in sandboxed sessions</strong><span>macOS write-jail only. This is not a complete network sandbox.</span></div>
+              <button class="toggle" type="button" role="switch" aria-checked="true" aria-label="Allow in sandboxed sessions"></button>
+            </div>
+            <div class="policy-row">
+              <div class="policy-copy"><strong>Allowed tools</strong><span>Blank means no tool allowlist. A later read-only release should make this explicit.</span></div>
+              <button class="secondary-button" id="allowlist-button" type="button">Configure</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="inventory-heading">
+          <div class="section-heading">
+            <h3 id="inventory-heading">Discovered tools</h3>
+            <p id="inventory-status">Last tested just now</p>
+          </div>
+          <div class="inventory" id="inventory">
+            <div class="inventory-row"><strong>list_context</strong><span>Read a bounded set of local context items.</span></div>
+            <div class="inventory-row"><strong>search_context</strong><span>Search indexed local context by a user-provided query.</span></div>
+          </div>
+        </section>
+
+        <section class="approval-panel" id="approval-panel" aria-labelledby="approval-heading">
+          <div class="approval-heading">
+            <div class="section"><h3 id="approval-heading">Approval preview</h3><p>This is what a later mutating action should show before it leaves the Mac.</p></div>
+            <span class="status review">Waiting for your approval</span>
+          </div>
+          <div class="approval-body">
+            <p><strong>Slack CLI</strong> wants to call <span class="mono">post_message</span>.</p>
+            <code>{"channel":"#project-alpha","text":"Example recap for review"}</code>
+            <p class="muted">The tool result is untrusted data. Approving this one call does not grant future posting access.</p>
+          </div>
+          <div class="approval-footer">
+            <button class="quiet-button" id="deny-button" type="button">Deny</button>
+            <button class="primary-button" id="approve-button" type="button">Approve once</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">This sketch uses example names and paths. It proposes a settings flow, not a new command contract or an MCP wrapper.</p>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+  const root = document.documentElement;
+  const toast = document.getElementById("toast");
+  const buildSelect = document.getElementById("build-select");
+  const buildNotice = document.getElementById("build-notice");
+  const transport = document.getElementById("transport");
+  const commandField = document.getElementById("command-field");
+  const argsField = document.getElementById("args-field");
+  const urlField = document.getElementById("url-field");
+  const detailTitle = document.getElementById("detail-title");
+  const detailSubtitle = document.getElementById("detail-subtitle");
+  const transportHint = document.getElementById("transport-hint");
+  const toolName = document.getElementById("tool-name");
+  const command = document.getElementById("command");
+  const url = document.getElementById("url");
+  const inventory = document.getElementById("inventory");
+  const inventoryStatus = document.getElementById("inventory-status");
+  const approvalPanel = document.getElementById("approval-panel");
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.hidden = false;
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => { toast.hidden = true; }, 2600);
+  }
+
+  function setTransport(value) {
+    const isHttp = value === "http";
+    commandField.hidden = isHttp;
+    argsField.hidden = isHttp;
+    urlField.hidden = !isHttp;
+    transportHint.textContent = isHttp ? "User-owned loopback endpoint" : "Local process owned by Clovy";
+    if (isHttp) {
+      detailSubtitle.textContent = url.value;
+    } else {
+      detailSubtitle.textContent = command.value;
+    }
+  }
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  });
+  buildSelect.addEventListener("change", () => {
+    const isBonzai = buildSelect.value === "bonzai";
+    buildNotice.hidden = !isBonzai;
+    if (isBonzai) {
+      transport.value = "http";
+      setTransport("http");
+      showToast("Bonzai keeps local tools on loopback HTTP");
+    } else {
+      showToast("Standard macOS builds can own a stdio process");
+    }
+  });
+  transport.addEventListener("change", () => {
+    setTransport(transport.value);
+    showToast(transport.value === "http" ? "Use a loopback endpoint you already control" : "Clovy will own this local process");
+  });
+  command.addEventListener("input", () => { if (transport.value === "stdio") detailSubtitle.textContent = command.value; });
+  url.addEventListener("input", () => { if (transport.value === "http") detailSubtitle.textContent = url.value; });
+  document.getElementById("test-button").addEventListener("click", () => {
+    inventoryStatus.textContent = "Test passed just now";
+    showToast("2 read-only tools discovered");
+  });
+  document.getElementById("save-button").addEventListener("click", () => {
+    detailTitle.textContent = toolName.value || "Unnamed local tool";
+    showToast("Example configuration saved");
+  });
+  document.getElementById("add-button").addEventListener("click", () => showToast("A new local tool form would open here"));
+  document.getElementById("allowlist-button").addEventListener("click", () => showToast("Tool allowlist editing is a Phase 1 decision"));
+  document.getElementById("approve-button").addEventListener("click", () => {
+    approvalPanel.querySelector(".status").textContent = "Approved once";
+    approvalPanel.querySelector(".status").className = "status ready";
+    approvalPanel.querySelector(".approval-footer").hidden = true;
+    showToast("Approved for this call only");
+  });
+  document.getElementById("deny-button").addEventListener("click", () => {
+    approvalPanel.querySelector(".status").textContent = "Denied";
+    approvalPanel.querySelector(".status").className = "status";
+    approvalPanel.querySelector(".approval-footer").hidden = true;
+    showToast("Action denied");
+  });
+  document.querySelectorAll(".toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const next = button.getAttribute("aria-checked") !== "true";
+      button.setAttribute("aria-checked", String(next));
+    });
+  });
+  document.querySelectorAll(".tool-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      document.querySelectorAll(".tool-row").forEach((item) => item.setAttribute("aria-current", "false"));
+      row.setAttribute("aria-current", "true");
+      const slack = row.dataset.tool === "slack";
+      detailTitle.textContent = slack ? "Slack CLI" : "Bridge adapter";
+      detailSubtitle.textContent = slack ? "Loopback HTTP adapter" : command.value;
+      toolName.value = slack ? "Slack CLI" : "Bridge adapter";
+      transport.value = slack ? "http" : "stdio";
+      setTransport(transport.value);
+      inventory.innerHTML = slack
+        ? '<div class="inventory-row"><strong>list_channels</strong><span>Read selected channel metadata.</span></div><div class="inventory-row"><strong>read_thread</strong><span>Read one selected thread.</span></div>'
+        : '<div class="inventory-row"><strong>list_context</strong><span>Read a bounded set of local context items.</span></div><div class="inventory-row"><strong>search_context</strong><span>Search indexed local context by a user-provided query.</span></div>';
+      inventoryStatus.textContent = slack ? "Needs review before testing" : "Last tested just now";
+    });
+  });
+</script>

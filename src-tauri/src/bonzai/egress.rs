@@ -54,58 +54,11 @@ const DEV_ALLOWED_HOSTS: &[&str] = &["localhost", "127.0.0.1", "[::1]"];
 #[cfg(not(debug_assertions))]
 const DEV_ALLOWED_HOSTS: &[&str] = &[];
 
-/// MCP servers this build may connect to. Empty by default (ADR-0059): tool
-/// egress is governed per server rather than closed, and a host joins this
-/// list by a rebuild, never by a setting. Loopback is handled separately below
-/// because local HTTP MCP is permitted in every build.
-const MCP_ALLOWED_HOSTS: &[&str] = &[];
-
-/// Exact loopback hosts permitted for local Streamable HTTP MCP in every build.
-/// This does not widen inference egress: `assert_allowed` remains HTTPS-only.
-const MCP_LOOPBACK_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
-
-/// Every MCP host this build may reach, release entries first.
-pub fn mcp_allowed_hosts() -> Vec<&'static str> {
-    MCP_ALLOWED_HOSTS
-        .iter()
-        .chain(DEV_ALLOWED_HOSTS.iter())
-        .copied()
-        .collect()
-}
-
-/// Reject an MCP server destination this build may not reach. Exact loopback
-/// hosts may use HTTP or HTTPS; every other MCP host must use HTTPS and match
-/// the compiled MCP allowlist.
-pub fn assert_mcp_allowed(url: &Url) -> Result<(), AppError> {
-    let Some(host) = url.host_str() else {
-        return Err(blocked(url, "the MCP server has no host"));
-    };
-    let host = normalize_host(host);
-    let is_loopback = !host.is_empty()
-        && MCP_LOOPBACK_HOSTS
-            .iter()
-            .any(|allowed| normalize_host(allowed) == host);
-    if is_loopback {
-        if matches!(url.scheme(), "http" | "https") {
-            return Ok(());
-        }
-        return Err(blocked(url, "only http or https MCP servers are permitted"));
-    }
-    if url.scheme() != "https" {
-        return Err(blocked(url, "only https MCP servers are permitted"));
-    }
-    let permitted = !host.is_empty()
-        && mcp_allowed_hosts()
-            .iter()
-            .any(|allowed| normalize_host(allowed) == host);
-    if !permitted {
-        return Err(blocked(
-            url,
-            "the MCP server host is not in this build's compiled MCP allowlist",
-        ));
-    }
-    Ok(())
-}
+// External MCP servers are deliberately absent from this file. They follow
+// the shared Clovy registry validation in `agent_mcp.rs` (HTTPS, or exact
+// loopback HTTP; bounded stdio) on every build, and this allowlist governs
+// inference only (ADR-0059, addendum of 2026-10-02). MCP HTTP clients still
+// come from `guarded_builder`, so the source-level guard keeps seeing them.
 
 /// Every host this build may reach, release entries first.
 pub fn allowed_hosts() -> Vec<&'static str> {
@@ -250,50 +203,21 @@ mod tests {
     }
 
     #[test]
-    fn the_mcp_allowlist_is_empty_in_release_and_refuses_external_hosts() {
-        assert!(MCP_ALLOWED_HOSTS.is_empty());
-        let error = assert_mcp_allowed(&url("https://mcp.example/sse")).expect_err("refused");
-        assert_eq!(error.code, EGRESS_BLOCKED);
-        let error = assert_mcp_allowed(&url("http://mcp.example/sse")).expect_err("plaintext");
-        assert!(error.message.contains("https"));
-    }
-
-    #[test]
-    fn loopback_http_mcp_is_permitted_in_all_builds() {
-        for raw in [
-            "http://localhost:9998/mcp",
-            "http://localhost/mcp",
-            "http://127.0.0.1:9998/mcp",
-            "http://[::1]:9998/mcp",
-        ] {
-            assert!(
-                assert_mcp_allowed(&url(raw)).is_ok(),
-                "{raw} should be permitted"
-            );
-        }
-    }
-
-    #[test]
-    fn loopback_https_mcp_is_also_permitted() {
-        assert!(assert_mcp_allowed(&url("https://localhost:9998/mcp")).is_ok());
-    }
-
-    #[test]
-    fn non_loopback_http_mcp_is_still_refused() {
-        for raw in [
-            "http://mcp.example/mcp",
-            "http://192.168.1.100:9998/mcp",
-            "http://10.0.0.1:9998/mcp",
-        ] {
-            let error = assert_mcp_allowed(&url(raw)).expect_err("external HTTP refused");
-            assert_eq!(error.code, EGRESS_BLOCKED, "{raw} should be blocked");
-        }
-    }
-
-    #[test]
-    fn loopback_mcp_does_not_bypass_inference_egress() {
+    fn plaintext_loopback_inference_is_refused() {
+        // Shared MCP validation admits exact loopback HTTP; inference never
+        // does, in any build.
         let error = assert_allowed(&url("http://localhost/")).expect_err("inference refused");
         assert_eq!(error.code, EGRESS_BLOCKED);
+    }
+
+    #[test]
+    fn an_external_mcp_host_is_not_an_inference_destination() {
+        // Removing the MCP overlay must not widen inference egress: a host a
+        // user might connect as an MCP server is still blocked for inference.
+        for raw in ["https://mcp.example/mcp", "https://mcp.linear.app/mcp"] {
+            let error = assert_allowed(&url(raw)).expect_err("inference refused");
+            assert_eq!(error.code, EGRESS_BLOCKED, "{raw} should be blocked");
+        }
     }
 
     #[test]

@@ -22,8 +22,11 @@
 //! - [`resolve`] answers "which key and which model for this work?".
 //! - [`severance`] is what this fork switches off, the fail-closed paths
 //!   behind it, and the no-account mode.
-//! - [`mcp_policy`] governs tool egress: streamable HTTP on allowlisted hosts.
 //! - [`commands`] is the Tauri surface, deliberately one command.
+//!
+//! External MCP is not governed here. User-configured servers follow the
+//! shared Clovy registry rules in `agent_mcp.rs` on every build; this module
+//! restricts inference egress only.
 //!
 //! Upstream reaches this module through three-line prologues at the top of
 //! the functions it intercepts, and through nothing else.
@@ -37,7 +40,6 @@ pub mod egress;
 pub mod http;
 pub mod keys;
 pub(crate) mod logging;
-pub mod mcp_policy;
 pub mod models;
 pub mod resolve;
 pub mod severance;

@@ -640,9 +640,18 @@ only inference destination: agent chat, note generation, and note
 transcription all go there and nowhere else. A Bonzai build is one that
 carries a Bonzai base URL; that presence, not a setting, is what activates
 routing. Enforced by a compiled host allowlist and a source-level guard
-(ADR-0059).
+(ADR-0059). Bonzai is a technical LiteLLM model provider and inference name,
+not the user-facing product name.
 _Avoid_: the gateway, the proxy, LiteLLM (say Bonzai; LiteLLM is the
 software it runs).
+
+**Bonzai Agent**:
+The proposed whitelabel, user-facing name for the Clovy desktop product and
+its agent experience. Bonzai Agent continues to use the technical Bonzai
+inference deployment; it does not rename the provider, deployment, keys,
+routing, or any other technical identity.
+_Avoid_: using Bonzai Agent for provider, endpoint, egress, key, environment,
+wire, package, or deployment identifiers.
 
 **Bonzai key**:
 A LiteLLM virtual key held by this fork, scoping model access and accruing

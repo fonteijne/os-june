@@ -2,8 +2,7 @@ import { IconArrowRotateClockwise } from "central-icons/IconArrowRotateClockwise
 import { IconPlusMedium } from "central-icons/IconPlusMedium";
 import { IconSettingsGear4 } from "central-icons/IconSettingsGear4";
 import { IconTrashCan } from "central-icons/IconTrashCan";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { bonzaiActive as getBonzaiActive, useBonzaiActive } from "../../lib/bonzai";
+import { useCallback, useEffect, useState } from "react";
 import {
   createAgentMcpServer,
   connectAgentMcpOauth,
@@ -73,21 +72,11 @@ export function AgentMcpServersSection() {
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const bonzaiActive = useBonzaiActive();
-  // A Bonzai build permits streamable HTTP only; never leave the form on a
-  // transport it cannot save.
-  useEffect(() => {
-    if (!bonzaiActive) return;
-    setDraft((current) =>
-      current.transport === "stdio" ? { ...current, transport: "streamable_http" } : current,
-    );
-  }, [bonzaiActive]);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AgentMcpServerDto>();
   const [toDelete, setToDelete] = useState<AgentMcpServerDto>();
   const [saveError, setSaveError] = useState<string>();
   const [testResults, setTestResults] = useState<Record<string, string>>({});
-  const dialogRequestRef = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,28 +160,18 @@ export function AgentMcpServersSection() {
     }
   }
 
-  async function openCreate() {
-    const request = ++dialogRequestRef.current;
+  function openCreate() {
     setEditing(undefined);
+    setDraft(EMPTY_DRAFT);
     setSaveError(undefined);
-    const active = await getBonzaiActive();
-    if (request !== dialogRequestRef.current) return;
-    setDraft({
-      ...EMPTY_DRAFT,
-      transport: active ? "streamable_http" : EMPTY_DRAFT.transport,
-    });
     setAddOpen(true);
   }
 
-  async function openEdit(server: AgentMcpServerDto) {
-    const request = ++dialogRequestRef.current;
+  function openEdit(server: AgentMcpServerDto) {
     setEditing(server);
-    setSaveError(undefined);
-    const active = await getBonzaiActive();
-    if (request !== dialogRequestRef.current) return;
     setDraft({
       name: server.name,
-      transport: active && server.transport === "stdio" ? "streamable_http" : server.transport,
+      transport: server.transport,
       command: server.command ?? "",
       args: server.args.join("\n"),
       url: server.url ?? "",
@@ -205,6 +184,7 @@ export function AgentMcpServersSection() {
       allowSandboxed: server.safety.allowSandboxed,
       oauth: server.metadata.auth === "oauth" || server.metadata.legacyAuth === "oauth",
     });
+    setSaveError(undefined);
     setAddOpen(true);
   }
 
@@ -387,7 +367,6 @@ export function AgentMcpServersSection() {
       <Dialog
         open={addOpen}
         onClose={() => {
-          ++dialogRequestRef.current;
           setAddOpen(false);
           setEditing(undefined);
         }}
@@ -403,7 +382,6 @@ export function AgentMcpServersSection() {
               type="button"
               className="primary-action"
               onClick={() => {
-                ++dialogRequestRef.current;
                 setAddOpen(false);
                 setEditing(undefined);
               }}
@@ -451,7 +429,7 @@ export function AgentMcpServersSection() {
                 }))
               }
             >
-              {bonzaiActive ? null : <option value="stdio">Local process (stdio)</option>}
+              <option value="stdio">Local process (stdio)</option>
               <option value="streamable_http">Streamable HTTP</option>
             </select>
           </label>

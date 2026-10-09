@@ -1299,39 +1299,14 @@ async fn unattended_tools(
         )
         .await
     {
-        Ok(descriptors) => {
-            let mcp_repository = crate::agent_mcp::AgentMcpRepository::new(repository.pool.clone());
-            for descriptor in descriptors {
-                let Some(server_id) = descriptor
-                    .id
-                    .strip_prefix("mcp:")
-                    .and_then(|value| value.split('/').next())
-                else {
-                    continue;
-                };
-                let server_name = if server_id == crate::agent_mcp::MANAGED_LINEAR_SERVER_ID {
-                    crate::agent_mcp::MANAGED_LINEAR_SERVER_NAME.to_string()
-                } else {
-                    let Ok(server) = mcp_repository.get(server_id).await else {
-                        continue;
-                    };
-                    server.name
-                };
-                if routine_mcp_server_enabled(
-                    server_id,
-                    &server_name,
-                    descriptor.requires_approval == Some(true),
-                    enabled_toolsets,
-                ) {
-                    if let Ok(value) = serde_json::to_value(descriptor) {
-                        tools
-                            .as_array_mut()
-                            .expect("routine tool catalog is an array")
-                            .push(value);
-                    }
-                }
-            }
-        }
+        Ok(descriptors) => tools
+            .as_array_mut()
+            .expect("routine tool catalog is an array")
+            .extend(
+                routine_mcp_descriptors(descriptors, enabled_toolsets)
+                    .into_iter()
+                    .filter_map(|descriptor| serde_json::to_value(descriptor).ok()),
+            ),
         Err(error) => tracing::warn!(
             error_code = "routine_mcp_discovery_failed",
             error = %error,
@@ -1425,23 +1400,46 @@ fn routine_base_tool_allowed(name: &str, enabled_toolsets: &[String]) -> bool {
     }
 }
 
+/// A routine receives the same external MCP catalog as an ordinary run: every
+/// descriptor the global subsystem discovered after its own `enabled`,
+/// `allow_sandboxed`, transport, visibility, and approval checks. Only the
+/// managed Linear source stays behind its historical connector toolsets,
+/// because those are native connector trust grants rather than an MCP
+/// allowlist.
+fn routine_mcp_descriptors(
+    descriptors: Vec<crate::agent_mcp::RuntimeToolDescriptorJson>,
+    enabled_toolsets: &[String],
+) -> Vec<crate::agent_mcp::RuntimeToolDescriptorJson> {
+    descriptors
+        .into_iter()
+        .filter(|descriptor| {
+            crate::agent_mcp::mcp_server_id_from_tool_id(&descriptor.id).is_some_and(|server_id| {
+                routine_mcp_server_enabled(
+                    server_id,
+                    descriptor.requires_approval == Some(true),
+                    enabled_toolsets,
+                )
+            })
+        })
+        .collect()
+}
+
 fn routine_mcp_server_enabled(
     server_id: &str,
-    server_name: &str,
     requires_approval: bool,
     enabled_toolsets: &[String],
 ) -> bool {
-    if server_id == crate::agent_mcp::MANAGED_LINEAR_SERVER_ID {
-        let has = |expected: &str| enabled_toolsets.iter().any(|toolset| toolset == expected);
-        return if requires_approval {
-            has("june_linear_actions")
-        } else {
-            has("june_linear")
-        };
+    if server_id != crate::agent_mcp::MANAGED_LINEAR_SERVER_ID {
+        return true;
     }
+    let required_toolset = if requires_approval {
+        "june_linear_actions"
+    } else {
+        "june_linear"
+    };
     enabled_toolsets
         .iter()
-        .any(|toolset| toolset == server_name)
+        .any(|toolset| toolset == required_toolset)
 }
 
 pub async fn routine_tool_allowed_for_session(
@@ -1484,7 +1482,6 @@ pub async fn routine_mcp_server_allowed_for_session(
     pool: &SqlitePool,
     session_id: &str,
     server_id: &str,
-    server_name: &str,
     requires_approval: bool,
 ) -> Result<Option<bool>, AppError> {
     let row = query(
@@ -1506,7 +1503,6 @@ pub async fn routine_mcp_server_allowed_for_session(
         enabled_toolsets_from_metadata(&metadata, row.get::<i64, _>("tool_catalog_version") == 0);
     Ok(Some(routine_mcp_server_enabled(
         server_id,
-        server_name,
         requires_approval,
         &enabled_toolsets,
     )))
@@ -1798,57 +1794,123 @@ mod tests {
     #[test]
     fn historical_linear_toolsets_preserve_read_and_action_boundaries() {
         let managed_id = crate::agent_mcp::MANAGED_LINEAR_SERVER_ID;
-        let managed_name = crate::agent_mcp::MANAGED_LINEAR_SERVER_NAME;
         assert!(routine_mcp_server_enabled(
             managed_id,
-            managed_name,
             false,
             &["june_linear".into()],
         ));
         assert!(!routine_mcp_server_enabled(
             managed_id,
-            managed_name,
             true,
             &["june_linear".into()],
         ));
         assert!(routine_mcp_server_enabled(
             managed_id,
-            managed_name,
             true,
             &["june_linear_actions".into()],
         ));
         assert!(!routine_mcp_server_enabled(
             managed_id,
-            managed_name,
             false,
             &["june_linear_actions".into()],
         ));
         for requires_approval in [false, true] {
             assert!(!routine_mcp_server_enabled(
                 managed_id,
-                managed_name,
                 requires_approval,
                 &["linear".into()],
             ));
         }
         assert!(!routine_mcp_server_enabled(
             managed_id,
-            managed_name,
             false,
             &["web".into()],
         ));
-        assert!(!routine_mcp_server_enabled(
-            "custom-linear",
-            "linear",
-            false,
-            &["june_linear".into()],
-        ));
-        assert!(routine_mcp_server_enabled(
-            "custom-linear",
-            "linear",
-            false,
-            &["linear".into()],
-        ));
+    }
+
+    #[test]
+    fn custom_mcp_servers_need_no_routine_toolset_entry() {
+        for enabled_toolsets in [
+            Vec::new(),
+            vec!["web".to_string()],
+            vec!["june_linear".to_string()],
+        ] {
+            for requires_approval in [false, true] {
+                assert!(routine_mcp_server_enabled(
+                    "custom-linear",
+                    requires_approval,
+                    &enabled_toolsets,
+                ));
+            }
+        }
+    }
+
+    fn mcp_descriptor(
+        id: &str,
+        name: &str,
+        requires_approval: bool,
+    ) -> crate::agent_mcp::RuntimeToolDescriptorJson {
+        crate::agent_mcp::RuntimeToolDescriptorJson {
+            id: id.into(),
+            name: name.into(),
+            description: "Test tool".into(),
+            parameters: json!({"type":"object","properties":{}}),
+            strict: None,
+            requires_approval: requires_approval.then_some(true),
+            approval_provider: None,
+            approval_remote_tool_name: None,
+            policy_fingerprint: None,
+        }
+    }
+
+    #[test]
+    fn routine_catalog_keeps_every_discovered_custom_mcp_descriptor() {
+        let managed_id = crate::agent_mcp::MANAGED_LINEAR_SERVER_ID;
+        let discovered = vec![
+            mcp_descriptor("mcp:docs-id/search", "mcp_docs_search", false),
+            mcp_descriptor("mcp:local-id/write", "mcp_local_write", true),
+            mcp_descriptor(
+                &format!("mcp:{managed_id}/list_issues"),
+                "mcp_linear_list_issues",
+                false,
+            ),
+            mcp_descriptor(
+                &format!("mcp:{managed_id}/create_issue"),
+                "mcp_linear_create_issue",
+                true,
+            ),
+        ];
+
+        let names = |toolsets: &[String]| {
+            routine_mcp_descriptors(discovered.clone(), toolsets)
+                .into_iter()
+                .map(|descriptor| descriptor.name)
+                .collect::<Vec<_>>()
+        };
+
+        // No MCP name in the routine catalog: custom servers still arrive,
+        // the managed Linear source does not.
+        assert_eq!(names(&[]), ["mcp_docs_search", "mcp_local_write"]);
+        assert_eq!(
+            names(&["june_linear".into()]),
+            [
+                "mcp_docs_search",
+                "mcp_local_write",
+                "mcp_linear_list_issues"
+            ]
+        );
+        assert_eq!(
+            names(&["june_linear".into(), "june_linear_actions".into()]),
+            [
+                "mcp_docs_search",
+                "mcp_local_write",
+                "mcp_linear_list_issues",
+                "mcp_linear_create_issue",
+            ]
+        );
+        // A descriptor whose approval policy the subsystem set keeps it.
+        let kept = routine_mcp_descriptors(discovered.clone(), &[]);
+        assert_eq!(kept[1].requires_approval, Some(true));
     }
 
     #[tokio::test]
@@ -1885,7 +1947,6 @@ mod tests {
                 &pool,
                 "session-linear",
                 crate::agent_mcp::MANAGED_LINEAR_SERVER_ID,
-                crate::agent_mcp::MANAGED_LINEAR_SERVER_NAME,
                 false,
             )
             .await
@@ -1897,25 +1958,98 @@ mod tests {
                 &pool,
                 "session-linear",
                 crate::agent_mcp::MANAGED_LINEAR_SERVER_ID,
-                crate::agent_mcp::MANAGED_LINEAR_SERVER_NAME,
                 true,
             )
             .await
             .unwrap(),
             Some(false)
         );
+        // A custom server named "linear" is neither shadowed by nor dependent
+        // on the managed toolsets: the routine reaches it without a grant.
+        for requires_approval in [false, true] {
+            assert_eq!(
+                routine_mcp_server_allowed_for_session(
+                    &pool,
+                    "session-linear",
+                    "custom-linear",
+                    requires_approval,
+                )
+                .await
+                .unwrap(),
+                Some(true)
+            );
+        }
+        // An ordinary focused run is not a routine session at all.
         assert_eq!(
             routine_mcp_server_allowed_for_session(
                 &pool,
-                "session-linear",
+                "session-ordinary",
                 "custom-linear",
-                "linear",
+                false
+            )
+            .await
+            .unwrap(),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn routine_with_an_empty_catalog_reaches_custom_mcp_but_not_unlisted_host_tools() {
+        let pool = pool().await;
+        let mut request = create_request("every 1h");
+        request.enabled_toolsets = Some(Vec::new());
+        create(&pool, request).await.unwrap();
+        let claimed = claim(&pool, "routine-1", "manual", false)
+            .await
+            .unwrap()
+            .unwrap();
+        query("INSERT INTO agent_sessions (id) VALUES ('session-empty')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        query("INSERT INTO agent_runs (id) VALUES ('run-empty')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        attach_run_mapping(
+            &pool,
+            &claimed.routine_run_id,
+            &claimed.token,
+            "session-empty",
+            "run-empty",
+            &now(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            routine_mcp_server_allowed_for_session(&pool, "session-empty", "custom-docs", true)
+                .await
+                .unwrap(),
+            Some(true)
+        );
+        assert_eq!(
+            routine_mcp_server_allowed_for_session(
+                &pool,
+                "session-empty",
+                crate::agent_mcp::MANAGED_LINEAR_SERVER_ID,
                 false,
             )
             .await
             .unwrap(),
             Some(false)
         );
+        // The routine host-tool policy is unchanged: an empty catalog still
+        // withholds web and file tools.
+        for name in ["web_search", "read_file", "search_june"] {
+            assert_eq!(
+                routine_tool_allowed_for_session(&pool, "session-empty", name)
+                    .await
+                    .unwrap(),
+                Some(false),
+                "{name}"
+            );
+        }
     }
 
     #[test]

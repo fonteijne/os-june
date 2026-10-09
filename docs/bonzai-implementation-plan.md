@@ -48,7 +48,7 @@ renaming it in both places.
 | 3 - note transcription | **done** (routing, paced) | Note transcription reaches Bonzai at acceptable quality | `bonzai/audio.rs` + one prologue. Beta feedback: a LiteLLM key's requests-per-minute limit answered the pipeline's bursts (two note chunks at a time plus a preview chunk per source every 8 s) with 429s upstream's retry loop did not recognise, failing whole notes; the module now paces itself (two in flight, a shared `Retry-After` cool-down, five attempts per note chunk, previews skipped while cooling). The quality gate against real meeting audio is not yet run and depends on open question 1 |
 | 4 - per-project keys | **done** | Spend in LiteLLM reconciles to the project worked in | Project-then-global resolution from `note_folders` and `session_folders`; keychain keys; project settings field and card badge. No migration: the plan's column was replaced by an index beside the keychain |
 | 5 - severance | **done** | Zero OS Accounts and Clovy API requests in a session | `bonzai/severance.rs`; guards on both Clovy API chokepoints and every direct GET; no-account mode; disabled tools stripped and refused; dictation off on both sides; P3A and issue reports cut |
-| 6 - MCP policy | **done** | Search restorable without reopening inference egress | `bonzai/mcp_policy.rs` + an MCP allowlist (empty) checked at save and connect time; stdio refused; the form hides it |
+| 6 - MCP policy | **done**, then superseded (2026-10-02) | Search restorable without reopening inference egress | Shipped as `bonzai/mcp_policy.rs` + an empty MCP allowlist checked at save and connect time, stdio refused, the form hiding it. Removed on 2026-10-02: external MCP follows the shared Clovy registry contract on Bonzai builds; inference egress unchanged ([ADR-0059 addendum](adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md), [implementation log](roadmap/mcp-original-integration/implementation-log.md)) |
 | Beta feedback (round 1) | **done** | A project can be given its Bonzai key as it is created or edited; a Bonzai refusal in chat names its reason | `useBonzaiCreateKey` in the create dialog (probe first, store once the project has an id); `agent-runtime/src/bonzai.ts` + `bonzaiNoticePart` replace the "Clovy stopped unexpectedly" fallback for `bonzai_*` and `egress_blocked` codes; `bonzai/logging.rs` installs the stderr `tracing` subscriber upstream never had, so the runtime's stderr and Bonzai refusals reach the dev terminal |
 | Post-beta - dictation | **deferred** | Dictation on, and no slower than the baseline it replaced | Blocked on a benchmarked whisper backend; also projected to exceed the touched-line budget (43 / 40) |
 
@@ -346,7 +346,9 @@ will otherwise expect what this plan originally said:
   unchanged for `assert_allowed` and Bonzai model traffic. The MCP-specific policy
   has a dated ADR-0059 addendum: exact loopback MCP endpoints may use HTTP or HTTPS
   in release and debug builds. External MCP hosts remain HTTPS-only and compiled
-  allowlisted; stdio remains disabled.
+  allowlisted; stdio remains disabled. *(2026-10-02: the MCP-specific policy was
+  removed; external MCP follows the shared Clovy registry rules on every build.
+  The inference scheme and host checks are unchanged.)*
 
 **Verified:** the guard passes with all sixteen sites routed, and fails with
 the offending file and line when a raw `reqwest::Client::new()` is
@@ -554,7 +556,17 @@ this should hold, but it is the change most likely to surprise.
 
 ### Phase 6 - MCP policy
 
-**Status: done.**
+**Status: done, then superseded (2026-10-02).**
+
+> **Superseded.** The policy below shipped and was removed on 2026-10-02.
+> External MCP on a Bonzai build now follows the shared Clovy registry
+> contract (HTTPS or exact loopback HTTP, bounded stdio, keychain secrets,
+> visibility and approval policy), and routines receive the same global MCP
+> catalog as ordinary runs. Inference egress, `assert_allowed()`, and the
+> source-level guard are unchanged. See the
+> [ADR-0059 addendum](adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md)
+> and the [implementation log](roadmap/mcp-original-integration/implementation-log.md).
+> The record below is kept as history.
 
 **What landed.** An MCP allowlist in `egress.rs` (empty; an external host joins it by
 a rebuild) and `bonzai/mcp_policy.rs`, checked in `validate_custom` (save

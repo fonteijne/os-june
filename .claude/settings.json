@@ -1,0 +1,52 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api-v2.bonzai.iodigital.com/",
+    "ANTHROPIC_MODEL": "gpt-6-luna[1m]",
+    "ANTHROPIC_SMALL_FAST_MODEL": "gpt-6-luna[1m]",
+    "CLAUDE_CODE_EFFORT_LEVEL": "max",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "gpt-6-luna[1m]",
+    "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./secrets/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": []
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "sparsePaths": [
+          ".claude-plugin",
+          "plugins/frontend-design"
+        ]
+      }
+    }
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-code-plugins": true
+  }
+}
+

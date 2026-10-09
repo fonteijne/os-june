@@ -5,18 +5,12 @@ import { AgentMcpServersSection } from "../components/settings/AgentMcpServersSe
 import type { AgentMcpServerDto } from "../lib/agent-mcp";
 
 const mocks = vi.hoisted(() => ({
-  bonzaiActive: false,
   list: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
   test: vi.fn(),
   connectOauth: vi.fn(),
-}));
-
-vi.mock("../lib/bonzai", () => ({
-  bonzaiActive: vi.fn(() => Promise.resolve(mocks.bonzaiActive)),
-  useBonzaiActive: () => mocks.bonzaiActive,
 }));
 
 vi.mock("../lib/agent-mcp", async (importOriginal) => ({
@@ -50,7 +44,6 @@ const server: AgentMcpServerDto = {
 describe("AgentMcpServersSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.bonzaiActive = false;
     mocks.list.mockResolvedValue([server]);
     mocks.update.mockImplementation(async (input) => input);
     mocks.remove.mockResolvedValue(undefined);
@@ -119,32 +112,35 @@ describe("AgentMcpServersSection", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("opens Bonzai server creation on the HTTP transport", async () => {
-    let resolveActive!: (value: boolean) => void;
-    const activePromise = new Promise<boolean>((resolve) => {
-      resolveActive = resolve;
-    });
-    const bonzaiModule = await import("../lib/bonzai");
-    (bonzaiModule.bonzaiActive as ReturnType<typeof vi.fn>).mockReturnValueOnce(activePromise);
-    mocks.bonzaiActive = true;
-    mocks.list.mockResolvedValue([]);
+  it("offers both transports on every build and keeps a saved stdio server on stdio", async () => {
     const user = userEvent.setup();
     render(<AgentMcpServersSection />);
 
-    await screen.findByText("No custom servers");
+    await screen.findByText("Tasks");
     await user.click(screen.getByRole("button", { name: "Add server" }));
-    // Dialog should not appear while the Bonzai status lookup is still in-flight.
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const createDialog = await screen.findByRole("dialog");
+    expect(within(createDialog).getByRole("option", { name: /stdio/i })).toBeInTheDocument();
+    expect(
+      within(createDialog).getByRole("option", { name: "Streamable HTTP" }),
+    ).toBeInTheDocument();
+    expect(within(createDialog).getByLabelText("Transport")).toHaveValue("stdio");
+    expect(within(createDialog).getByLabelText("Command")).toBeInTheDocument();
+    await user.selectOptions(within(createDialog).getByLabelText("Transport"), "streamable_http");
+    expect(within(createDialog).getByLabelText("URL")).toBeInTheDocument();
+    await user.click(within(createDialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
-    resolveActive(true);
-    const dialog = await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Configure Tasks" }));
+    const editDialog = await screen.findByRole("dialog");
+    expect(within(editDialog).getByLabelText("Transport")).toHaveValue("stdio");
+    expect(within(editDialog).getByLabelText("Command")).toHaveValue("node");
+    await user.click(within(editDialog).getByRole("button", { name: "Save changes" }));
 
-    expect(within(dialog).getByLabelText("Transport")).toHaveValue("streamable_http");
-    expect(within(dialog).getByLabelText("URL")).toBeInTheDocument();
-    expect(within(dialog).queryByLabelText("Command")).not.toBeInTheDocument();
-    expect(within(dialog).queryByLabelText("Arguments, one per line")).not.toBeInTheDocument();
-    // The stdio option must not be present in the transport select.
-    expect(within(dialog).queryByRole("option", { name: /stdio/i })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "mcp-tasks", transport: "stdio", command: "node" }),
+      ),
+    );
   });
 
   it("creates an OAuth HTTP server disabled until browser sign-in", async () => {

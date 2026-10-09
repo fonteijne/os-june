@@ -223,15 +223,31 @@ A stdio MCP server is a third-party binary making its own network calls. No
 in-process allowlist can observe them; the macOS `sandbox-exec` wrapper
 constrains filesystem access, not egress.
 
+*(2026-10-02: the two MCP rows above describe the v1 policy, since removed.
+MCP over HTTP now follows shared Clovy validation, still through the guarded
+client constructor; MCP over stdio is available under the shared registry
+rules. See the update in section 7.6.)*
+
 **Requirements:**
 
 - Inference uses a compiled host allowlist and is HTTPS-only, failing closed
   with a distinct error at the request helper.
-- MCP uses a distinct compiled policy: exact loopback hosts may use HTTP or
-  HTTPS; external MCP hosts require HTTPS and an exact compiled allowlist match.
+- External MCP uses the shared Clovy registry contract on every build: HTTPS
+  for remote servers, exact loopback HTTP where applicable, bounded stdio,
+  Keychain-only secrets, visibility filters, sandbox checks, and approval
+  defaults. It is not admitted by the Bonzai inference allowlist.
 - A CI test asserts no raw reqwest client is constructed outside the guarded
   module, so an upstream merge that introduces a new provider call **fails the
   build** rather than shipping.
+
+### Historical v1 MCP policy (superseded 2026-10-02)
+
+The original Bonzai v1 requirements used a distinct compiled MCP policy: exact
+loopback hosts could use HTTP or HTTPS, external hosts required HTTPS and an
+exact compiled allowlist match, and stdio was disabled. That policy shipped,
+then was removed by the dated ADR-0059 addendum. The retained requirement is
+that Bonzai inference egress remains closed; user-configured MCP follows the
+shared registry contract described above.
 
 ### 7.6 MCP policy
 
@@ -258,6 +274,18 @@ MCP servers. Relax later, deliberately, if a stdio server is worth the trade.
 
 A single blanket "never third party" claim would not survive a security
 review once MCP is enabled. Splitting it now is the honest framing.
+
+> **Update 2026-10-02: the v1 MCP policy is superseded.** A Bonzai build no
+> longer applies its own MCP admission. External MCP follows the shared Clovy
+> registry contract (HTTPS or exact loopback HTTP, bounded stdio, keychain
+> secrets, include and exclude visibility, approval by default for unknown
+> tools), and routines receive the same global MCP catalog as ordinary runs.
+> Claim 1 above stands unchanged: inference egress is closed. Claim 2 now reads
+> "tool egress is the user's configuration": user-configured MCP servers,
+> including local stdio processes, are not governed by the inference allowlist,
+> and their own network calls are outside what this build observes. See the
+> [ADR-0059 addendum](adr/0059-bonzai-egress-is-enforced-by-a-build-time-allowlist.md)
+> and [the restoration plan](roadmap/mcp-original-integration/plan.md).
 
 ### 7.7 Disabling means three things
 
@@ -388,7 +416,7 @@ budget.
 | --- | --- |
 | Upstream adds a new provider call; a merge silently reopens egress | Allowlist fails closed; CI egress test breaks the build |
 | Upstream refactors a chokepoint function, breaking a prologue | Conflict canary catches it before it is urgent; prologues are small enough to re-apply |
-| A stdio MCP server exfiltrates data | stdio disabled in v1; allowlist governs HTTP servers |
+| A stdio MCP server exfiltrates data | stdio disabled in v1; allowlist governs HTTP servers. *Superseded 2026-10-02:* stdio and remote MCP are user-configured under the shared Clovy contract (approval by default, visibility filters, Seatbelt workspace boundary for sandboxed stdio); their own egress is outside the inference allowlist, and OS-level egress control is the only mechanism that would govern it |
 | A key is pasted into the wrong project, billing the wrong client | Show the key's owning project prominently; probe on paste; no silent fallback |
 | `local_dev_enabled()` restricted to debug builds upstream | Own named no-account mode rather than a dependency on the dev flag |
 | Transcription quality differs from Venice's tuned path | Validate whisper-class model quality on real meeting audio before cutover; dictation, where latency matters most, is deferred out of beta entirely |
