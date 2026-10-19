@@ -69,7 +69,7 @@ describe("FundingNotice", () => {
     renderFundingNotice();
 
     expect(
-      screen.getByText("Your starter credits are used up. Upgrade to keep using the app."),
+      screen.getByText("Your starter credits are used up. Upgrade to keep using Bonzai Agent."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Upgrade to Pro" }));
@@ -132,7 +132,7 @@ describe("FundingNotice", () => {
     );
 
     expect(
-      screen.getByText("Your starter credits are used up. Upgrade to keep using the app."),
+      screen.getByText("Your starter credits are used up. Upgrade to keep using Bonzai Agent."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Select a Venice model" })).toBeNull();
   });
@@ -158,7 +158,7 @@ describe("FundingNotice", () => {
     });
 
     expect(
-      screen.getByText("Your payment needs attention. Update billing to keep using the app."),
+      screen.getByText("Your payment needs attention. Update billing to keep using Bonzai Agent."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Manage billing" }));
@@ -189,7 +189,7 @@ describe("FundingNotice", () => {
     });
 
     expect(
-      screen.getByText("Your credit balance is below zero. Top up to keep using the app."),
+      screen.getByText("Your credit balance is below zero. Top up to keep using Bonzai Agent."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Top up credits" }));

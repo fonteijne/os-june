@@ -27,7 +27,7 @@ import { SettingsPageHeader } from "./AppSettings";
 
 const MEMORY_MAX_CHARS = 4_000;
 const MEMORY_TOGGLE_ERROR =
-  "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen the app before starting another agent run.";
+  "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen Bonzai Agent before starting another agent run.";
 // Filter sentinel for memories that aren't tied to any project.
 const SCOPE_ALL = "__all__";
 const SCOPE_GENERAL = "__general__";

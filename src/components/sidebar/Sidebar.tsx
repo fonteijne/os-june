@@ -1970,7 +1970,8 @@ function ReferralDialog({
           </span>
           <p className="referral-hero-title">Give a month, get a month</p>
           <p className="referral-hero-copy">
-            Share the app with a friend. When they join and subscribe, you both get a free month.
+            Share Bonzai Agent with a friend. When they join and subscribe, you both get a free
+            month.
           </p>
         </div>
         <div className="referral-panel">

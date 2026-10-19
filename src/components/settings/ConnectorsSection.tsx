@@ -187,7 +187,7 @@ function NotionConnectorRow({
       statusTone: "warning",
     },
     unavailable: {
-      subtitle: "The app could not confirm the Notion connection. Try again in a moment.",
+      subtitle: "Bonzai Agent could not confirm the Notion connection. Try again in a moment.",
       statusLabel: "Status unavailable",
       statusTone: "warning",
     },
@@ -345,7 +345,7 @@ function accountSubtitle(
 ): string {
   if (account.provider === "linear") {
     if (account.status === "unavailable") {
-      return `${accountDisplayName(account)} · The app could not confirm Linear MCP access.`;
+      return `${accountDisplayName(account)} · Bonzai Agent could not confirm Linear MCP access.`;
     }
     if (account.status === "reconnect_required" || linearNeedsScopeReconnect(policy, account)) {
       return `${accountDisplayName(account)} · Reconnect to enable workspace-wide Linear MCP access.`;
@@ -781,7 +781,7 @@ export function ConnectorsSection({
       setDisconnectTarget(null);
       if (outcome?.providerRevocationConfirmed === false) {
         toast.warning(
-          `Disconnected ${accountDisplayName(account)} locally. The app could not confirm revocation with ${PROVIDER_NAMES[account.provider]}; you can remove it in ${PROVIDER_NAMES[account.provider]} settings.`,
+          `Disconnected ${accountDisplayName(account)} locally. Bonzai Agent could not confirm revocation with ${PROVIDER_NAMES[account.provider]}; you can remove the authorized app in ${PROVIDER_NAMES[account.provider]} settings.`,
         );
       } else {
         toast.success(`Disconnected ${accountDisplayName(account)}`);

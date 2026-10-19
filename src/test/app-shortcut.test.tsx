@@ -1849,7 +1849,7 @@ describe("App shortcuts", () => {
     expect(
       (
         await screen.findAllByText(
-          "Your starter credits are used up. Upgrade to keep using the app.",
+          "Your starter credits are used up. Upgrade to keep using Bonzai Agent.",
         )
       ).length,
     ).toBeGreaterThan(0);

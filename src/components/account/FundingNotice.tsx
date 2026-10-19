@@ -152,7 +152,7 @@ export function FundingNotice({ account, onRefresh, textFundingContext, active =
 
   const copy: NoticeCopy = billingRecovery
     ? {
-        body: "Your payment needs attention. Update billing to keep using the app.",
+        body: "Your payment needs attention. Update billing to keep using Bonzai Agent.",
         cta: "Manage billing",
         waiting: "Waiting for your billing update",
         reopen: "Reopen billing",
@@ -167,13 +167,13 @@ export function FundingNotice({ account, onRefresh, textFundingContext, active =
         }
       : maxTopUpRequired
         ? {
-            body: "Your credit balance is below zero. Top up to keep using the app.",
+            body: "Your credit balance is below zero. Top up to keep using Bonzai Agent.",
             cta: "Top up credits",
             waiting: "Waiting for your top-up",
             reopen: "Reopen account portal",
           }
         : {
-            body: "Your starter credits are used up. Upgrade to keep using the app.",
+            body: "Your starter credits are used up. Upgrade to keep using Bonzai Agent.",
             cta: "Upgrade to Pro",
             waiting: "Waiting for your upgrade",
             reopen: "Reopen checkout",

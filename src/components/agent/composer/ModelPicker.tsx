@@ -856,16 +856,16 @@ export function heroPrivacyFootnote(
   model: VeniceModelDto | undefined,
   badge: ModelPrivacyBadge | undefined,
 ): string {
-  if (!model) return "The app runs on this Mac.";
+  if (!model) return "Bonzai Agent runs on this Mac.";
   switch (badge?.mode) {
     case "e2ee":
-      return `The app runs on this Mac. Calls to ${model.name} are end-to-end encrypted.`;
+      return `Bonzai Agent runs on this Mac. Calls to ${model.name} are end-to-end encrypted.`;
     case "private":
-      return `The app runs on this Mac. Calls to ${model.name} are private.`;
+      return `Bonzai Agent runs on this Mac. Calls to ${model.name} are private.`;
     case "anonymous":
-      return `The app runs on this Mac. Calls to ${model.name} are anonymized.`;
+      return `Bonzai Agent runs on this Mac. Calls to ${model.name} are anonymized.`;
     default:
-      return `The app runs on this Mac. You're running ${model.name}.`;
+      return `Bonzai Agent runs on this Mac. You're running ${model.name}.`;
   }
 }
 

@@ -45,7 +45,7 @@ export class RpcChatCompletionsModelProvider implements ModelProvider {
   }
 
   getModel(modelName?: string): Model {
-    if (!modelName) throw new Error("A model name is required for Bonzai Agent");
+    if (!modelName) throw new Error("A model name is required for Bonzai model routing");
     const client = {
       baseURL: "stdio://clovy-host",
       chat: {

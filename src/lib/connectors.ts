@@ -226,7 +226,8 @@ const RECONNECT_BLURB: Readonly<Record<ConnectorProvider, string>> = Object.free
   notion: "Notion needs you to connect again before the app can use its hosted MCP tools.",
   github: "GitHub needs you to sign in again before the app can use this account.",
 });
-const UNAVAILABLE_BLURB = "The app could not confirm the Notion connection. Try again in a moment.";
+const UNAVAILABLE_BLURB =
+  "Bonzai Agent could not confirm the Notion connection. Try again in a moment.";
 
 function accountStatusBlurb(status: ConnectorAccountStatus, provider: ConnectorProvider): string {
   if (status === "reconnect_required") return RECONNECT_BLURB[provider];

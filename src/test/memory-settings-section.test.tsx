@@ -235,7 +235,7 @@ describe("MemorySettingsSection", () => {
     await user.click(toggle);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen the app before starting another agent run.",
+      "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen Bonzai Agent before starting another agent run.",
     );
     expect(screen.queryByText("Runtime enforcement failed")).toBeNull();
     await waitFor(() => expect(toggle).not.toBeChecked());
@@ -256,7 +256,7 @@ describe("MemorySettingsSection", () => {
     await user.click(toggle);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen the app before starting another agent run.",
+      "Your memory setting was saved, but Bonzai Agent could not finish applying it. Quit and reopen Bonzai Agent before starting another agent run.",
     );
     expect(screen.queryByText("Runtime restart failed")).toBeNull();
     await waitFor(() => expect(toggle).toBeChecked());

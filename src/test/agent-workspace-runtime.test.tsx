@@ -29,6 +29,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mocks.openDialog }));
 
+import { heroPrivacyFootnote } from "../components/agent/composer/ModelPicker";
 import { AgentWorkspace } from "../components/agent/AgentWorkspace";
 import { markAgentNewSessionPending } from "../components/agent/session-persistence";
 import { agentComposerClearance } from "../components/agent/composer/layout";
@@ -113,6 +114,23 @@ function mockAgentLayoutBounds() {
 }
 
 describe("AgentWorkspace runtime wiring", () => {
+  it("names Bonzai Agent in the hero privacy footnote for each model privacy mode", () => {
+    const model = { name: "GLM 5.2" } as Parameters<typeof heroPrivacyFootnote>[0];
+    expect(heroPrivacyFootnote(undefined, undefined)).toBe("Bonzai Agent runs on this Mac.");
+    expect(heroPrivacyFootnote(model, { mode: "e2ee" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are end-to-end encrypted.",
+    );
+    expect(heroPrivacyFootnote(model, { mode: "private" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are private.",
+    );
+    expect(heroPrivacyFootnote(model, { mode: "anonymous" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are anonymized.",
+    );
+    expect(heroPrivacyFootnote(model, undefined)).toBe(
+      "Bonzai Agent runs on this Mac. You're running GLM 5.2.",
+    );
+  });
+
   beforeEach(() => {
     resetAgentSessionDraftsForTests();
     resetCurrentDataPartitionForTests();

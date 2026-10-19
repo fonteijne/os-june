@@ -459,7 +459,9 @@ describe("ConnectorsSection", () => {
 
     expect(await screen.findByText("Status unavailable")).toBeInTheDocument();
     expect(
-      screen.getByText("The app could not confirm the Notion connection. Try again in a moment."),
+      screen.getByText(
+        "Bonzai Agent could not confirm the Notion connection. Try again in a moment.",
+      ),
     ).toBeInTheDocument();
     await userEvent.hover(screen.getByRole("button", { name: "Notion privacy and access scope" }));
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -826,7 +828,7 @@ describe("ConnectorsSection — Linear", () => {
 
     await waitFor(() =>
       expect(mocks.toastWarning).toHaveBeenCalledWith(
-        "Disconnected Acme locally. The app could not confirm revocation with Linear; you can remove it in Linear settings.",
+        "Disconnected Acme locally. Bonzai Agent could not confirm revocation with Linear; you can remove the authorized app in Linear settings.",
       ),
     );
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
