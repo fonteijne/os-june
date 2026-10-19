@@ -522,7 +522,7 @@ fn spawn_stdout_reader(stdout: tokio::process::ChildStdout, context: RuntimeRead
                             event_id: Some(Uuid::new_v4().to_string()),
                             method: Some("run.failed".into()),
                             params: Some(json!({
-                                "error": "Clovy stopped unexpectedly.",
+                                "error": "Bonzai Agent stopped unexpectedly.",
                                 "category": "runtime",
                                 "code": "runtime_crashed",
                                 "retryable": true,
@@ -979,10 +979,10 @@ async fn persist_and_emit_event(
             persistence_external_id = interruption_external_id(&frame.run_id, &interruption_id);
             let interruption = match kind {
                 "clarification" => {
-                    json!({ "id": interruption_id, "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "clarification", "question": params.get("question").cloned().unwrap_or_else(|| json!("What would you like Clovy to do?")), "choices": params.get("choices").cloned().unwrap_or_else(|| json!([])) })
+                    json!({ "id": interruption_id, "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "clarification", "question": params.get("question").cloned().unwrap_or_else(|| json!("What would you like Bonzai Agent to do?")), "choices": params.get("choices").cloned().unwrap_or_else(|| json!([])) })
                 }
                 "secret" => {
-                    json!({ "id": interruption_id, "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "secret", "reason": params.get("reason").cloned().unwrap_or_else(|| json!("Clovy needs a secret before it can continue.")) })
+                    json!({ "id": interruption_id, "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "secret", "reason": params.get("reason").cloned().unwrap_or_else(|| json!("Bonzai Agent needs a secret before it can continue.")) })
                 }
                 _ => {
                     let tool_name = params
@@ -995,7 +995,7 @@ async fn persist_and_emit_event(
                         let (operation_name, operation_description) =
                             approval_operation_identity(&params, tool_name);
                         let command = approval_command(&operation_name, params.get("arguments"));
-                        json!({ "id": interruption_id, "toolCallId": params.get("callId").cloned().unwrap_or(Value::Null), "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "approval", "toolName": tool_name, "title": "Approval required", "description": format!("Clovy wants to run {operation_description}. Review the requested operation before approving."), "command": command, "allowAlways": false })
+                        json!({ "id": interruption_id, "toolCallId": params.get("callId").cloned().unwrap_or(Value::Null), "sessionId": frame.session_id, "runId": frame.run_id, "status": "pending", "createdAt": created_at, "kind": "approval", "toolName": tool_name, "title": "Approval required", "description": format!("Bonzai Agent wants to run {operation_description}. Review the requested operation before approving."), "command": command, "allowAlways": false })
                     }
                 }
             };

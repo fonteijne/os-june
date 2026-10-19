@@ -84,7 +84,7 @@ export async function notifyAgentRunSettled(
 ) {
   return deliverAgentAttention({
     copy: {
-      title: "Clovy is ready",
+      title: "Bonzai Agent is ready",
       body: detail.title.trim() || detail.summary.trim() || "Agent session",
     },
     context,
@@ -171,15 +171,15 @@ export function agentNotificationCopy(detail: AgentSessionStatusDetail): Notific
   const body = detail.summary?.trim() || subject;
 
   if (detail.status === "waitingForUser") {
-    return { title: "Clovy needs your input", body };
+    return { title: "Bonzai Agent needs your input", body };
   }
   if (detail.status === "completed") {
-    return { title: "Clovy finished", body };
+    return { title: "Bonzai Agent finished", body };
   }
   if (detail.status === "cancelled") {
-    return { title: "Clovy stopped", body };
+    return { title: "Bonzai Agent stopped", body };
   }
-  return { title: "Clovy hit a problem", body };
+  return { title: "Bonzai Agent hit a problem", body };
 }
 
 function agentNotificationGroup(

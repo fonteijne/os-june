@@ -38,10 +38,11 @@ export function FeedbackIndicators() {
 
       <h2 className="sg-subheading">Spinner</h2>
       <p className="sg-section-intro">
-        A full dot grid with a smooth highlight that climbs Clovy's mark from bottom-left to
-        top-right, then settles briefly before the next pass. The sm and md variants use the compact
-        3×3 mark at two inline sizes; size="lg" uses the full 5×5 mark for standalone loading
-        moments. Its neutral follows the active theme and contexts can override --spinner-color.
+        A full dot grid with a smooth highlight that climbs the Bonzai Agent mark from bottom-left
+        to top-right, then settles briefly before the next pass. The sm and md variants use the
+        compact 3×3 mark at two inline sizes; size="lg" uses the full 5×5 mark for standalone
+        loading moments. Its neutral follows the active theme and contexts can override
+        --spinner-color.
       </p>
       <div className="sg-row">
         <div className="sg-card">

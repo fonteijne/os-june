@@ -11,25 +11,22 @@
 //      the Tauri CLI's `tauri icon` command (a devDependency, resvg under the
 //      hood). This is the set Tauri bundles into the app.
 //
-//   2. Themed macOS dock icons. One per accent preset. Sage keeps Clovy's
-//      canonical lime material; every other preset gives the mark a luminous
-//      tonal version of its own hue on a dark matching tile. All variants
-//      render from a single template SVG (_src/icon.template.svg), with the
-//      background and mark stops substituted per brand. The accent hexes are
-//      read straight out of src/lib/brand.ts so brand.ts stays the single
-//      source of truth. Output lands in
-//      src-tauri/icons/themed/icon-<brand>.png at 1024x1024 (Rust's
-//      theme_icon.rs embeds these).
+//   2. Themed native macOS dock icons. The legacy native icon library keeps the
+//      packaged variants used by existing installs; Appearance no longer offers
+//      accent presets and renderer theme changes never select these icons. Sage
+//      retains its original lime mark, while the other variants retain their
+//      original hues. All render from the shared template SVG in _src/.
+//
+//      Their static legacy palette is intentionally kept here, separate from
+//      src/lib/brand.ts and the fixed Bonzai renderer palette. Output lands in
+//      src-tauri/icons/themed/icon-<id>.png at 1024x1024 (Rust embeds these).
 //
 // When to run it:
 //   - You changed clovy-app-icon.svg (the base mark).
-//   - You changed a preset's hex in src/lib/brand.ts.
-//   - You added or removed a preset in src/lib/brand.ts. Stale
-//     themed/icon-<brand>.png files for dropped brands are deleted for you.
+//   - You changed an entry in LEGACY_NATIVE_ICON_PALETTE.
+//   - You changed the themed SVG template. Stale icon files are cleaned up.
 //
-// Note on theme_icon.rs: it keeps an "amber" legacy match arm pointing at the
-// clay PNG, so clay must stay a preset. This script does not touch brand.ts,
-// index.html, or theme_icon.rs.
+// This script does not touch brand.ts, index.html, or theme_icon.rs.
 //
 // Determinism: `tauri icon` (resvg) is byte-stable for a given SVG on the same
 // CLI version, so reruns produce identical PNGs.
@@ -56,13 +53,23 @@ const BASE_SVG = join(root, "src-tauri", "icons", "clovy-app-icon.svg");
 const ICONS_DIR = join(root, "src-tauri", "icons");
 const THEMED_DIR = join(ICONS_DIR, "themed");
 const TEMPLATE_SVG = join(THEMED_DIR, "_src", "icon.template.svg");
-const BRAND_TS = join(root, "src", "lib", "brand.ts");
+
+// This is a compatibility generator for the already-shipped native icon set,
+// not a source of renderer palettes or Appearance controls. Keep every existing
+// native id and hex here so explicit native icon maintenance remains possible.
+export const LEGACY_NATIVE_ICON_PALETTE = Object.freeze([
+  Object.freeze({ id: "sage", value: "#3f812f" }),
+  Object.freeze({ id: "clay", value: "#b5551f" }),
+  Object.freeze({ id: "rose", value: "#a5655c" }),
+  Object.freeze({ id: "ocean", value: "#3d7b9a" }),
+  Object.freeze({ id: "plum", value: "#965d84" }),
+]);
 
 // Dock icons render at the SVG's native 1024x1024.
 const THEMED_SIZE = 1024;
 
-// Per-brand background stops preserve the accent hue while scaling its HSL
-// lightness into the dark register.
+// Per-icon background stops preserve the archived native hue while scaling its
+// HSL lightness into the dark register.
 const LIGHT_FACTOR = 0.38;
 const DARK_FACTOR = 0.18;
 
@@ -81,24 +88,27 @@ function tauriBinary() {
   return existsSync(local) ? local : "tauri";
 }
 
-// Reads BRAND_PRESETS out of brand.ts with a simple regex. Fails loudly if the
-// parse finds nothing, so a refactor of brand.ts can never silently produce an
-// empty icon set.
-function readBrandPresets() {
-  const source = readFileSync(BRAND_TS, "utf8");
-  const block = /BRAND_PRESETS\s*[^=]*=\s*\[([\s\S]*?)\]\s*;/.exec(source);
-  if (!block) {
-    throw new Error(`Could not find BRAND_PRESETS array in ${BRAND_TS}. Did the shape change?`);
+export function readLegacyNativeIconPalette() {
+  if (LEGACY_NATIVE_ICON_PALETTE.length === 0) {
+    throw new Error("The legacy native icon palette must not be empty.");
   }
-  const entryRe = /id:\s*["']([^"']+)["'][^}]*?value:\s*["'](#[0-9a-fA-F]{6})["']/g;
-  const presets = [];
-  for (const match of block[1].matchAll(entryRe)) {
-    presets.push({ id: match[1], value: match[2].toLowerCase() });
+  const ids = new Set();
+  for (const entry of LEGACY_NATIVE_ICON_PALETTE) {
+    if (!/^[a-z][a-z0-9-]*$/.test(entry.id)) {
+      throw new Error(`Invalid legacy native icon id: ${entry.id}`);
+    }
+    if (!/^#[0-9a-f]{6}$/i.test(entry.value)) {
+      throw new Error(`Invalid legacy native icon color for ${entry.id}: ${entry.value}`);
+    }
+    if (ids.has(entry.id)) {
+      throw new Error(`Duplicate legacy native icon id: ${entry.id}`);
+    }
+    ids.add(entry.id);
   }
-  if (presets.length === 0) {
-    throw new Error(`Parsed BRAND_PRESETS but found no id/value pairs in ${BRAND_TS}.`);
-  }
-  return presets;
+  return LEGACY_NATIVE_ICON_PALETTE.map(({ id, value }) => ({
+    id,
+    value: value.toLowerCase(),
+  }));
 }
 
 function hexToRgb(hex) {
@@ -255,8 +265,8 @@ function generateThemedIcons(presets) {
   cleanStaleThemed(written);
 }
 
-// Remove themed PNGs for brands that are no longer presets, so a dropped accent
-// does not leave an orphan icon behind. Only touches icon-*.png files.
+// Remove themed PNGs outside the static native icon palette. Only touches
+// icon-*.png files; packaged native icon identities stay separately managed.
 function cleanStaleThemed(keep) {
   for (const name of readdirSync(THEMED_DIR)) {
     if (!/^icon-.+\.png$/.test(name)) continue;
@@ -296,11 +306,13 @@ function verifyThemedIcons(presets) {
 }
 
 function main() {
-  const presets = readBrandPresets();
-  console.log(`Presets from brand.ts: ${presets.map((p) => `${p.id} ${p.value}`).join(", ")}`);
+  const nativeIcons = readLegacyNativeIconPalette();
+  console.log(
+    `Legacy native icon palette: ${nativeIcons.map((icon) => `${icon.id} ${icon.value}`).join(", ")}`,
+  );
   generateBaseIcons();
-  generateThemedIcons(presets);
-  verifyThemedIcons(presets);
+  generateThemedIcons(nativeIcons);
+  verifyThemedIcons(nativeIcons);
   console.log("Icons regenerated.");
 }
 

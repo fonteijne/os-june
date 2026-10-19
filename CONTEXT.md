@@ -1,24 +1,31 @@
 # Clovy
 
-Clovy is a Tauri desktop app that records meetings/dictation, transcribes
-the audio, turns the transcript into structured notes, and hosts an AI agent
-you can chat with over those notes. It depends on the **OS Accounts**
-identity-and-credits platform for sign-in and for billing metered AI usage,
-and runs a Clovy-owned **agent harness** built on the OpenAI Agents SDK.
+Clovy is the canonical technical Tauri desktop app identity and service owner.
+On Bonzai renderer builds, **Bonzai Agent** is the user-facing app and assistant
+name under the user-approved renderer presentation scope. The app records
+dictation, transcribes audio, turns transcripts into notes, and hosts an agent
+that can be used over those notes. It depends on **OS Accounts** for sign-in and
+credit ownership, and runs a Clovy-owned agent harness.
 
-This document is a glossary, not a spec. Terms are canonical; the `_Avoid_`
-lines are binding. Implementation, endpoints, and code shape live under
-[docs/](docs/index.md).
+The dated addendum to
+[ADR-0055](docs/adr/0055-addendum-2026-10-10-bonzai-agent-presentation.md)
+records this fork-specific exception. Its status remains proposed pending formal
+product/design review; the approved implementation scope does not make the
+addendum an accepted ADR. This document is a glossary, not a spec. Terms are
+canonical; the `_Avoid_` lines are binding. Implementation, endpoints, and code
+shape live under [docs/](docs/index.md).
 
 ## Language
 
 ### Platform
 
 **Clovy (the app)**:
-The user-facing Tauri desktop product — the macOS `.app` users install. The
-Cargo package is `clovy`; the binary on disk remains `os-june` and the bundle
-identifier remains `co.opensoftware.june` for installed-app, updater, and
-permission continuity. See
+The canonical technical Tauri desktop product identity; on Bonzai renderer
+builds the user-facing app and assistant name is **Bonzai Agent** under the
+user-approved presentation scope, recorded in a proposed dated addendum to
+ADR-0055. The macOS `.app` users install has Cargo package `clovy`; the binary
+on disk remains `os-june` and the bundle identifier remains
+`co.opensoftware.june` for installed-app, updater, and permission continuity. See
 [ADR-0055](docs/adr/0055-clovy-technical-identity-migrates-through-a-compatibility-bridge.md).
 _Avoid_: notetaker, OS Notetaker (legacy names — fully removed from code as of
 the earlier bundle rename; don't reintroduce), June as the current product
@@ -646,12 +653,17 @@ _Avoid_: the gateway, the proxy, LiteLLM (say Bonzai; LiteLLM is the
 software it runs).
 
 **Bonzai Agent**:
-The proposed whitelabel, user-facing name for the Clovy desktop product and
-its agent experience. Bonzai Agent continues to use the technical Bonzai
-inference deployment; it does not rename the provider, deployment, keys,
-routing, or any other technical identity.
+The user-facing name for the Clovy desktop product and its agent experience on
+Bonzai renderer builds, under the user-approved presentation scope recorded in
+the proposed dated ADR-0055 addendum. Bonzai Agent is what users see in renderer
+UI, native macOS app-menu labels (the menu title, About, Hide, and Quit items),
+and OS window titles. It does not rename `pkg_info.productName`, the Cargo
+package, the bundle identifier, Dock/Cmd-Tab icon, TCC registrations, the binary
+name, updater artifacts, the Bonzai inference provider, keys, routing, or any
+other technical or compatibility identity. Clovy API remains the service name;
+OS Accounts remains the source of truth for identity and credits.
 _Avoid_: using Bonzai Agent for provider, endpoint, egress, key, environment,
-wire, package, or deployment identifiers.
+wire, package, bundle, binary, or deployment identifiers.
 
 **Bonzai key**:
 A LiteLLM virtual key held by this fork, scoping model access and accruing
@@ -774,7 +786,9 @@ _Avoid_: paywall (unqualified — say which gate).
 
 **Agent HUD**:
 The floating agent overlay window, toggled from the menu bar and separate
-from the main window.
+from the main window. Its displayed window/menu title may say Bonzai Agent on
+this fork; that presentation does not rename package, bundle, Dock/Cmd-Tab, or
+TCC identities.
 _Avoid_: pet (legacy name — survives only in an old storage key), overlay
 (unqualified), floating window.
 

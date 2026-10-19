@@ -26,7 +26,7 @@ const capabilityLabels: Record<CompanionCapability, string> = {
   notesRead: "Read notes",
   notesEdit: "Edit notes",
   agentRead: "Read agent sessions",
-  agentChat: "Chat with Clovy",
+  agentChat: "Chat with Bonzai Agent",
   agentCancel: "Cancel agent runs",
   modelRead: "View agent models",
   modelEdit: "Change agent models",
@@ -34,7 +34,7 @@ const capabilityLabels: Record<CompanionCapability, string> = {
   settingsRead: "Read safe settings",
   settingsEditSafe: "Edit safe settings",
   recordingControlExisting: "Control an existing recording",
-  appFocus: "Focus Clovy on this Mac",
+  appFocus: "Focus Bonzai Agent on this Mac",
   filesUpload: "Add phone attachments",
   filesBrowse: "Browse shared Mac folders",
   devicesReadSelf: "Read this device",
@@ -356,7 +356,7 @@ export function LinkedDevicesSection() {
           <h3 className="settings-row-title">Mac folders</h3>
           <p className="settings-row-description">
             Linked devices can browse file names and details only inside folders you add here. Files
-            are read only when you attach one to a Clovy message. Folder contents cannot be
+            are read only when you attach one to a Bonzai Agent message. Folder contents cannot be
             downloaded to the companion.
           </p>
         </div>
@@ -400,7 +400,7 @@ export function LinkedDevicesSection() {
               <p className="settings-row-description">
                 {computerUseApprovals?.available === false
                   ? "Enable experimental Computer use before allowing linked approvals."
-                  : "Let a linked device approve one specific Computer use action at a time. Requests expire after 60 seconds, remain visible on this Mac, and never bypass Clovy's safety policy."}
+                  : "Let a linked device approve one specific Computer use action at a time. Requests expire after 60 seconds, remain visible on this Mac, and never bypass Bonzai Agent's safety policy."}
               </p>
             </div>
             <div className="settings-row-control">
@@ -500,7 +500,7 @@ export function LinkedDevicesSection() {
           <div className="settings-card companion-empty-device">
             <h3 className="settings-row-title">No linked devices</h3>
             <p className="settings-row-description">
-              Link a companion above to access Clovy when you are away from this Mac.
+              Link a companion above to access Bonzai Agent when you are away from this Mac.
             </p>
           </div>
         )}

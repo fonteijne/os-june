@@ -32,7 +32,6 @@ import {
 } from "./lib/agent-hud-settings";
 import { isAgentSessionTitleCandidate, sessionSettledTitleKind } from "./lib/agent-session-titles";
 import type { AgentSessionDto } from "./lib/agent-runtime-contract";
-import { subscribeBrand } from "./lib/brand";
 import { SPINNER_GRID_COLS, spinnerGrid } from "./lib/spinner-grid";
 import { createHudLifecycle } from "./lib/hud-lifecycle";
 import { titleFromPrompt } from "./lib/session-title";
@@ -47,9 +46,6 @@ import { installNativeContextMenuGuard } from "./lib/native-context-menu";
 import "./styles/agent-hud.css";
 
 const lifecycle = createHudLifecycle();
-
-// Recolor this HUD window to the selected accent and keep it live-synced.
-lifecycle.trackUnlisten(subscribeBrand());
 
 type HudSessionStatus = AgentSessionStatusKind | "idle";
 

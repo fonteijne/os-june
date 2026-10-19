@@ -40,8 +40,8 @@ export function renderAppAccountGate({
           onPointerDown={handleTitlebarPointerDown}
         />
         <div className="welcome-screen welcome-screen-loading">
-          <Spinner size="lg" aria-label="Starting Clovy" />
-          <p>Starting Clovy...</p>
+          <Spinner size="lg" aria-label="Starting Bonzai Agent" />
+          <p>Starting Bonzai Agent...</p>
         </div>
       </main>
     );

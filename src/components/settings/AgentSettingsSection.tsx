@@ -126,7 +126,7 @@ export function AgentSettingsSection({
         <SettingsPageHeader
           id="agent-heading"
           title="Agent"
-          blurb="Configure Clovy's personality and local agent experience."
+          blurb="Configure Bonzai Agent's personality and local agent experience."
         />
         <ClovyPersonalitySettingsSection />
       </section>
@@ -136,7 +136,7 @@ export function AgentSettingsSection({
           Experience
         </h2>
         <p className="settings-group-description">
-          Control how Clovy keeps you informed while she works.
+          Control how Bonzai Agent keeps you informed while it works.
         </p>
         <div className="settings-card">
           <div className="settings-rows">
@@ -206,7 +206,7 @@ export function AgentSettingsSection({
           Skills
         </h2>
         <p className="settings-group-description">
-          Choose which skills Clovy can load during a session.
+          Choose which skills Bonzai Agent can load during a session.
         </p>
         <div className="settings-card">
           <div className="settings-rows">
@@ -248,7 +248,7 @@ export function AgentSettingsSection({
         open={Boolean(editingSkill)}
         onClose={() => setEditingSkill(undefined)}
         title={editingSkill ? `Edit ${editingSkill.name}` : "Edit skill"}
-        description="Update the managed instructions Clovy loads for this skill."
+        description="Update the managed instructions Bonzai Agent loads for this skill."
         footer={
           <>
             <button

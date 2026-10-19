@@ -12,10 +12,10 @@ import {
 import { ProviderLogo } from "../components/settings/ProviderLogo";
 
 describe("ProviderLogo", () => {
-  it("uses the standalone Clovy glyph for Auto regardless of its routing provider", () => {
+  it("uses the standalone Bonzai Agent glyph for Auto regardless of its routing provider", () => {
     render(<ProviderLogo provider="venice" id="open-software/auto" name="Auto" />);
 
-    const clovyMark = screen.getByRole("img", { name: "Clovy" });
+    const clovyMark = screen.getByRole("img", { name: "Bonzai Agent" });
     expect(clovyMark).toBeInTheDocument();
     expect(clovyMark.querySelector("rect")).not.toBeInTheDocument();
     expect(clovyMark.querySelector("path")).toHaveAttribute("fill", "currentColor");
@@ -40,9 +40,9 @@ describe("ProviderLogo", () => {
 
 describe("Clovy logo", () => {
   it("renders the approved happy-eyes mark with the canonical gradient", () => {
-    render(<ClovyMark label="Clovy" />);
+    render(<ClovyMark label="Bonzai Agent" />);
 
-    const mark = screen.getByRole("img", { name: "Clovy" });
+    const mark = screen.getByRole("img", { name: "Bonzai Agent" });
     expect(mark.querySelector("path")).toHaveAttribute("d", CLOVY_MARK_PATH);
     expect(mark.querySelectorAll("stop")[0]).toHaveAttribute(
       "stop-color",
@@ -63,20 +63,20 @@ describe("Clovy logo", () => {
     );
   });
 
-  it("gives the living Home character the marketing material and independent eyes", () => {
-    render(<ClovyAlive label="Living Clovy" />);
+  it("gives the living Bonzai Agent character the renderer palette and independent eyes", () => {
+    render(<ClovyAlive label="Bonzai Agent" />);
 
-    const character = screen.getByRole("img", { name: "Living Clovy" });
+    const character = screen.getByRole("img", { name: "Bonzai Agent" });
     expect(character).toHaveAttribute("data-palette", "identity");
     expect(character.querySelector(".clovy-alive-sheen")).toBeInTheDocument();
     expect(character.querySelectorAll(".clovy-alive-eye")).toHaveLength(2);
     expect(character.querySelector(".clovy-alive-body")).toBeInTheDocument();
   });
 
-  it("allows the Home character to opt into the Appearance palette", () => {
-    render(<ClovyAlive label="Themed Clovy" palette="appearance" />);
+  it("retains an explicit appearance palette mode for existing renderer consumers", () => {
+    render(<ClovyAlive label="Bonzai Agent" palette="appearance" />);
 
-    expect(screen.getByRole("img", { name: "Themed Clovy" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Bonzai Agent" })).toHaveAttribute(
       "data-palette",
       "appearance",
     );

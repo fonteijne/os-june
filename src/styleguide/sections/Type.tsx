@@ -17,8 +17,8 @@ export function Type() {
       <h1 className="sg-section-heading">Type</h1>
       <p className="sg-section-intro">
         Weight 400 is the voice of the product. Medium (600) via var(--fw-medium) is for headings
-        and structural emphasis, used sparingly. The font ships only 400 and 600 faces with
-        font-synthesis off, so 500 and 700 silently render 400 and 600 - they are banned.
+        and structural emphasis, used sparingly. Manrope is a variable font, but the app contract
+        stays two values: 400 and var(--fw-medium). Raw 500, 600, and 700 are banned.
       </p>
 
       <h2 className="sg-subheading">Size ladder</h2>
@@ -86,9 +86,8 @@ export function Type() {
         </div>
       </div>
       <p className="sg-note">
-        The 500 and 700 specimens are rendered literally: with font-synthesis none and only two
-        faces shipped, they look identical to 400 and 600. Reach for var(--fw-medium), never a bare
-        500 or 700.
+        The 500 and 700 specimens are rendered literally, but are outside the app weight contract.
+        Reach for var(--fw-medium), never a bare 500, 600, or 700.
       </p>
 
       <h2 className="sg-subheading">Do and don't</h2>

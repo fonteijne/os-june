@@ -27,23 +27,18 @@
   initial-value: 240px;
 }
 
-/* Brand accent changes at runtime from the Appearance color wheel. Registering
- * it as a color lets the entire derived theme interpolate instead of snapping
- * all --brand color-mix consumers in one repaint. */
+/* The fixed Bonzai accent is registered as a color for theme transitions. */
 @property --brand {
   syntax: "<color>";
   inherits: true;
-  initial-value: #3f812f;
+  initial-value: #365fd9;
 }
 
-/* Surface-tinting companion to --brand: the accent with its oklch chroma capped
- * at 0.07 (same lightness/hue). Surface neutrals mix from this so a high-chroma
- * accent (clay) doesn't over-cream the greys. Registered as a color for the
- * same interpolate-don't-snap reason as --brand. */
+/* Theme-specific Bonzai surface wash, registered for palette transitions. */
 @property --brand-wash {
   syntax: "<color>";
   inherits: true;
-  initial-value: #5a7c56;
+  initial-value: #6f80b8;
 }
 
 /* The --fs-* type tokens are registered as lengths so their computed value
@@ -96,14 +91,18 @@
 
 :root {
   /* Type ------------------------------------------------------------- */
+  /* Bonzai fork uses locally bundled Manrope under SIL OFL 1.1.
+   * The face is declared in fonts.css; keep ABC Diatype as a system fallback
+   * so the stack degrades gracefully if the file fails to load.
+   * Upstream Clovy continues to use ABC Diatype as its primary voice. */
   --font-sans:
-    "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    "Manrope", "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --font-serif: "Martina Plantijn", "Iowan Old Style", Georgia, serif;
   --font-mono: "Berkeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   /* Global text-size multiplier. Every --fs-* token below is `base *
-   * --font-scale`, so the Appearance "Text size" preference recolors the whole
+   * --font-scale`, so the Appearance "Text size" preference scales the whole
    * app's type by overriding this one value on <html> (see src/lib/font-scale.ts
    * and the pre-paint bootstrap in index.html). Default 1 = the base scale.
    * Line-heights are unitless and spacing/control heights stay fixed, so text
@@ -120,9 +119,10 @@
   --fs-2xl: calc(20px * var(--font-scale));
   --fs-display: calc(30px * var(--font-scale));
 
-  /* Diatype ships Regular (400) and Medium (600) only, and font-synthesis is
-   * off — intermediate weights silently resolve to Regular. "Medium" anywhere
-   * in the app means this token. */
+  /* Manrope is a variable font (200-800); the two-weight contract still applies.
+   * The app contract uses only 400 and var(--fw-medium); the variable range
+   * must not encourage raw mid-weights. Font-synthesis: none is applied in
+   * the main @font-face rule; see fonts.css. */
   --fw-medium: 600;
 
   /* Spacing ---------------------------------------------------------- */
@@ -250,53 +250,46 @@
    * as a conversation, not a document) but steps up with it below. */
   --chat-max: 680px;
 
-  /* Color — light theme.  Mirrors Fellow's globals.css so the two apps
-   * read like siblings. ------------------------------------------------ */
-  /* Border color for focused inputs. Mixes 30% of the foreground in so
-   * the focused border carries the emphasis and the halo plays support,
-   * instead of both reading as one flat band. Theme-aware via
-   * --foreground; dark theme inherits the same recipe. */
-  --ring-focus: color-mix(in oklch, var(--foreground) 30%, transparent);
-
-  /* Surface neutrals carry a sliver of --brand-wash so the whole backdrop tints
-   * to whatever accent is selected (rose = warm greys, ocean = cool greys,
-   * etc.). The wash is the accent with its chroma capped, so a high-chroma
-   * accent (clay) tints the greys the same amount a dusty one (rose) does
-   * instead of over-creaming them. Text/foreground tokens stay pure neutral for
-   * legibility; only these fills, cards, borders, and the sidebar pick up the
-   * wash. Everything else (buttons, --brand-tint, the recorder accent) stays on
-   * full-strength --brand. */
-  --background: color-mix(in oklch, oklch(95.13% 0.0015 84.59), var(--brand-wash) 3%);
-  --foreground: oklch(27.24% 0.0015 84.59);
-  --card: color-mix(in oklch, oklch(100% 0 none), var(--brand-wash) 2%);
-  --card-foreground: oklch(27.24% 0.0015 84.59);
-  --popover: color-mix(in oklch, oklch(100% 0 none), var(--brand-wash) 2%);
-  --popover-foreground: oklch(27.24% 0.0015 84.59);
-  /* Text/icons on fixed dark, brand, or destructive solids. Primary actions
-   * own a theme-adaptive foreground token below. */
-  --on-solid: oklch(100% 0 none);
+  /* Bonzai renderer light palette, mapped to existing semantic roles. */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --brand: #365fd9;
+  --brand-wash: #6f80b8;
+  --brand-bright: #2a4bb3;
+  --brand-hover: #2a4bb3;
+  --brand-soft: #e9eefc;
+  --on-accent: #ffffff;
+  --focus-color: #365fd9;
+  --ring-focus: #365fd9;
+  --destructive: #b93c0a;
+  --destructive-soft: #f8e6df;
+  --destructive-foreground: #ffffff;
+  --success: #1b7446;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --on-solid: #ffffff;
   --primary: var(--brand);
-  --primary-foreground: var(--on-solid);
-  --secondary: color-mix(in oklch, oklch(97.03% 0 none), var(--brand-wash) 3%);
-  --secondary-foreground: oklch(20.44% 0 none);
-  --muted: color-mix(in oklch, oklch(92.87% 0.0015 84.59), var(--brand-wash) 4%);
-  --muted-foreground: oklch(55.8% 0.0015 84.59);
-  --accent: color-mix(in oklch, oklch(97.03% 0 none), var(--brand-wash) 3%);
-  --accent-foreground: oklch(20.44% 0 none);
-  /* An earthy brick red: chroma pulled down from 0.22 to 0.15 (into the same
-   * register as --brand ~0.13 and --success 0.12) and hue nudged 27 to 30 so it
-   * reads as danger without the neon pop that fought the low-chroma palette. */
-  --destructive: oklch(57% 0.15 30);
-  --destructive-soft: oklch(95% 0.025 30);
-  --success: oklch(48% 0.12 150);
-  --border: color-mix(in oklch, oklch(86.91% 0.0015 84.59), var(--brand-wash) 5%);
-  --input: color-mix(in oklch, oklch(86.91% 0.0015 84.59), var(--brand-wash) 5%);
-  --ring: oklch(75% 0.0015 84.59);
-
-  --sidebar: color-mix(in oklch, oklch(95.13% 0.0015 84.59), var(--brand-wash) 4%);
-  --sidebar-foreground: oklch(27.24% 0.0015 84.59);
-  --sidebar-accent: color-mix(in oklch, oklch(92.87% 0.0015 84.59), var(--brand-wash) 5%);
-  --sidebar-border: color-mix(in oklch, oklch(86.91% 0.0015 84.59), var(--brand-wash) 5%);
+  --primary-foreground: var(--on-accent);
+  --record: #b93c0a;
+  --record-hover: #a33107;
+  --recording-pulse-rest: var(--record);
+  --recording-pulse-peak: #b93c0a;
+  --secondary: #f4f4f2;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f4f4f2;
+  --muted-foreground: #595959;
+  --accent: var(--neutral-hover);
+  --accent-foreground: var(--foreground);
+  --accent-hover: var(--brand-hover);
+  --border: #e2e2df;
+  --input: #8a8a8a;
+  --ring: #8a8a8a;
+  --sidebar: #f4f4f2;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-accent: var(--neutral-hover);
+  --sidebar-border: #e2e2df;
 
   /* Subtle surface + border — the canonical "quiet chip/track/secondary
    * button" fill and the soft 1px outline used on inset cards. Both
@@ -315,15 +308,9 @@
   --spinner-neutral: color-mix(in oklch, var(--muted-foreground) 45%, var(--foreground));
   --popover-border: color-mix(in oklch, var(--foreground) 10%, transparent);
 
-  /* Sage is Clovy's default interface accent. Its brighter leaf value keeps
-   * small controls alive while the low-chroma wash keeps large surfaces quiet.
-   * Appearance presets can still override both values at runtime. */
-  --brand: #3f812f;
-  --brand-wash: #5a7c56;
-
-  /* Clovy identity colors are intentionally independent from the selectable
-   * interface accent. Lime belongs to the character, app icon, and restrained
-   * highlights; leaf and pine carry larger solid surfaces. */
+  /* Keep the generic hover wash separate from the fixed Bonzai blue action. */
+  --neutral-hover: color-mix(in oklch, var(--foreground) 4%, var(--card));
+  /* Static Clovy marks and icons keep their original color palette. */
   --clovy-lime-top: #eefe92;
   --clovy-lime: #c4f979;
   --clovy-leaf: #3f812f;
@@ -335,33 +322,20 @@
   --clovy-mark-foreground: var(--clovy-leaf-deep);
   --clovy-tile-top: #10271d;
   --clovy-tile-bottom: #020b08;
-  /* Chroma-capped companion to --brand (see the @property block). Surface
-   * neutrals mix from this so clay's high chroma doesn't over-cream the greys;
-   * the Appearance picker overrides both --brand and --brand-wash together. */
-  /* Luminous companion for brief accent details. Mixing --brand with white
-   * lifts lightness but drops chroma, so the relative-color override below
-   * pins the highlight to a bright, saturated version of the active hue. */
-  --brand-bright: color-mix(in oklch, var(--brand) 72%, var(--on-solid));
+  --character-fill-top: #8aa4f2;
+  --character-fill-bottom: #365fd9;
+  --character-depth: #2a4bb3;
+  --character-feature: #0a0a0a;
+  --character-rim: #a9bdf6;
+  --character-sheen: #a9bdf6;
+  --character-ambient: color-mix(in oklch, var(--character-fill-bottom) 18%, transparent);
 
-  /* Primary actions keep a different visual weight from the lime character
-   * and the Sage selection state. Light surfaces use Clovy pine as an anchor,
-   * with lime appearing only as a quiet upper-edge reflection. */
-  --primary-action-background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--clovy-pine) 88%, var(--clovy-leaf) 12%),
-    var(--clovy-pine)
-  );
-  --primary-action-background-hover: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--clovy-pine) 80%, var(--clovy-leaf) 20%),
-    color-mix(in oklch, var(--clovy-pine) 94%, var(--clovy-leaf) 6%)
-  );
-  --primary-action-border: color-mix(in oklch, var(--clovy-pine) 88%, var(--clovy-lime) 12%);
-  --primary-action-highlight: inset 0 1px 0
-    color-mix(in oklch, var(--clovy-lime-top) 24%, transparent);
-  --primary-action-foreground: var(--on-solid);
-
-  --record: oklch(60% 0.22 27);
+  /* Primary actions use the same Bonzai blue/white semantic pair. */
+  --primary-action-background: linear-gradient(180deg, #365fd9, #2a4bb3);
+  --primary-action-background-hover: linear-gradient(180deg, #2a4bb3, #24419d);
+  --primary-action-border: #24419d;
+  --primary-action-highlight: inset 0 1px 0 color-mix(in oklch, #ffffff 24%, transparent);
+  --primary-action-foreground: #ffffff;
   /* Soft dusty tint of the brand, for quiet button backdrops and hovers
    * (e.g. the session-view quick-action buttons). Derived from --brand so it
    * tracks the selected accent without touching any foreground/text color. */
@@ -373,30 +347,21 @@
    * the accent. Adapts to dark mode through var(--card). */
   --brand-line: color-mix(in oklch, var(--brand) 14%, var(--card));
   --brand-line-strong: color-mix(in oklch, var(--brand) 30%, var(--card));
-  /* Warm-accent set for the record button hover state — a soft peach
-   * surface and a deeper terracotta foreground. Reusable for any
-   * "live/recording" primary action that wants a warmer feel. */
-  /* The warm/recorder accent family now derives from --brand so the recorder
-   * controls (and every warm surface) track the selected accent. A light
-   * brand-tinted surface + a deepened brand foreground. The live "recording"
-   * red stays --record on purpose. */
-  --warm-soft: color-mix(in oklch, var(--brand) 16%, var(--card));
-  --warm-strong: color-mix(in oklch, var(--brand) 88%, black);
+  /* Orange remains the recording and warning family, separate from blue. */
+  --warm-soft: #f8e6df;
+  --warm-strong: #b93c0a;
   /* In-document search needs two visible emphasis levels without changing the
    * text color. Passive matches stay quiet enough to scan as a set; the active
    * match gets a stronger fill and inset edge for keyboard navigation. */
   --search-match: color-mix(in oklch, var(--brand) 28%, var(--card));
   --search-match-active: color-mix(in oklch, var(--brand) 48%, var(--card));
   --search-match-active-ring: color-mix(in oklch, var(--brand) 70%, var(--foreground));
-  /* Two strengths for the new-session floor wash. The chroma-capped lead-in
-   * keeps the transition quiet; the active accent gathers at the bottom. */
+  /* Two strengths for the Bonzai blue new-session floor wash. */
   --hero-wash: color-mix(in oklch, var(--brand) 10%, transparent);
   --hero-wash-soft: color-mix(in oklch, var(--brand-wash) 4%, transparent);
-  /* Focus ring lives in the warm-grey family so it never reads as a cool
-   * macOS-blue glow next to the rest of the palette. */
-  --focus-ring: oklch(60% 0.03 84.59 / 22%);
-  /* Warm-gray text selection — neutral to the warm palette, never blue. */
-  --selection: oklch(93% 0.0015 84.59);
+  /* Focus and selection use the Bonzai blue pair. */
+  --focus-ring: color-mix(in oklch, #365fd9 72%, transparent);
+  --selection: #e9eefc;
   --selection-foreground: var(--foreground);
 
   /* Scrim behind modal dialogs. In light mode this layers a translucent
@@ -449,40 +414,8 @@
   --shadow-inset: 0 0 0 1px oklch(0% 0 none / 4%);
 }
 
-/* The luminous accent glint (see --brand-bright above), inheriting only the
- * active brand's hue so it stays themed across every Appearance preset. The
- * spark reads differently against each theme's field, so lightness and chroma
- * are tuned per theme rather than shared:
- *
- * - Light: the dots sit on a near-white field and the neutral gray has almost
- *   no chroma, so a pale clay collapses into it. You can't out-brighten white,
- *   so the pop is driven by CHROMA - a vivid, slightly deeper clay separates
- *   cleanly from the gray - not by lightness (which would only wash it out).
- * - Dark: a lifted, high-lightness clay glows against the dark field, so keep
- *   lightness high and chroma moderate. */
-@supports (color: oklch(from red l c h)) {
-  :root {
-    --brand-bright: oklch(from var(--brand) 0.7 0.19 h);
-  }
-  [data-theme="dark"] {
-    --brand-bright: oklch(from var(--brand) 0.72 0.15 h);
-  }
-}
-
-:root[data-brand-transition="true"],
-:root[data-brand-transition="true"] * {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-  transition-duration: 220ms;
-  transition-timing-function: var(--ease-out);
-}
-
 @media (prefers-reduced-motion: reduce) {
   :root {
-    transition: none;
-  }
-
-  :root[data-brand-transition="true"],
-  :root[data-brand-transition="true"] * {
     transition: none;
   }
 }
@@ -507,64 +440,63 @@
   }
 }
 
-/* Dark theme — port of Fellow's .dark sheet. Always applied via the
- * `data-theme` attribute (set by src/lib/theme.ts and by the inline
- * pre-paint script in index.html), regardless of system preference. */
+/* Dark theme — explicit Bonzai palette selected through data-theme. */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Same wash as light, a touch stronger since a tint reads less against
-   * near-black. Surfaces mix from --brand-wash (chroma-capped) for the same
-   * reason as light: clay shouldn't over-cream the greys. Foregrounds + alpha
-   * hairlines stay neutral, and --border/--input/--ring stay pure white alpha. */
-  --background: color-mix(in oklch, oklch(0.165 0.0015 84.59), var(--brand-wash) 6%);
-  --foreground: oklch(0.985 0.0015 84.59);
-  --card: color-mix(in oklch, oklch(0.195 0.0015 84.59), var(--brand-wash) 6%);
-  --card-foreground: oklch(0.985 0.0015 84.59);
-  --popover: color-mix(in oklch, oklch(0.195 0.0015 84.59), var(--brand-wash) 6%);
-  --popover-foreground: oklch(0.985 0.0015 84.59);
-  /* Stateful and preset-linked controls need the luminous companion on a
-   * near-black field. The paired foreground flips with it so send arrows,
-   * badges, and toggle thumbs keep contrast. */
-  --primary: var(--brand-bright);
-  --primary-foreground: var(--clovy-ink);
-  --clovy-mark-foreground: var(--clovy-lime-top);
-  /* On dark surfaces the identity roles can invert: the surrounding neutral
-   * field supplies separation, so the action may carry lime without competing
-   * with the character. Pine remains in the lower edge to keep it grounded. */
-  --primary-action-background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--clovy-lime) 72%, var(--clovy-lime-top) 28%),
-    color-mix(in oklch, var(--clovy-lime) 88%, var(--clovy-leaf) 12%)
-  );
-  --primary-action-background-hover: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--clovy-lime) 60%, var(--clovy-lime-top) 40%),
-    color-mix(in oklch, var(--clovy-lime) 92%, var(--clovy-leaf) 8%)
-  );
-  --primary-action-border: color-mix(in oklch, var(--clovy-lime) 82%, var(--clovy-pine) 18%);
-  --primary-action-highlight: inset 0 1px 0
-    color-mix(in oklch, var(--clovy-lime-top) 76%, transparent);
-  --primary-action-foreground: var(--clovy-ink);
-  --secondary: color-mix(in oklch, oklch(0.268 0.0015 84.59), var(--brand-wash) 7%);
-  --secondary-foreground: oklch(0.985 0.0015 84.59);
-  --muted: color-mix(in oklch, oklch(0.268 0.0015 84.59), var(--brand-wash) 7%);
-  --muted-foreground: oklch(0.709 0.0015 84.59);
-  --accent: color-mix(in oklch, oklch(0.268 0.0015 84.59), var(--brand-wash) 7%);
-  --accent-foreground: oklch(0.985 0.0015 84.59);
-  /* Earthy brick red, matching the light theme's dechromatized destructive:
-   * chroma 0.191 to 0.14, hue aligned to 30. */
-  --destructive: oklch(0.704 0.14 30);
-  --destructive-soft: oklch(0.3 0.08 30 / 40%);
-  --success: oklch(0.72 0.14 150);
+  /* Neutral dark surfaces and text from the Bonzai reference. */
+  --background: #0a0a0a;
+  --foreground: #f4f4f2;
+  --card: #1c1c1c;
+  --card-foreground: #f4f4f2;
+  --popover: #1c1c1c;
+  --popover-foreground: #f4f4f2;
+  /* Dark Bonzai blue and dark-ink foreground for primary controls. */
+  --brand: #8aa4f2;
+  --brand-hover: #a9bdf6;
+  --brand-bright: #a9bdf6;
+  --brand-wash: #26375f;
+  --brand-soft: #172240;
+  --on-accent: #0a0a0a;
+  --focus-color: #8aa4f2;
+  --ring-focus: #8aa4f2;
+  --neutral-hover: color-mix(in oklch, var(--foreground) 7%, var(--card));
+  --primary: var(--brand);
+  --primary-foreground: var(--on-accent);
+  --destructive-foreground: #0a0a0a;
+  --accent: var(--neutral-hover);
+  --accent-foreground: var(--foreground);
+  --record: #ff9a6b;
+  --record-hover: #ffb899;
+  --recording-pulse-rest: var(--record);
+  --recording-pulse-peak: #ffb899;
+  --character-fill-top: #a9bdf6;
+  --character-fill-bottom: #8aa4f2;
+  --character-depth: #365fd9;
+  --character-feature: #0a0a0a;
+  --character-rim: #c6d6fa;
+  --character-sheen: #c6d6fa;
+  --character-ambient: color-mix(in oklch, var(--character-fill-bottom) 24%, transparent);
+  --primary-action-background: linear-gradient(180deg, #8aa4f2, #718bd6);
+  --primary-action-background-hover: linear-gradient(180deg, #a9bdf6, #8aa4f2);
+  --primary-action-border: #a9bdf6;
+  --primary-action-highlight: inset 0 1px 0 color-mix(in oklch, #f4f4f2 30%, transparent);
+  --primary-action-foreground: #0a0a0a;
+  --secondary: #151515;
+  --secondary-foreground: #f4f4f2;
+  --muted: #151515;
+  --muted-foreground: #a6a6a6;
+  --destructive: #ff9a6b;
+  --destructive-soft: oklch(0.3 0.08 45 / 40%);
+  --success: #5ccf92;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(1 0 0 / 18%);
 
-  --sidebar: color-mix(in oklch, oklch(0.14 0.0015 84.59), var(--brand-wash) 6%);
-  --sidebar-foreground: oklch(0.985 0.0015 84.59);
-  --sidebar-accent: color-mix(in oklch, oklch(0.22 0.0015 84.59), var(--brand-wash) 7%);
-  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar: #151515;
+  --sidebar-foreground: #f4f4f2;
+  --sidebar-accent: var(--neutral-hover);
+  --sidebar-border: #2b2b2b;
   /* Dark --border is already an 8-10% white alpha, so the light-mode
    * 55% mix would dilute it below the visibility floor. Bump to 80%
    * so the subtle border still reads against the dark card. */
@@ -575,19 +507,16 @@
    * so the spinner keeps the softer muted-leaning mix here. */
   --spinner-neutral: color-mix(in oklch, var(--muted-foreground) 72%, var(--foreground));
   --popover-border: color-mix(in oklch, white 12%, transparent);
-  /* Dark inverts the roles: a deep brand-tinted surface + a lifted brand
-   * foreground. Both still derive from --brand so theming cascades. */
-  --warm-soft: color-mix(in oklch, var(--brand) 30%, var(--card));
-  --warm-strong: color-mix(in oklch, var(--brand) 55%, white);
+  /* Orange remains the warning/recording surface family on dark cards. */
+  --warm-soft: oklch(0.34 0.08 45 / 40%);
+  --warm-strong: #ff9a6b;
   --search-match: color-mix(in oklch, var(--brand) 42%, var(--card));
   --search-match-active: color-mix(in oklch, var(--brand) 62%, var(--card));
   --search-match-active-ring: color-mix(in oklch, var(--brand) 70%, white);
-  --focus-ring: oklch(0.78 0.025 84.59 / 22%);
+  --focus-ring: color-mix(in oklch, #8aa4f2 70%, transparent);
   --scrim: oklch(0% 0 none / 55%);
-  /* Selection keeps the foreground white (no contrast flip) and lays a
-   * translucent warm-grey wash on top, matching the light-mode pattern
-   * where the text color stays put through the highlight. */
-  --selection: oklch(0.52 0.015 84.59 / 38%);
+  /* Blue selection wash preserves dark-mode text contrast. */
+  --selection: color-mix(in oklch, #8aa4f2 32%, #1c1c1c);
   --selection-foreground: var(--foreground);
 
   --shadow-sm: 0 1px 2px oklch(0% 0 none / 24%), 0 2px 4px oklch(0% 0 none / 12%);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { toast } from "../ui/Toaster";
 import { hasLiveSubscription } from "../../lib/account-gate";
+import { useBonzaiActive } from "../../lib/bonzai";
 import { errorCode } from "../../lib/errors";
 import {
   MAX_GRANT_HOSTED_POLL_TIMEOUT_MS,
@@ -60,13 +61,16 @@ type Props = {
 };
 
 export function AccountSettings({ account, loading, onAccountChanged, onRefresh }: Props) {
+  const bonzaiActive = useBonzaiActive();
   return (
     <div className="settings-page">
       <header className="settings-header">
         <h1 className="settings-title">Account</h1>
         <p className="settings-description">
           {account.localDev
-            ? "Local mode is active. Clovy uses your local Clovy API without OpenSoftware sign-in or billing."
+            ? bonzaiActive
+              ? "Local mode is active. Bonzai Agent uses Bonzai for inference without OpenSoftware sign-in or billing."
+              : "Local mode is active. Bonzai Agent uses your local Clovy API without OpenSoftware sign-in or billing."
             : "Sign in with OpenSoftware to use your shared identity and balance across the network."}
         </p>
       </header>
@@ -83,6 +87,7 @@ export function AccountSettings({ account, loading, onAccountChanged, onRefresh 
 }
 
 export function AccountSettingsSection({ account, loading, onAccountChanged }: Props) {
+  const bonzaiActive = useBonzaiActive();
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [accountStatus, setAccountStatus] = useState<string>();
@@ -194,7 +199,9 @@ export function AccountSettingsSection({ account, loading, onAccountChanged }: P
               </h3>
               <p className="settings-row-description">
                 {account.localDev
-                  ? "Requests use your local Clovy API. No OpenSoftware account is used."
+                  ? bonzaiActive
+                    ? "Requests use Bonzai for inference. No OpenSoftware account is used."
+                    : "Requests use your local Clovy API. No OpenSoftware account is used."
                   : account.signedIn
                     ? (account.user?.email ?? `@${account.user?.handle ?? "account"}`)
                     : account.configured

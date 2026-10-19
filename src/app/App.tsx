@@ -1286,7 +1286,7 @@ export function App() {
                 type: "error",
                 data: {
                   code: "unsupported",
-                  message: "That model is not available in Clovy's recommended model set.",
+                  message: "That model is not available in Bonzai Agent's recommended model set.",
                   retryable: false,
                 },
               });

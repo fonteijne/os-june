@@ -188,7 +188,7 @@ describe("chat image generation", () => {
 
     expect(result).toEqual({
       status: "error",
-      message: "Clovy couldn't read the source image.",
+      message: "Bonzai Agent couldn't read the source image.",
     });
     expect(deps.edit).not.toHaveBeenCalled();
     expect(deps.importImageBytes).not.toHaveBeenCalled();

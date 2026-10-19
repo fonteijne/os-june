@@ -30,6 +30,18 @@ const finalChunk: JsonObject = {
   usage: { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
 };
 
+test("requires a model name for Bonzai model routing", () => {
+  const provider = new RpcChatCompletionsModelProvider(async () => ({
+    streamId: "unused",
+    chunks: [],
+    done: true,
+  }));
+  assert.throws(
+    () => provider.getModel(),
+    /A model name is required for Bonzai model routing/,
+  );
+});
+
 test("routes a model request through the reserved host tool without HTTP", async () => {
   const calls: Array<{ name: string; arguments: JsonObject }> = [];
   const provider = new RpcChatCompletionsModelProvider(async (input) => {

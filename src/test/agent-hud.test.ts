@@ -57,7 +57,7 @@ describe("agent HUD", () => {
     emitStatus({
       status: "running",
       title: "Let's start a session.",
-      summary: "Starting Clovy.",
+      summary: "Starting Bonzai Agent.",
     });
     await flushPromises();
 
@@ -868,7 +868,7 @@ describe("agent HUD", () => {
       payload: {
         sessionId: "session-settled",
         title: "Summarize this",
-        summary: "Clovy finished.",
+        summary: "Bonzai Agent finished.",
         activeCount: 0,
       },
     });
@@ -894,7 +894,7 @@ describe("agent HUD", () => {
       payload: {
         sessionId: "session-settled",
         title: "Generated session title",
-        summary: "Clovy finished.",
+        summary: "Bonzai Agent finished.",
         activeCount: 0,
       },
     });
@@ -920,7 +920,7 @@ describe("agent HUD", () => {
       payload: {
         sessionId: "session-settled",
         title: "Review launch notes",
-        summary: "Clovy finished.",
+        summary: "Bonzai Agent finished.",
         activeCount: 0,
       },
     });
@@ -950,7 +950,7 @@ describe("agent HUD", () => {
       sessionId: "session-1",
       status: "completed",
       title: "Generated session title",
-      summary: "Clovy finished.",
+      summary: "Bonzai Agent finished.",
     });
     await flushPromises();
 

@@ -203,7 +203,7 @@ async fn send(
     let parsed: TranscriptionResponse = serde_json::from_slice(&bytes).map_err(|error| {
         AppError::new(
             http::RESPONSE_INVALID,
-            format!("Bonzai returned a transcription Clovy could not read: {error}"),
+            format!("Bonzai returned a transcription the app could not read: {error}"),
         )
     })?;
     Ok(TranscriptionProviderResult {

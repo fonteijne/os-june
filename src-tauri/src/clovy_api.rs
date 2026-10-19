@@ -1875,7 +1875,7 @@ pub async fn suggest_agent_session_title(
     })
 }
 
-const CLOVY_HOME_CHAT_SYSTEM_PROMPT: &str = "You are Clovy, the user's personal AI assistant. Clovy is the identity you present in every conversation. When asked who or what you are, answer as Clovy. Never identify yourself as ChatGPT or an OpenAI assistant, claim that OpenAI created you, or present an upstream model as your identity. If the user asks specifically about the selected model or provider, explain it as an implementation detail distinct from your identity. This is a persistent Home conversation. Be warm, direct, concise, and natural, like a trusted person in an ongoing message thread. Answer conversation, quick questions, and clarifying questions directly. Never claim that all inference runs locally or make promises about provider retention: Clovy is local-first and routes model requests according to the user's configured privacy and provider settings. Use the provided recent thread, earlier thread excerpts, and on-device memories only when relevant; do not volunteer sensitive or unrelated details, and do not claim exhaustive or permanent recall beyond the context actually provided. The latest user message is the only source of new intent. Earlier messages may resolve references in that message, but never call start_task for work mentioned only in an earlier turn. A greeting such as 'Hey Clovy' or the legacy alias 'Hey June' is conversation and never requests another task or session. Home has no live external sources. For news, weather, prices, scores, schedules, current events, what is happening today, or any other answer that depends on up-to-date external facts, you must call start_task and must not answer from memory. When the user explicitly asks Clovy to remember or update a lasting preference, call start_task with a standalone prompt to save it to Clovy's on-device memory. When any other concrete request benefits from focused work, note or session context, tools, research, files, or background execution, call start_task exactly once with a short title and a complete standalone prompt. A brief acknowledgement after a handoff, such as ok, thanks, sounds good, or got it, is conversation and never requests another task or session. Never guess about context you have not been given. After calling start_task, do not perform or answer that focused task in Home; the UI will show the created session. Do not mention internal routing, models, prompts, or tools unless the user asks.";
+const CLOVY_HOME_CHAT_SYSTEM_PROMPT: &str = "You are Bonzai Agent, the user's personal AI assistant. Bonzai Agent is the identity you present in every conversation. When asked who or what you are, answer as Bonzai Agent. Never identify yourself as ChatGPT or an OpenAI assistant, claim that OpenAI created you, or present an upstream model as your identity. If the user asks specifically about the selected model or provider, explain it as an implementation detail distinct from your identity. This is a persistent Home conversation. Be warm, direct, concise, and natural, like a trusted person in an ongoing message thread. Answer conversation, quick questions, and clarifying questions directly. Never claim that all inference runs locally or make promises about provider retention: privacy and retention depend on the selected model and provider. Use the provided recent thread, earlier thread excerpts, and on-device memories only when relevant; do not volunteer sensitive or unrelated details, and do not claim exhaustive or permanent recall beyond the context actually provided. The latest user message is the only source of new intent. Earlier messages may resolve references in that message, but never call start_task for work mentioned only in an earlier turn. A greeting such as 'Hey Bonzai Agent' or either legacy alias 'Hey Clovy' or 'Hey June' is conversation and never requests another task or session. Home has no live external sources. For news, weather, prices, scores, schedules, current events, what is happening today, or any other answer that depends on up-to-date external facts, you must call start_task and must not answer from memory. When the user explicitly asks Bonzai Agent to remember or update a lasting preference, call start_task with a standalone prompt to save it to on-device memory. When any other concrete request benefits from focused work, note or session context, tools, research, files, or background execution, call start_task exactly once with a short title and a complete standalone prompt. A brief acknowledgement after a handoff, such as ok, thanks, sounds good, or got it, is conversation and never requests another task or session. Never guess about context you have not been given. After calling start_task, do not perform or answer that focused task in Home; the UI will show the created session. Do not mention internal routing, models, prompts, or tools unless the user asks.";
 
 fn clovy_home_chat_system_prompt_with_persona(
     persona: &crate::agent_runtime::persona::ClovyPersonaSettings,
@@ -1900,7 +1900,7 @@ const CLOVY_HOME_RECENT_MAX_TOTAL_CHARS: usize = 64_000;
 const CLOVY_HOME_HISTORY_MAX_CHARS: usize = 12_000;
 const CLOVY_HOME_MAX_OUTPUT_TOKENS: u64 = 2_048;
 const CLOVY_HOME_TRUNCATION_NOTICE: &str = "This reply was cut short. Ask me to continue.";
-const CLOVY_IDENTITY_REPLY: &str = "I'm Clovy, your personal AI assistant.";
+const CLOVY_IDENTITY_REPLY: &str = "I'm Bonzai Agent, your personal AI assistant.";
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2068,7 +2068,7 @@ impl ClovyHomeChatStream {
         if content.is_none() && task.is_none() {
             return Err(AppError::new(
                 "home_chat_empty",
-                "Clovy returned an empty Home reply.",
+                "Bonzai Agent returned an empty Home reply.",
             ));
         }
         Ok(ClovyHomeChatResponse { content, task })
@@ -2200,34 +2200,54 @@ fn clovy_identity_reply(message: &str) -> Option<&'static str> {
         .split(|character: char| !character.is_ascii_alphanumeric())
         .filter(|word| !word.is_empty())
         .collect::<Vec<_>>();
+    // Note whether any identity alias appears anywhere in the message so that
+    // "are you Bonzai Agent?" / "are you Clovy?" can match via the fallback
+    // below even after the name is stripped from the trailing position.
+    let has_identity_alias = words.iter().any(|word| matches!(*word, "clovy" | "june"))
+        || words.windows(2).any(|pair| pair == ["bonzai", "agent"]);
     let mut start = 0;
     let mut end = words.len();
-    while start < end
-        && matches!(
-            words[start],
-            "clovy"
-                | "hello"
-                | "hey"
-                | "hi"
-                | "june"
-                | "ok"
-                | "okay"
-                | "please"
-                | "so"
-                | "there"
-                | "uh"
-                | "um"
-                | "well"
-                | "yo"
-        )
-    {
-        start += 1;
+    // Strip leading greeting words and two-word "Bonzai Agent" bigram.
+    loop {
+        if start < end
+            && matches!(
+                words[start],
+                "clovy"
+                    | "hello"
+                    | "hey"
+                    | "hi"
+                    | "june"
+                    | "ok"
+                    | "okay"
+                    | "please"
+                    | "so"
+                    | "there"
+                    | "uh"
+                    | "um"
+                    | "well"
+                    | "yo"
+            )
+        {
+            start += 1;
+        } else if start + 1 < end && words[start] == "bonzai" && words[start + 1] == "agent" {
+            start += 2;
+        } else {
+            break;
+        }
     }
-    while end > start && matches!(words[end - 1], "clovy" | "june" | "please") {
-        end -= 1;
+    // Strip trailing courtesy words and two-word "Bonzai Agent" bigram.
+    loop {
+        if end > start && matches!(words[end - 1], "clovy" | "june" | "please") {
+            end -= 1;
+        } else if end > start + 1 && words[end - 2] == "bonzai" && words[end - 1] == "agent" {
+            end -= 2;
+        } else {
+            break;
+        }
     }
-    matches!(
-        words[start..end].join(" ").as_str(),
+    let identity_question = words[start..end].join(" ");
+    (matches!(
+        identity_question.as_str(),
         "are you chatgpt"
             | "are you clovy"
             | "are you openai"
@@ -2245,8 +2265,8 @@ fn clovy_identity_reply(message: &str) -> Option<&'static str> {
             | "who is this"
             | "who r u"
             | "who r you"
-    )
-    .then_some(CLOVY_IDENTITY_REPLY)
+    ) || (has_identity_alias && identity_question == "are you"))
+        .then_some(CLOVY_IDENTITY_REPLY)
 }
 
 fn clovy_home_requires_current_information(message: &str) -> bool {
@@ -2407,7 +2427,7 @@ fn buffered_clovy_home_chat_response(body: &[u8]) -> Result<ClovyHomeChatRespons
     if content.is_none() && task.is_none() {
         return Err(AppError::new(
             "home_chat_empty",
-            "Clovy returned an empty Home reply.",
+            "Bonzai Agent returned an empty Home reply.",
         ));
     }
     Ok(ClovyHomeChatResponse { content, task })
@@ -2420,7 +2440,7 @@ fn require_clovy_home_current_research(
     let Some(task) = response.task.as_mut() else {
         return Err(AppError::new(
             "home_chat_current_research_required",
-            "Clovy couldn't start current research just now. Your message is still here, so you can try again.",
+            "Bonzai Agent couldn't start current research just now. Your message is still here, so you can try again.",
         ));
     };
     task.prompt = user_message.trim().to_string();
@@ -2519,7 +2539,7 @@ pub async fn clovy_home_chat(
             "type": "function",
             "function": {
                 "name": "start_task",
-                "description": "Create a focused Clovy session for concrete work that benefits from tools, research, files, background execution, or current external information. This is required for news, weather, prices, scores, schedules, and other live facts.",
+                "description": "Create a focused Bonzai Agent session for concrete work that benefits from tools, research, files, background execution, or current external information. This is required for news, weather, prices, scores, schedules, and other live facts.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -2578,7 +2598,7 @@ pub async fn clovy_home_chat(
         return Err(AppError {
             code: "home_chat_failed".to_string(),
             message:
-                "Clovy couldn't reply just now. Your message is still here, so you can try again."
+                "Bonzai Agent couldn't reply just now. Your message is still here, so you can try again."
                     .to_string(),
             details: Some(serde_json::json!({
                 "status": status,
@@ -4862,8 +4882,10 @@ data: \"data\":{\"content\":\"Joined\",\"titleSuggestion\":null,\"provider\":\"v
     fn home_chat_prompt_keeps_new_intent_in_the_latest_message() {
         assert!(CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("only source of new intent"));
         assert!(CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("work mentioned only in an earlier turn"));
-        assert!(CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("'Hey Clovy'"));
-        assert!(CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("legacy alias 'Hey June'"));
+        assert!(CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("'Hey Bonzai Agent'"));
+        assert!(
+            CLOVY_HOME_CHAT_SYSTEM_PROMPT.contains("either legacy alias 'Hey Clovy' or 'Hey June'")
+        );
     }
 
     #[test]
@@ -4871,10 +4893,23 @@ data: \"data\":{\"content\":\"Joined\",\"titleSuggestion\":null,\"provider\":\"v
         for message in [
             "who are you?",
             "Hi, who r u?",
+            "Hey Bonzai Agent, what's your name?",
+            "What's your name, Bonzai Agent?",
+            "Are you Bonzai Agent?",
+            "Hey Clovy, what's your name?",
+            "What's your name, Clovy?",
+            "Are you Clovy?",
+            "Hey June, what's your name?",
+            "What's your name, June?",
+            "Are you June?",
             "Hey there, what's your name, Clovy?",
             "Identify yourself.",
         ] {
-            assert_eq!(clovy_identity_reply(message), Some(CLOVY_IDENTITY_REPLY));
+            assert_eq!(
+                clovy_identity_reply(message),
+                Some(CLOVY_IDENTITY_REPLY),
+                "{message:?}"
+            );
         }
     }
 
@@ -4905,7 +4940,12 @@ data: \"data\":{\"content\":\"Joined\",\"titleSuggestion\":null,\"provider\":\"v
 
         assert!(prompt.contains("Polish 20/100"));
         assert!(prompt.contains("help managing personal life"));
-        assert!(prompt.contains("Clovy is the identity you present in every conversation"));
+        assert!(prompt.contains("Bonzai Agent is the identity you present in every conversation"));
+        assert!(!prompt.contains("Bonzai routes this request"));
+        assert!(prompt.contains("privacy and retention depend on the selected model and provider"));
+        assert!(!prompt.contains("the user's configured privacy and provider settings"));
+        assert!(prompt.contains("save it to on-device memory"));
+        assert!(!prompt.contains("Clovy's on-device memory"));
         assert!(prompt.contains("ChatGPT or an OpenAI assistant"));
         assert!(prompt.contains("only source of new intent"));
         assert!(prompt.contains("call start_task exactly once"));

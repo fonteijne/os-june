@@ -29,6 +29,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mocks.openDialog }));
 
+import { heroPrivacyFootnote } from "../components/agent/composer/ModelPicker";
 import { AgentWorkspace } from "../components/agent/AgentWorkspace";
 import { markAgentNewSessionPending } from "../components/agent/session-persistence";
 import { agentComposerClearance } from "../components/agent/composer/layout";
@@ -113,6 +114,23 @@ function mockAgentLayoutBounds() {
 }
 
 describe("AgentWorkspace runtime wiring", () => {
+  it("names Bonzai Agent in the hero privacy footnote for each model privacy mode", () => {
+    const model = { name: "GLM 5.2" } as Parameters<typeof heroPrivacyFootnote>[0];
+    expect(heroPrivacyFootnote(undefined, undefined)).toBe("Bonzai Agent runs on this Mac.");
+    expect(heroPrivacyFootnote(model, { mode: "e2ee" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are end-to-end encrypted.",
+    );
+    expect(heroPrivacyFootnote(model, { mode: "private" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are private.",
+    );
+    expect(heroPrivacyFootnote(model, { mode: "anonymous" } as never)).toBe(
+      "Bonzai Agent runs on this Mac. Calls to GLM 5.2 are anonymized.",
+    );
+    expect(heroPrivacyFootnote(model, undefined)).toBe(
+      "Bonzai Agent runs on this Mac. You're running GLM 5.2.",
+    );
+  });
+
   beforeEach(() => {
     resetAgentSessionDraftsForTests();
     resetCurrentDataPartitionForTests();
@@ -304,14 +322,14 @@ describe("AgentWorkspace runtime wiring", () => {
     const user = userEvent.setup();
     const draft = 'Review @note:note-7 ("Research")';
     const { rerender } = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, draft);
     // Do not wait for ComposerEditor's 75ms trailing publish: switching must
     // preserve the live document using its teardown persistence callback.
     rerender(<AgentWorkspace initialSession={newSession} />);
     await waitFor(() => {
-      expect(screen.getByRole("textbox", { name: "Message Clovy" }).textContent).toBe("");
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" }).textContent).toBe("");
     });
 
     rerender(<AgentWorkspace initialSession={session} />);
@@ -323,7 +341,7 @@ describe("AgentWorkspace runtime wiring", () => {
   it("finishes IME composition under the source draft owner before switching", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     fireEvent.compositionStart(composer);
     await user.type(composer, "編集中");
@@ -342,7 +360,7 @@ describe("AgentWorkspace runtime wiring", () => {
     const user = userEvent.setup();
     writeAgentSessionDraft(newSession.id, "Destination draft");
     const { rerender } = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     fireEvent.compositionStart(composer);
     await user.type(composer, "Source composition");
@@ -358,21 +376,21 @@ describe("AgentWorkspace runtime wiring", () => {
     const user = userEvent.setup();
     const draft = "Keep this unfinished message";
     const view = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, draft);
     view.unmount();
 
     render(<AgentWorkspace initialSession={session} />);
     await waitFor(() => {
-      expect(screen.getByRole("textbox", { name: "Message Clovy" }).textContent).toBe(draft);
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" }).textContent).toBe(draft);
     });
   });
 
   it("does not restore a session draft after its message is accepted", async () => {
     const user = userEvent.setup();
     const view = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, "Send this message");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -389,7 +407,7 @@ describe("AgentWorkspace runtime wiring", () => {
     view.unmount();
     render(<AgentWorkspace initialSession={session} />);
     await waitFor(() => {
-      expect(screen.getByRole("textbox", { name: "Message Clovy" }).textContent).toBe("");
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" }).textContent).toBe("");
     });
   });
 
@@ -405,7 +423,7 @@ describe("AgentWorkspace runtime wiring", () => {
     });
     const user = userEvent.setup();
     const view = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, "Same message");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -443,14 +461,14 @@ describe("AgentWorkspace runtime wiring", () => {
     });
     const user = userEvent.setup();
     const view = render(<AgentWorkspace />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, "Start a fresh session");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
       expect(mocks.invoke).toHaveBeenCalledWith("create_agent_session", expect.anything()),
     );
-    const followUpComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const followUpComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(followUpComposer, "Keep this follow-up");
     await new Promise((resolve) => window.setTimeout(resolve, 100));
     view.unmount();
@@ -461,7 +479,7 @@ describe("AgentWorkspace runtime wiring", () => {
     );
     render(<AgentWorkspace initialSession={newSession} />);
     await waitFor(() =>
-      expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
         "Keep this follow-up",
       ),
     );
@@ -487,7 +505,7 @@ describe("AgentWorkspace runtime wiring", () => {
     });
     const user = userEvent.setup();
     const view = render(<AgentWorkspace homeMode />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, "First Home message");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -501,7 +519,7 @@ describe("AgentWorkspace runtime wiring", () => {
     await act(async () => resolveCreate?.(homeSession));
     render(<AgentWorkspace homeMode initialSession={homeSession} />);
     await waitFor(() =>
-      expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
         "Keep this Home follow-up",
       ),
     );
@@ -510,7 +528,7 @@ describe("AgentWorkspace runtime wiring", () => {
   it("clears and fences drafts deleted by another session surface", async () => {
     const user = userEvent.setup();
     const view = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Published draft");
     await waitFor(() => expect(readAgentSessionDraft(session.id)).toBe("Published draft"));
 
@@ -540,7 +558,7 @@ describe("AgentWorkspace runtime wiring", () => {
     });
     const user = userEvent.setup();
     const view = render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
 
     await user.type(composer, "Do not resurrect this");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -563,7 +581,7 @@ describe("AgentWorkspace runtime wiring", () => {
   it("does not re-cache a pending draft after its stored session is deleted", async () => {
     const user = userEvent.setup();
     render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     await user.click(screen.getByRole("button", { name: "Session actions" }));
 
     composer.textContent = "Delete this pending draft";
@@ -582,7 +600,7 @@ describe("AgentWorkspace runtime wiring", () => {
   it("clears a published draft from the composer when its session is deleted", async () => {
     const user = userEvent.setup();
     render(<AgentWorkspace initialSession={session} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Delete this published draft");
     await waitFor(() =>
       expect(readAgentSessionDraft(session.id)).toBe("Delete this published draft"),
@@ -642,7 +660,10 @@ describe("AgentWorkspace runtime wiring", () => {
 
     try {
       const { container } = render(<AgentWorkspace />);
-      await user.type(await screen.findByRole("textbox", { name: "Message Clovy" }), "New task");
+      await user.type(
+        await screen.findByRole("textbox", { name: "Message Bonzai Agent" }),
+        "New task",
+      );
       await user.click(screen.getByRole("button", { name: "Send message" }));
       const scroller = await waitFor(() => {
         const element = container.querySelector<HTMLElement>(".agent-scroll");
@@ -676,7 +697,7 @@ describe("AgentWorkspace runtime wiring", () => {
 
     await user.click(screen.getByRole("button", { name: `Remove ${filename}` }));
     expect(screen.queryByText(filename)).not.toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toBeVisible();
   });
 
   it("keeps unknown attachment extensions lowercase", async () => {
@@ -717,7 +738,10 @@ describe("AgentWorkspace runtime wiring", () => {
     );
     expect(await screen.findByText("brief.pdf")).toBeVisible();
 
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() =>
@@ -749,7 +773,10 @@ describe("AgentWorkspace runtime wiring", () => {
     fireEvent.drop(form as HTMLFormElement, {
       dataTransfer: { files: [new File(["%PDF-1.7"], "brief.pdf")] },
     });
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     fireEvent.submit(form as HTMLFormElement);
 
     expect(
@@ -849,7 +876,10 @@ describe("AgentWorkspace runtime wiring", () => {
       dataTransfer: { files: [new File(["brief"], "brief.pdf")] },
     });
     expect(await screen.findByText("brief.pdf")).toBeVisible();
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
       expect(mocks.invoke.mock.calls.some(([command]) => command === "list_agent_skills")).toBe(
@@ -961,7 +991,10 @@ describe("AgentWorkspace runtime wiring", () => {
     fireEvent.drop(form as HTMLFormElement, {
       dataTransfer: { files: [new File(["%PDF-1.7"], "brief.pdf")] },
     });
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     fireEvent.submit(form as HTMLFormElement);
 
     expect(
@@ -993,11 +1026,14 @@ describe("AgentWorkspace runtime wiring", () => {
       dataTransfer: { files: [new File(["%PDF-1.7"], "brief.pdf")] },
     });
     expect(await screen.findByText("brief.pdf")).toBeVisible();
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(await screen.findByText("Home session creation failed")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "Review this brief",
     );
     expect(screen.getByText("brief.pdf")).toBeVisible();
@@ -1036,20 +1072,23 @@ describe("AgentWorkspace runtime wiring", () => {
       dataTransfer: { files: [new File(["first"], "first.pdf")] },
     });
     expect(await screen.findByText("first.pdf")).toBeVisible();
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "First request");
+    await user.type(screen.getByRole("textbox", { name: "Message Bonzai Agent" }), "First request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     fireEvent.drop(form as HTMLFormElement, {
       dataTransfer: { files: [new File(["second"], "second.pdf")] },
     });
     expect(await screen.findByText("second.pdf")).toBeVisible();
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Second request");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Second request",
+    );
     fireEvent.submit(form as HTMLFormElement);
 
     expect(
       await screen.findByText("Wait for Home to finish starting, then send again."),
     ).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "Second request",
     );
     expect(within(form as HTMLFormElement).getByText("second.pdf")).toBeVisible();
@@ -1058,7 +1097,7 @@ describe("AgentWorkspace runtime wiring", () => {
 
     expect(await screen.findByText("Unsent Home message")).toBeVisible();
     expect(screen.getByText("First request")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "Second request",
     );
     expect(within(form as HTMLFormElement).getByText("second.pdf")).toBeVisible();
@@ -1072,7 +1111,7 @@ describe("AgentWorkspace runtime wiring", () => {
       mocks.invoke.mock.calls.filter(([command]) => command === "create_agent_session"),
     ).toHaveLength(1);
     expect(screen.getByText("First request")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "Second request",
     );
     expect(within(form as HTMLFormElement).getByText("second.pdf")).toBeVisible();
@@ -1087,14 +1126,14 @@ describe("AgentWorkspace runtime wiring", () => {
     );
     expect(await screen.findByText("third.pdf")).toBeVisible();
 
-    await user.clear(screen.getByRole("textbox", { name: "Message Clovy" }));
+    await user.clear(screen.getByRole("textbox", { name: "Message Bonzai Agent" }));
     await user.click(screen.getByRole("button", { name: "Remove second.pdf" }));
     await user.click(screen.getByRole("button", { name: "Remove third.pdf" }));
     const retry = screen.getByRole("button", { name: "Retry unsent Home message" });
     expect(retry).toBeEnabled();
     await user.click(retry);
     expect(screen.queryByText("Unsent Home message")).not.toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "First request",
     );
     expect(within(form as HTMLFormElement).getByText("first.pdf")).toBeVisible();
@@ -1189,7 +1228,7 @@ describe("AgentWorkspace runtime wiring", () => {
     });
 
     render(<AgentWorkspace homeMode initialSession={homeSession} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     expect(screen.queryByRole("button", { name: /Model:/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
@@ -1276,7 +1315,7 @@ describe("AgentWorkspace runtime wiring", () => {
     });
 
     render(<AgentWorkspace homeMode initialSession={homeSession} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Research good wines near southern France");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
@@ -1287,7 +1326,7 @@ describe("AgentWorkspace runtime wiring", () => {
       ).toHaveLength(1),
     );
 
-    const nextComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const nextComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(nextComposer, "ok");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
@@ -1300,7 +1339,10 @@ describe("AgentWorkspace runtime wiring", () => {
     ).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Open session" })).toHaveLength(1);
 
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Hey there, Clovy 👋");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Hey there, Clovy 👋",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(await screen.findByText("Hey! What can I help with?")).toBeVisible();
@@ -1312,7 +1354,10 @@ describe("AgentWorkspace runtime wiring", () => {
     ).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Open session" })).toHaveLength(1);
 
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Greetings, Clovy");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Greetings, Clovy",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => expect(screen.getAllByText("Hey! What can I help with?")).toHaveLength(2));
@@ -1324,7 +1369,10 @@ describe("AgentWorkspace runtime wiring", () => {
     ).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Open session" })).toHaveLength(1);
 
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Plan a trip to Rome");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Plan a trip to Rome",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(await screen.findByText("I'm here. What can I help with?")).toBeVisible();
@@ -1386,13 +1434,13 @@ describe("AgentWorkspace runtime wiring", () => {
     });
 
     render(<AgentWorkspace homeMode initialSession={homeSession} />);
-    const composer = await screen.findByRole("textbox", { name: "Message Clovy" });
+    const composer = await screen.findByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "First message");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
       expect(mocks.invoke).toHaveBeenCalledWith("clovy_home_chat", expect.anything()),
     );
-    const activeComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const activeComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     activeComposer.textContent = "New draft";
     fireEvent.input(activeComposer);
     expect(activeComposer).toHaveTextContent("New draft");
@@ -1404,7 +1452,9 @@ describe("AgentWorkspace runtime wiring", () => {
     expect(errorNotice).toHaveTextContent("Home is temporarily unavailable");
     expect(errorNotice.closest(".agent-composer")).not.toBeNull();
     await waitFor(() =>
-      expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent("New draft"),
+      expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
+        "New draft",
+      ),
     );
   });
 
@@ -1416,7 +1466,7 @@ describe("AgentWorkspace runtime wiring", () => {
     expect(screen.queryByRole("button", { name: "Sandboxed" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Model: Fast" })).toBeEnabled();
     expect(container.querySelector(".agent-scroll .agent-main > .agent-composer")).not.toBeNull();
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.click(composer);
     await user.type(composer, "New request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -1441,7 +1491,7 @@ describe("AgentWorkspace runtime wiring", () => {
     );
     expect(screen.getByRole("button", { name: "Model: Auto" })).toBeEnabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Stop Clovy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop Bonzai Agent" }));
     await waitFor(() =>
       expect(mocks.invoke).toHaveBeenCalledWith("cancel_agent_run", { runId: "run-1" }),
     );
@@ -1462,7 +1512,7 @@ describe("AgentWorkspace runtime wiring", () => {
 
     const nextRunPicker = await screen.findByRole("button", { name: "Model: Auto" });
     expect(nextRunPicker).toBeEnabled();
-    const nextComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const nextComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(nextComposer, "Use the staged model");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
@@ -1653,7 +1703,7 @@ describe("AgentWorkspace runtime wiring", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Choose text model" })).not.toBeInTheDocument(),
     );
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Use Economy";
     fireEvent.input(composer);
     await waitFor(() => expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled());
@@ -1696,7 +1746,7 @@ describe("AgentWorkspace runtime wiring", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Choose text model" })).not.toBeInTheDocument(),
     );
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Fresh Economy request";
     fireEvent.input(composer);
     await waitFor(() => expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled());
@@ -1815,13 +1865,13 @@ describe("AgentWorkspace runtime wiring", () => {
       </div>,
     );
     await screen.findByText("Earlier answer");
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Use a tool");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
       expect(mocks.invoke).toHaveBeenCalledWith("start_agent_run", expect.anything()),
     );
-    await screen.findByRole("button", { name: "Stop Clovy" });
+    await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
     act(() => {
       mocks.runtimeListener?.({
@@ -1974,10 +2024,12 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
 
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start the analysis");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Stop Clovy" })).toBeVisible());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Stop Bonzai Agent" })).toBeVisible(),
+    );
 
     const scroller = document.querySelector<HTMLElement>(".agent-scroll");
     expect(scroller).not.toBeNull();
@@ -1989,7 +2041,7 @@ describe("AgentWorkspace runtime wiring", () => {
       scrollTo: { configurable: true, value: scrollTo },
     });
 
-    const activeComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const activeComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     activeComposer.textContent = "Use the launch plan";
     fireEvent.input(activeComposer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2033,14 +2085,14 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
 
-    let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start the analysis");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await screen.findByRole("button", { name: "Stop Clovy" });
+    await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Use the attached brief";
     fireEvent.input(composer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2116,14 +2168,14 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
 
-    let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start the analysis");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await screen.findByRole("button", { name: "Stop Clovy" });
+    await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Use the first brief";
     fireEvent.input(composer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2154,7 +2206,7 @@ describe("AgentWorkspace runtime wiring", () => {
 
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Use the latest plan";
     fireEvent.input(composer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2235,14 +2287,14 @@ describe("AgentWorkspace runtime wiring", () => {
       render(<AgentWorkspace initialSession={session} />);
       await screen.findByText("Earlier answer");
 
-      let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+      let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
       await user.type(composer, "Start the analysis");
       await user.click(screen.getByRole("button", { name: "Send message" }));
-      await screen.findByRole("button", { name: "Stop Clovy" });
+      await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
       await user.click(screen.getByRole("button", { name: "Add files or notes" }));
       await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-      composer = screen.getByRole("textbox", { name: "Message Clovy" });
+      composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
       composer.textContent = "Use the attached brief";
       fireEvent.input(composer);
       await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2289,10 +2341,12 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
 
-    let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start the analysis");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Stop Clovy" })).toBeVisible());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Stop Bonzai Agent" })).toBeVisible(),
+    );
 
     await user.click(screen.getByRole("button", { name: "Model: Fast" }));
     await user.click(
@@ -2301,7 +2355,7 @@ describe("AgentWorkspace runtime wiring", () => {
       }),
     );
 
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Send this next";
     fireEvent.input(composer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2347,14 +2401,14 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
 
-    let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start the analysis");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await screen.findByRole("button", { name: "Stop Clovy" });
+    await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Deliver this after settlement";
     fireEvent.input(composer);
     await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2421,7 +2475,7 @@ describe("AgentWorkspace runtime wiring", () => {
         });
       });
 
-      composer = screen.getByRole("textbox", { name: "Message Clovy" });
+      composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
       composer.textContent = "Latest live correction";
       fireEvent.input(composer);
       await user.click(await screen.findByRole("button", { name: "Steer active run" }));
@@ -2475,12 +2529,12 @@ describe("AgentWorkspace runtime wiring", () => {
     mocks.openDialog.mockResolvedValue(["/tmp/follow-up.pdf"]);
     const { rerender } = render(<AgentWorkspace initialSession={session} />);
     await screen.findByText("Earlier answer");
-    let composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    let composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Start in session A");
     await user.click(screen.getByRole("button", { name: "Send message" }));
-    await screen.findByRole("button", { name: "Stop Clovy" });
+    await screen.findByRole("button", { name: "Stop Bonzai Agent" });
 
-    composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
     expect(await screen.findByText("follow-up.pdf")).toBeVisible();
@@ -2492,7 +2546,9 @@ describe("AgentWorkspace runtime wiring", () => {
     ).toBeVisible();
 
     rerender(<AgentWorkspace initialSession={newSession} />);
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Stop Clovy" })).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Stop Bonzai Agent" })).toBeNull(),
+    );
     expect(
       screen.queryByText("Steering active run. 1 attachment queued for next turn"),
     ).not.toBeInTheDocument();
@@ -2967,10 +3023,10 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace initialSession={waitingSession} />);
 
     expect(await screen.findByText("Which project?")).toBeVisible();
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Continue from here");
     expect(screen.queryByRole("button", { name: "Send message" })).not.toBeInTheDocument();
-    const stopButton = screen.getByRole("button", { name: "Stop Clovy" });
+    const stopButton = screen.getByRole("button", { name: "Stop Bonzai Agent" });
     await user.click(stopButton);
     expect(stopButton).toBeDisabled();
     fireEvent.click(stopButton);
@@ -2983,7 +3039,7 @@ describe("AgentWorkspace runtime wiring", () => {
       expect(mocks.invoke).toHaveBeenCalledWith("cancel_agent_run", { runId: "run-waiting" }),
     );
     expect(await screen.findByText("Skipped")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Message Clovy" })).toHaveTextContent(
+    expect(screen.getByRole("textbox", { name: "Message Bonzai Agent" })).toHaveTextContent(
       "Continue from here",
     );
     expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
@@ -3078,7 +3134,7 @@ describe("AgentWorkspace runtime wiring", () => {
     expect(screen.getByRole("dialog", { name: "Turn on unrestricted?" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.click(composer);
     await user.type(composer, "Fresh request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -3113,7 +3169,7 @@ describe("AgentWorkspace runtime wiring", () => {
     const { container, rerender } = render(
       <AgentWorkspace onSessionSelected={onSessionSelected} />,
     );
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Fresh request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
@@ -3123,7 +3179,7 @@ describe("AgentWorkspace runtime wiring", () => {
     expect(screen.getByText("Thinking…")).toBeVisible();
     expect(container.querySelector(".agent-workspace[data-hero='true']")).toBeNull();
     expect(screen.queryByRole("button", { name: "Session actions" })).not.toBeInTheDocument();
-    const followUpComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const followUpComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(followUpComposer, "Follow-up draft");
 
     await act(async () => resolveCreate?.(newSession));
@@ -3158,12 +3214,12 @@ describe("AgentWorkspace runtime wiring", () => {
     render(<AgentWorkspace />);
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "First submission");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await screen.findByText("Thinking…");
 
-    const laterComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const laterComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(laterComposer, "Later draft");
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
     await user.click(screen.getByRole("menuitem", { name: "Attach files" }));
@@ -3237,13 +3293,13 @@ describe("AgentWorkspace runtime wiring", () => {
     });
 
     render(<AgentWorkspace />);
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "First submission");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
       expect(mocks.invoke).toHaveBeenCalledWith("start_agent_run", expect.anything()),
     );
-    const followUpComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const followUpComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(followUpComposer, "Later draft");
     await waitFor(() => expect(followUpComposer).toHaveTextContent("Later draft"));
     await waitFor(() => expect(readAgentSessionDraft(newSession.id)).toBe("Later draft"));
@@ -3317,10 +3373,13 @@ describe("AgentWorkspace runtime wiring", () => {
       dataTransfer: { files: [new File(["%PDF-1.7"], "brief.pdf")] },
     });
     expect(await screen.findByText("brief.pdf")).toBeVisible();
-    await user.type(screen.getByRole("textbox", { name: "Message Clovy" }), "Review this brief");
+    await user.type(
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
+      "Review this brief",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await user.type(
-      screen.getByRole("textbox", { name: "Message Clovy" }),
+      screen.getByRole("textbox", { name: "Message Bonzai Agent" }),
       "Keep this newer draft",
     );
     await user.click(screen.getByRole("button", { name: "Add files or notes" }));
@@ -3363,7 +3422,7 @@ describe("AgentWorkspace runtime wiring", () => {
         name: /Fast/,
       }),
     );
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     composer.textContent = "Create this slowly";
     fireEvent.input(composer);
     const send = screen.getByRole("button", { name: "Send message" });
@@ -3433,7 +3492,7 @@ describe("AgentWorkspace runtime wiring", () => {
     const { container, rerender } = render(
       <AgentWorkspace onSessionSelected={onSessionSelected} />,
     );
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(composer, "Fresh request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() =>
@@ -3443,7 +3502,7 @@ describe("AgentWorkspace runtime wiring", () => {
     rerender(<AgentWorkspace initialSession={session} onSessionSelected={onSessionSelected} />);
     expect(await screen.findByText("Earlier answer")).toBeVisible();
     await waitFor(() => expect(screen.queryByText("Fresh request")).not.toBeInTheDocument());
-    const activeComposer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const activeComposer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.type(activeComposer, "Keep this draft");
     await waitFor(() => expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled());
 
@@ -3465,7 +3524,7 @@ describe("AgentWorkspace runtime wiring", () => {
     const user = userEvent.setup();
     render(<AgentWorkspace />);
 
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await user.click(composer);
     await user.type(composer, "Fresh request");
     await user.click(screen.getByRole("button", { name: "Send message" }));
@@ -3523,7 +3582,7 @@ describe("AgentWorkspace runtime wiring", () => {
       />,
     );
     await screen.findByText("Earlier answer");
-    const composer = screen.getByRole("textbox", { name: "Message Clovy" });
+    const composer = screen.getByRole("textbox", { name: "Message Bonzai Agent" });
     await waitFor(() => expect(composer).toBeEnabled());
     await user.type(composer, "Use my Venice key");
     await user.click(screen.getByRole("button", { name: "Send message" }));

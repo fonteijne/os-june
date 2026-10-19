@@ -377,7 +377,7 @@ impl HelperApp {
                 let (code, message) = if self.pending_composer_ack.is_some() {
                     (
                         "composer_delivery_busy",
-                        "Clovy is finishing the previous dictation. Try again.",
+                        "Bonzai Agent is finishing the previous dictation. Try again."
                     )
                 } else {
                     (
@@ -570,7 +570,7 @@ impl HelperApp {
                 self.writer.emit(with_take_id(
                     composer_error_event(
                         "composer_request_unavailable",
-                        "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it.",
+                        "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it.",
                         &request_id,
                     ),
                     take_id.as_deref(),
@@ -579,7 +579,7 @@ impl HelperApp {
                 self.writer.emit(with_take_id(
                     error_event(
                         "paste_target_unavailable",
-                        "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it.",
+                        "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it.",
                     ),
                     take_id.as_deref(),
                 ));
@@ -634,7 +634,7 @@ impl HelperApp {
                 self.writer.emit(with_take_id(
                     composer_error_event(
                         "paste_target_unavailable",
-                        "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it.",
+                        "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it.",
                         &request.id,
                     ),
                     take_id.as_deref(),
@@ -665,7 +665,7 @@ impl HelperApp {
             self.writer.emit(with_take_id(
                 error_event(
                     "paste_target_unavailable",
-                    "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it.",
+                    "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it.",
                 ),
                 take_id.as_deref(),
             ));
@@ -681,7 +681,7 @@ impl HelperApp {
                 error_event(
                     code,
                     format!(
-                        "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it. ({error})"
+                        "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it. ({error})"
                     ),
                 ),
                 take_id.as_deref(),
@@ -717,7 +717,7 @@ impl HelperApp {
                     error_event(
                         code,
                         format!(
-                            "Clovy copied the dictation to the clipboard. {guidance} ({error})"
+                            "Bonzai Agent copied the dictation to the clipboard. {guidance} ({error})"
                         ),
                     ),
                     take_id.as_deref(),
@@ -777,7 +777,7 @@ impl HelperApp {
             self.writer.emit(with_take_id(
                 composer_error_event(
                     "composer_delivery_failed",
-                    "Clovy copied the dictation to the clipboard. Press Ctrl+V to paste it.",
+                    "Bonzai Agent copied the dictation to the clipboard. Press Ctrl+V to paste it.",
                     &pending.id,
                 ),
                 pending.take_id.as_deref(),
@@ -892,7 +892,7 @@ impl HelperApp {
                 self.writer.emit(with_take_id(
                     composer_error_event(
                         "composer_delivery_timeout",
-                        "Clovy could not confirm the dictation was inserted. The text is on the clipboard if you need to paste it manually.",
+                        "Bonzai Agent could not confirm the dictation was inserted. The text is on the clipboard if you need to paste it manually.",
                         &pending.id,
                     ),
                     pending.take_id.as_deref(),

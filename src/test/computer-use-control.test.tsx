@@ -460,7 +460,7 @@ describe("ComputerUseControl", () => {
         grantEnabled: false,
         driverAvailable: false,
         state: "rollout_disabled",
-        error: "Computer use is temporarily unavailable for this Clovy or macOS version.",
+        error: "Computer use is temporarily unavailable for this Bonzai Agent or macOS version.",
       }),
     );
     render(<ComputerUseControl onOpenModels={vi.fn()} onOpenBilling={vi.fn()} />);
@@ -468,7 +468,7 @@ describe("ComputerUseControl", () => {
     expect(await screen.findByRole("switch", { name: "Enable Computer use" })).toBeDisabled();
     expect(screen.getAllByText("Temporarily unavailable")).toHaveLength(2);
     expect(
-      screen.getAllByText(/temporarily unavailable for this Clovy or macOS version/),
+      screen.getAllByText(/temporarily unavailable for this Bonzai Agent or macOS version/),
     ).toHaveLength(1);
     expect(screen.queryByText("Bundled driver unavailable")).not.toBeInTheDocument();
   });

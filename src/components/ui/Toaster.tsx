@@ -34,7 +34,7 @@ export function Toaster() {
   return (
     <SonnerToaster
       position="top-right"
-      containerAriaLabel="Clovy notifications"
+      containerAriaLabel="Bonzai Agent notifications"
       // Clear the custom titlebar and use the same top/right inset from the
       // workspace corner.
       offset={{ top: "calc(var(--titlebar-h) + var(--sp-6))", right: "var(--sp-6)" }}

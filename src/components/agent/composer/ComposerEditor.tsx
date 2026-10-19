@@ -565,7 +565,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
         attributes: {
           class: "agent-composer-editor",
           role: "textbox",
-          "aria-label": "Message Clovy",
+          "aria-label": "Message Bonzai Agent",
           "aria-multiline": "true",
         },
         handleScrollToSelection: (view) => {

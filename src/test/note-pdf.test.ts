@@ -4,13 +4,13 @@ import { exportNoteAsPdf } from "../lib/note-pdf";
 
 describe("note PDF export", () => {
   it("uses the note title while opening the print sheet and restores the app title", async () => {
-    document.title = "Clovy";
+    document.title = "Bonzai Agent";
     const print = vi.fn(() => expect(document.title).toBe("Weekly sync"));
 
     await exportNoteAsPdf("  Weekly sync  ", { print });
 
     expect(print).toHaveBeenCalledTimes(1);
-    expect(document.title).toBe("Clovy");
+    expect(document.title).toBe("Bonzai Agent");
   });
 
   it("uses a readable filename for untitled notes", async () => {

@@ -34,14 +34,14 @@ export const REPORT_CATEGORIES: ReportCategoryDef[] = [
     key: "feedback",
     label: "Feedback",
     hint: "Share a thought with the team",
-    placeholder: "What should the Clovy team hear from you?",
+    placeholder: "What should our support team hear from you?",
     keywords: ["feedback", "thoughts", "comment", "suggestion"],
   },
   {
     key: "feature",
     label: "Feature request",
     hint: "Ask for something new",
-    placeholder: "What would you like Clovy to do?",
+    placeholder: "What would you like Bonzai Agent to do?",
     keywords: ["feature", "request", "idea", "wish", "want"],
   },
 ];

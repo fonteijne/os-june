@@ -1,7 +1,7 @@
 import { resolveToken } from "../tokens-catalog";
 
-// Color tokens grouped by role. Brand-derived tokens sit in their own group so
-// switching the brand preset visibly re-tints them.
+// Color tokens grouped by role. The palette is fixed for Bonzai; theme selection
+// changes the light/dark values.
 const COLOR_GROUPS: { label: string; names: string[] }[] = [
   {
     label: "Background and surface",
@@ -13,6 +13,7 @@ const COLOR_GROUPS: { label: string; names: string[] }[] = [
       "--secondary",
       "--muted",
       "--accent",
+      "--neutral-hover",
       "--surface-subtle",
     ],
   },
@@ -21,6 +22,8 @@ const COLOR_GROUPS: { label: string; names: string[] }[] = [
     names: [
       "--foreground",
       "--card-foreground",
+      "--popover-foreground",
+      "--on-accent",
       "--muted-foreground",
       "--body-copy",
       "--spinner-neutral",
@@ -28,7 +31,17 @@ const COLOR_GROUPS: { label: string; names: string[] }[] = [
   },
   {
     label: "Accent state",
-    names: ["--primary", "--primary-foreground"],
+    names: [
+      "--brand",
+      "--brand-hover",
+      "--brand-soft",
+      "--brand-bright",
+      "--brand-wash",
+      "--primary",
+      "--primary-foreground",
+      "--accent-hover",
+      "--focus-color",
+    ],
   },
   {
     label: "Primary actions",
@@ -54,9 +67,6 @@ const COLOR_GROUPS: { label: string; names: string[] }[] = [
   {
     label: "Brand and derived tints",
     names: [
-      "--brand",
-      "--brand-bright",
-      "--brand-wash",
       "--brand-tint",
       "--brand-tint-strong",
       "--brand-line",
@@ -64,11 +74,20 @@ const COLOR_GROUPS: { label: string; names: string[] }[] = [
       "--warm-soft",
       "--warm-strong",
       "--hero-wash",
+      "--selection",
+      "--selection-foreground",
     ],
   },
   {
     label: "Status",
-    names: ["--destructive", "--destructive-soft", "--success", "--record"],
+    names: [
+      "--destructive",
+      "--destructive-soft",
+      "--success",
+      "--record",
+      "--record-hover",
+      "--recording-pulse-peak",
+    ],
   },
 ];
 
@@ -89,9 +108,8 @@ export function Color() {
     <div className="sg-section">
       <h1 className="sg-section-heading">Color</h1>
       <p className="sg-section-intro">
-        Every surface, text, and edge color is a theme-aware token. The brand-derived tints mix from
-        the selected accent, so switching a brand preset above re-tints them live without touching
-        the neutral text tokens.
+        Every surface, text, and edge color is a theme-aware token. Bonzai colors are fixed within
+        each theme, while neutral surfaces and text preserve the reference's quiet hierarchy.
       </p>
       {COLOR_GROUPS.map((group) => (
         <div key={group.label}>

@@ -75,7 +75,7 @@ describe("folders UI", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: "Clovy" })).toHaveClass("sidebar-brand-mark");
+    expect(screen.getByRole("img", { name: "Bonzai Agent" })).toHaveClass("sidebar-brand-mark");
     expect(container.querySelector(".sidebar-brand .clovy-app-tile")).toBeNull();
     expect(screen.getByRole("button", { name: "Meeting notes" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Folders" })).toBeNull();

@@ -250,7 +250,13 @@ where
 {
     let menu = Menu::new(manager)?;
 
-    let show_item = MenuItem::with_id(manager, MENU_SHOW_ID, "Open Clovy", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(
+        manager,
+        MENU_SHOW_ID,
+        "Open Bonzai Agent",
+        true,
+        None::<&str>,
+    )?;
     let settings_item =
         MenuItem::with_id(manager, MENU_SETTINGS_ID, "Settings...", true, None::<&str>)?;
     let new_session_item = MenuItem::with_id(
@@ -315,7 +321,13 @@ where
     menu.append(&settings_item)?;
     menu.append(&PredefinedMenuItem::separator(manager)?)?;
 
-    let quit_item = MenuItem::with_id(manager, MENU_QUIT_ID, "Quit Clovy", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(
+        manager,
+        MENU_QUIT_ID,
+        "Quit Bonzai Agent",
+        true,
+        None::<&str>,
+    )?;
     menu.append(&quit_item)?;
 
     Ok(menu)
@@ -399,7 +411,7 @@ fn tray_tooltip(
         (false, true) => "Dictating - ",
         (false, false) => "",
     };
-    format!("Clovy - {activity}{status}")
+    format!("Bonzai Agent - {activity}{status}")
 }
 
 fn status_label(state: &AgentMenuBarState) -> String {
@@ -501,18 +513,21 @@ mod tests {
     fn tooltip_reflects_recording_and_dictation() {
         let s = AgentMenuBarState::default();
         // (dictation, recording)
-        assert_eq!(tray_tooltip(&s, false, false), "Clovy - No active sessions");
+        assert_eq!(
+            tray_tooltip(&s, false, false),
+            "Bonzai Agent - No active sessions"
+        );
         assert_eq!(
             tray_tooltip(&s, true, false),
-            "Clovy - Dictating - No active sessions"
+            "Bonzai Agent - Dictating - No active sessions"
         );
         assert_eq!(
             tray_tooltip(&s, false, true),
-            "Clovy - Recording - No active sessions"
+            "Bonzai Agent - Recording - No active sessions"
         );
         assert_eq!(
             tray_tooltip(&s, true, true),
-            "Clovy - Recording and dictating - No active sessions"
+            "Bonzai Agent - Recording and dictating - No active sessions"
         );
     }
 

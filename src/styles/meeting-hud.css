@@ -26,17 +26,53 @@
  */
 
 :root {
-  /* Force dark surface tokens, ignoring prefers-color-scheme. */
-  --background: oklch(0.165 0.0015 84.59);
-  --foreground: oklch(0.985 0.0015 84.59);
-  --popover: oklch(0.195 0.0015 84.59);
-  --muted-foreground: oklch(0.709 0.0015 84.59);
+  /* Force the near-black Bonzai HUD surface and blue renderer controls. */
+  --background: #0a0a0a;
+  --foreground: #f4f4f2;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --muted: #151515;
+  --muted-foreground: #a6a6a6;
   --border: oklch(1 0 0 / 12%);
-  /* The selected appearance accent is still live-synced by subscribeBrand(),
-   * but the Clovy mark and recording actions are fixed identity moments. */
-  --brand: var(--clovy-leaf);
+  --success: #5ccf92;
+  --destructive: #ff9a6b;
+  --record: #ff9a6b;
+  --record-hover: #ffb899;
+  --neutral-hover: color-mix(in oklch, var(--foreground) 7%, var(--card));
+  --primary: #8aa4f2;
+  --primary-foreground: #0a0a0a;
+  --brand: #8aa4f2;
+  --brand-hover: #a9bdf6;
+  --brand-wash: #26375f;
+  --brand-bright: #a9bdf6;
+  --brand-soft: #172240;
+  --accent: var(--neutral-hover);
+  --accent-foreground: var(--foreground);
+  --accent-hover: var(--brand-hover);
+  --focus-color: #8aa4f2;
+  --on-accent: #0a0a0a;
+  --on-solid: #f4f4f2;
+  --warm-strong: #ff9a6b;
   --attention: var(--clovy-lime);
   --attention-bright: var(--clovy-lime-top);
+  --primary-action-background: linear-gradient(180deg, #8aa4f2, #718bd6);
+  --primary-action-background-hover: linear-gradient(180deg, #a9bdf6, #8aa4f2);
+  --primary-action-border: #a9bdf6;
+  --primary-action-foreground: #0a0a0a;
+  --clovy-lime: #c4f979;
+  --clovy-lime-top: #eefe92;
+  --clovy-leaf: #3f812f;
+  --clovy-leaf-deep: #245c2d;
+  --clovy-pine: #183d2f;
+  --clovy-ink: #18200c;
+  --clovy-glow: var(--clovy-lime);
+  --clovy-glow-top: var(--clovy-lime-top);
+  --character-fill-top: #a9bdf6;
+  --character-fill-bottom: #8aa4f2;
+  --character-depth: #365fd9;
+  --character-feature: #f4f4f2;
+  --character-rim: #c6d6fa;
+  --character-sheen: #c6d6fa;
 
   color: var(--foreground);
   background: transparent;
@@ -287,15 +323,14 @@ body:has(.mhud[data-mode="meeting-end"]):active {
   color: var(--foreground);
 }
 
-/* The safety action carries the Clovy lime/ink action pair from the meeting
- * prompt: keeping the recording alive is the choice worth reaching for. */
+/* The keep-recording safety control uses the orange recording role. */
 #mhud-end-keep {
-  background: var(--clovy-lime);
-  color: var(--clovy-ink);
+  background: var(--record);
+  color: var(--on-accent);
 }
 
 #mhud-end-keep:hover {
-  background: color-mix(in oklch, var(--clovy-lime) 82%, var(--clovy-lime-top));
+  background: var(--record-hover);
 }
 
 .mhud:focus-visible {
@@ -304,14 +339,10 @@ body:has(.mhud[data-mode="meeting-end"]):active {
   outline-offset: -3px;
 }
 
-/* Clovy mark ---------------------------------------------------------- */
+/* Recording mark ------------------------------------------------------- */
 
-/* The Clovy logo mark stands in for the old record LED, ported from the agent
- * HUD (.agent-hud-mark in agent-hud.css). The glyph is an inline SVG used as a
- * CSS mask over a solid base color, so the shimmer gradient can paint through
- * its shape. Recording is lime with a continuous bright shimmer pass —
- * that travelling highlight is the "live" signal (replacing the dot's breath);
- * the waveform next door carries the loudness. */
+/* The native mark mask stays unchanged. Its renderer shimmer uses the Bonzai
+ * attention palette; the waveform next door carries recording loudness. */
 .mhud-mark {
   --mark: url("/clovy-mark.svg");
   --mark-base: var(--attention);

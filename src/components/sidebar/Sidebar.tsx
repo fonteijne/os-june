@@ -1124,8 +1124,8 @@ export function Sidebar({
     >
       {inSettings ? null : (
         <header className="sidebar-header">
-          <a className="sidebar-brand" href="#" aria-label="Clovy">
-            <ClovyWordmark className="sidebar-brand-mark" label="Clovy" variant="mono" />
+          <a className="sidebar-brand" href="#" aria-label="Bonzai Agent">
+            <ClovyWordmark className="sidebar-brand-mark" label="Bonzai Agent" variant="mono" />
           </a>
           {recordingStatus ? (
             <SidebarRecordingIndicator
@@ -1970,7 +1970,8 @@ function ReferralDialog({
           </span>
           <p className="referral-hero-title">Give a month, get a month</p>
           <p className="referral-hero-copy">
-            Share Clovy with a friend. They get a free month, and when they subscribe, so do you.
+            Share Bonzai Agent with a friend. They get a free month, and when they subscribe, so do
+            you.
           </p>
         </div>
         <div className="referral-panel">

@@ -120,7 +120,7 @@ describe("agent note entry point pending request", () => {
 });
 
 describe("note header actions", () => {
-  it("calls the Ask Clovy handler from the note toolbar", async () => {
+  it("calls the Ask Bonzai Agent handler from the note toolbar", async () => {
     const user = userEvent.setup();
     const onAskClovy = vi.fn();
     render(
@@ -131,7 +131,7 @@ describe("note header actions", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Ask Clovy" }));
+    await user.click(screen.getByRole("button", { name: "Ask Bonzai Agent" }));
 
     expect(onAskClovy).toHaveBeenCalledTimes(1);
   });
@@ -145,22 +145,22 @@ describe("note header actions", () => {
       }),
     );
 
-    // The button name stays clean ("Ask Clovy"); the working state rides on a
+    // The button name stays clean ("Ask Bonzai Agent"); the working state rides on a
     // data attribute + a decorative dot, not the accessible name.
-    expect(screen.getByRole("button", { name: "Ask Clovy" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask Bonzai Agent" })).toHaveAttribute(
       "data-working",
       "true",
     );
     expect(container.querySelector(".note-header-ask-dot")).not.toBeNull();
   });
 
-  it("copies a portable reference for Clovy", async () => {
+  it("copies a portable reference for Bonzai Agent", async () => {
     const user = userEvent.setup();
     const writeText = installClipboard();
     render(createElement(NoteHeaderActions, { noteId: "note-1", noteTitle: "Launch plan" }));
 
     await user.click(screen.getByRole("button", { name: "Note actions" }));
-    await user.click(screen.getByRole("menuitem", { name: "Copy reference for Clovy" }));
+    await user.click(screen.getByRole("menuitem", { name: "Copy reference for Bonzai Agent" }));
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
@@ -220,7 +220,7 @@ describe("composer note reference trigger", () => {
 
     render(
       createElement(ComposerEditor, {
-        placeholder: "Message Clovy",
+        placeholder: "Message Bonzai Agent",
         onChange: vi.fn(),
         onSubmit: vi.fn(),
         onReady: (readyEditor: Editor) => {
@@ -246,7 +246,7 @@ describe("composer note reference trigger", () => {
 
     render(
       createElement(ComposerEditor, {
-        placeholder: "Message Clovy",
+        placeholder: "Message Bonzai Agent",
         onChange: vi.fn(),
         onSubmit: vi.fn(),
         onReady: (readyEditor: Editor) => {

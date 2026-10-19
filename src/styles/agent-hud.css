@@ -20,20 +20,48 @@
  */
 
 :root {
-  /* Force dark surface tokens for the HUD, ignoring prefers-color-scheme. */
-  --background: oklch(0.165 0.0015 84.59);
-  --foreground: oklch(0.985 0.0015 84.59);
-  --popover: oklch(0.195 0.0015 84.59);
-  --muted: oklch(0.268 0.0015 84.59);
-  --muted-foreground: oklch(0.709 0.0015 84.59);
+  /* Force the near-black Bonzai HUD surface and blue renderer controls. */
+  --background: #0a0a0a;
+  --foreground: #f4f4f2;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --muted: #151515;
+  --muted-foreground: #a6a6a6;
   --border: oklch(1 0 0 / 12%);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.72 0.14 150);
-  /* The selected appearance accent is still live-synced by subscribeBrand(),
-   * while attention from Clovy remains a fixed lime identity signal. */
-  --brand: var(--clovy-leaf);
+  --destructive: #ff9a6b;
+  --destructive-soft: oklch(0.3 0.08 45 / 40%);
+  --success: #5ccf92;
+  --brand: #8aa4f2;
+  --brand-hover: #a9bdf6;
+  --brand-bright: #a9bdf6;
+  --brand-wash: #26375f;
+  --brand-soft: #172240;
+  --accent-soft: var(--brand-soft);
+  --focus-color: #8aa4f2;
+  --on-accent: #0a0a0a;
+  --on-solid: #f4f4f2;
+  --primary: #8aa4f2;
+  --primary-foreground: #0a0a0a;
+  --record: #ff9a6b;
+  --warm-strong: #ff9a6b;
+  --primary-action-background: linear-gradient(180deg, #8aa4f2, #718bd6);
+  --primary-action-background-hover: linear-gradient(180deg, #a9bdf6, #8aa4f2);
+  --primary-action-border: #a9bdf6;
+  --primary-action-foreground: #0a0a0a;
   --attention: var(--clovy-lime);
   --attention-bright: var(--clovy-lime-top);
+  --clovy-lime: #c4f979;
+  --clovy-lime-top: #eefe92;
+  --clovy-leaf: #3f812f;
+  --clovy-leaf-deep: #245c2d;
+  --clovy-pine: #183d2f;
+  --clovy-ink: #18200c;
+  --character-fill-top: #a9bdf6;
+  --character-fill-bottom: #8aa4f2;
+  --character-depth: #365fd9;
+  --character-feature: #f4f4f2;
+  --character-rim: #c6d6fa;
+  --character-sheen: #c6d6fa;
 
   color: var(--foreground);
   background: transparent;
@@ -234,10 +262,8 @@ body {
 
 /* Clovy mark ------------------------------------------------------------ */
 
-/* The agents mark carries the aggregate state through color alone:
- * neutral at rest, a white shimmer while working, a lime shimmer
- * when a session needs input, green/red on the way out. The glyph is a
- * CSS mask so gradients (the shimmer) can paint through its shape. */
+/* The mark carries aggregate state: neutral at rest, foreground shimmer while
+ * working, lime for waiting-for-user-input, green/red on completion or failure. */
 .agent-hud-mark {
   --mark: url("/clovy-mark.svg");
   --mark-base: var(--muted-foreground);

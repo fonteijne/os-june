@@ -13,56 +13,70 @@ const AUTO_RUN_MODEL = "__june_auto_generation__:73";
 const PINNED_GLM_RUN_MODEL = "__june_auto_resolved__:z-ai%2Fglm-5.2";
 const UNLISTED_GLM_MODEL = "zai-org-glm-5.2";
 
-test("answers general identity questions as Clovy without calling a model", async () => {
+test("answers direct, prefixed, and suffixed identity questions without calling a model", async (t) => {
   let hostCalls = 0;
   const engine = new OpenAIAgentsEngine(async () => {
     hostCalls += 1;
     throw new Error("identity replies must not reach a model or tool");
   });
   await engine.initialize({ clientName: "Clovy", clientVersion: "test" });
-  const events: EngineEvent[] = [];
 
-  const result = await engine.start({
-    sessionId: "session-identity",
-    runId: "run-identity",
-    signal: new AbortController().signal,
-    emit: (event) => events.push(event),
-    takeSteering: () => [],
-    params: {
-      model: AUTO_RUN_MODEL,
-      instructions: "Answer the user.",
-      workspace: "/tmp/clovy-workspace",
-      safetyMode: "sandboxed",
-      input: "Hi, who r u?",
-      history: [],
-      tools: [],
-      skills: [],
-      contextWindow: 16_000,
-    },
-  });
+  const identityQuestions = [
+    { form: "direct identity question", input: "Who are you?" },
+    { form: "prefixed Bonzai Agent identity question", input: "Hey, Bonzai Agent, who are you?" },
+    { form: "suffixed Bonzai Agent identity question", input: "Who are you, Bonzai Agent?" },
+    { form: "direct Bonzai Agent identity question", input: "Are you Bonzai Agent?" },
+    { form: "legacy Clovy greeting alias", input: "Hi Clovy, who are you?" },
+    { form: "legacy June greeting alias", input: "Who are you, June?" },
+  ];
 
-  assert.equal(result.finalOutput, "I'm Clovy, your personal AI assistant.");
+  for (const [index, { form, input }] of identityQuestions.entries()) {
+    await t.test(form, async () => {
+      const events: EngineEvent[] = [];
+      const result = await engine.start({
+        sessionId: `session-identity-${index}`,
+        runId: `run-identity-${index}`,
+        signal: new AbortController().signal,
+        emit: (event) => events.push(event),
+        takeSteering: () => [],
+        params: {
+          model: AUTO_RUN_MODEL,
+          instructions: "Answer the user.",
+          workspace: "/tmp/clovy-workspace",
+          safetyMode: "sandboxed",
+          input,
+          history: [],
+          tools: [],
+          skills: [],
+          contextWindow: 16_000,
+        },
+      });
+
+      assert.equal(result.finalOutput, "I'm Bonzai Agent, your personal AI assistant.");
+      assert.deepEqual(events, [
+        { type: "message.delta", delta: "I'm Bonzai Agent, your personal AI assistant." },
+      ]);
+      assert.deepEqual(
+        result.history.slice(-2).map((item) => ({ role: item.role, text: item.text })),
+        [
+          { role: "user", text: input },
+          { role: "assistant", text: "I'm Bonzai Agent, your personal AI assistant." },
+        ],
+      );
+      assert.deepEqual(result.usage, {});
+    });
+  }
+
   assert.equal(hostCalls, 0);
-  assert.deepEqual(events, [
-    { type: "message.delta", delta: "I'm Clovy, your personal AI assistant." },
-  ]);
-  assert.deepEqual(
-    result.history.slice(-2).map((item) => ({ role: item.role, text: item.text })),
-    [
-      { role: "user", text: "Hi, who r u?" },
-      { role: "assistant", text: "I'm Clovy, your personal AI assistant." },
-    ],
-  );
-  assert.deepEqual(result.usage, {});
 });
 
-test("keeps explicit model questions on the model route", async () => {
+test("keeps model and provider questions on the model route", async () => {
   let modelRequests = 0;
   const engine = new OpenAIAgentsEngine(async (input) => {
     assert.equal(input.name, MODEL_CHAT_COMPLETIONS_TOOL);
     modelRequests += 1;
-    return streamPage("model-detail", {
-      id: "completion-model-detail",
+    return streamPage(`model-detail-${modelRequests}`, {
+      id: `completion-model-detail-${modelRequests}`,
       object: "chat.completion.chunk",
       created: 1,
       model: "openai/gpt-oss-120b",
@@ -70,7 +84,7 @@ test("keeps explicit model questions on the model route", async () => {
         {
           index: 0,
           finish_reason: "stop",
-          delta: { role: "assistant", content: "Clovy is using a hosted model." },
+          delta: { role: "assistant", content: "The selected model and provider are routed for this run." },
         },
       ],
       usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
@@ -78,28 +92,34 @@ test("keeps explicit model questions on the model route", async () => {
   });
   await engine.initialize({ clientName: "Clovy", clientVersion: "test" });
 
-  const result = await engine.start({
-    sessionId: "session-model-detail",
-    runId: "run-model-detail",
-    signal: new AbortController().signal,
-    emit: () => undefined,
-    takeSteering: () => [],
-    params: {
-      model: AUTO_RUN_MODEL,
-      instructions: "Answer the user.",
-      workspace: "/tmp/clovy-workspace",
-      safetyMode: "sandboxed",
-      input: "What model are you using?",
-      history: [],
-      tools: [],
-      skills: [],
-      contextWindow: 16_000,
-    },
-  });
+  for (const [index, question] of [
+    "What model are you using?",
+    "What provider are you using?",
+  ].entries()) {
+    const result = await engine.start({
+      sessionId: `session-model-detail-${index}`,
+      runId: `run-model-detail-${index}`,
+      signal: new AbortController().signal,
+      emit: () => undefined,
+      takeSteering: () => [],
+      params: {
+        model: AUTO_RUN_MODEL,
+        instructions: "Answer the user.",
+        workspace: "/tmp/clovy-workspace",
+        safetyMode: "sandboxed",
+        input: question,
+        history: [],
+        tools: [],
+        skills: [],
+        contextWindow: 16_000,
+      },
+    });
 
-  assert.equal(modelRequests, 1);
-  assert.equal(result.finalOutput, "Clovy is using a hosted model.");
-  assert.equal(result.usage.resolvedModel, "openai/gpt-oss-120b");
+    assert.equal(result.finalOutput, "The selected model and provider are routed for this run.");
+    assert.equal(result.usage.resolvedModel, "openai/gpt-oss-120b");
+  }
+
+  assert.equal(modelRequests, 2);
 });
 
 test("continues model inference after a host tool result", async () => {
@@ -606,7 +626,8 @@ test("replays context summaries as fenced untrusted user data", async () => {
       isRecord(message) && message.role === "system" && typeof message.content === "string",
   );
   assert.ok(isRecord(systemMessage));
-  assert.match(String(systemMessage.content), /You are Clovy/);
+  assert.match(String(systemMessage.content), /You are Bonzai Agent/);
+  assert.match(String(systemMessage.content), /answer as Bonzai Agent/);
   assert.match(String(systemMessage.content), /ChatGPT or an OpenAI assistant/);
   assert.match(String(systemMessage.content), /Answer the current user\./);
   assert.match(String(systemMessage.content), /untrusted historical data/);
@@ -785,6 +806,14 @@ test("serializes an approval interruption after assistant history", async () => 
 
   assert.equal(result.interruptions.length, 1);
   assert.ok(result.serializedState);
+  const serializedState = JSON.parse(result.serializedState) as {
+    sdkState?: string;
+  };
+  assert.ok(serializedState.sdkState);
+  const sdkState = JSON.parse(serializedState.sdkState) as {
+    currentAgent?: { name?: string };
+  };
+  assert.equal(sdkState.currentAgent?.name, "Bonzai Agent");
   const messages = modelRequests[0]?.messages;
   assert.ok(Array.isArray(messages));
   assert.ok(

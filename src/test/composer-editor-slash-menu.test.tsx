@@ -37,7 +37,7 @@ describe("composer slash menu", () => {
       const composer = (availableSkills: AgentSkillInfo[] | null) => (
         <div className="agent-composer-box">
           <ComposerEditor
-            placeholder="Message Clovy"
+            placeholder="Message Bonzai Agent"
             skills={availableSkills}
             onChange={vi.fn()}
             onSubmit={vi.fn()}
@@ -46,7 +46,7 @@ describe("composer slash menu", () => {
       );
       const view = render(composer(null));
 
-      await user.type(await screen.findByRole("textbox", { name: "Message Clovy" }), "/");
+      await user.type(await screen.findByRole("textbox", { name: "Message Bonzai Agent" }), "/");
       const host = await waitFor(() => {
         const element = document.querySelector<HTMLElement>(".agent-category-menu-host");
         expect(element).toBeTruthy();
@@ -77,7 +77,7 @@ describe("composer slash menu", () => {
     render(
       <>
         <ComposerEditor
-          placeholder="Message Clovy"
+          placeholder="Message Bonzai Agent"
           skills={skills}
           onChange={vi.fn()}
           onSubmit={vi.fn()}
@@ -87,7 +87,7 @@ describe("composer slash menu", () => {
     );
 
     const textbox = await screen.findByRole("textbox", {
-      name: "Message Clovy",
+      name: "Message Bonzai Agent",
     });
     await user.type(textbox, "/");
     await waitFor(() => expect(document.querySelector(".agent-category-menu-host")).toBeTruthy());

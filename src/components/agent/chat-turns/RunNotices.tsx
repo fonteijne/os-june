@@ -33,9 +33,9 @@ export function UpstreamProviderFailureNoticePart({
 }) {
   const message =
     kind === "tool"
-      ? "A tool Clovy used could not finish this request."
+      ? "A tool Bonzai Agent used could not finish this request."
       : kind === "runtime"
-        ? "Clovy stopped unexpectedly."
+        ? "Bonzai Agent stopped unexpectedly."
         : "The model service could not finish this request.";
   return (
     <div className="agent-system-notice">

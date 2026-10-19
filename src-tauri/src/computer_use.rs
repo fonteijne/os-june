@@ -1856,7 +1856,7 @@ async fn status_inner(app: &AppHandle, computer_use: &ComputerUseState) -> Compu
                 "Computer use could not verify its safety rollout. Check your connection and try again."
                     .to_string()
             } else {
-                "Computer use is temporarily unavailable for this Clovy or macOS version."
+                "Computer use is temporarily unavailable for this Bonzai Agent or macOS version."
                     .to_string()
             }),
         };
@@ -2265,7 +2265,7 @@ pub async fn computer_use_request_permissions(
     if !rollout_gate().await.enabled {
         return Err(AppError::new(
             "computer_use_rollout_disabled",
-            "Computer use is temporarily unavailable for this Clovy or macOS version.",
+            "Computer use is temporarily unavailable for this Bonzai Agent or macOS version.",
         ));
     }
     stop_inner(&app, &state).await;
@@ -2716,7 +2716,7 @@ fn reject_unverifiable_companion_action(action: &str) -> Result<(), AppError> {
     if action == "open_app" {
         return Err(AppError::new(
             "companion_computer_use_target_unverified",
-            "Opening an app requires approval on this Mac so Clovy can verify the launched app.",
+            "Opening an app requires approval on this Mac so Bonzai Agent can verify the launched app.",
         ));
     }
     Ok(())
@@ -2817,7 +2817,7 @@ fn ensure_attended_run(state: &ComputerUseState) -> Result<(), AppError> {
     } else {
         Err(AppError::new(
             "computer_use_attended_run_required",
-            "Computer use is available only during a turn started from Clovy chat.",
+            "Computer use is available only during a turn started from Bonzai Agent chat.",
         ))
     }
 }
@@ -2846,7 +2846,7 @@ async fn ensure_action_eligible(app: &AppHandle) -> Result<(), AppError> {
     if !rollout_gate().await.enabled {
         return Err(AppError::new(
             "computer_use_rollout_disabled",
-            "Computer use is temporarily unavailable for this Clovy or macOS version.",
+            "Computer use is temporarily unavailable for this Bonzai Agent or macOS version.",
         ));
     }
     if !grant_enabled(app).await {
@@ -3086,7 +3086,7 @@ fn select_window(
         return Err(AppError::new(
             "computer_use_target_blocked",
             format!(
-                "Clovy cannot operate {} with Computer use.",
+                "Bonzai Agent cannot operate {} with Computer use.",
                 selected.app_name
             ),
         ));
@@ -3152,19 +3152,19 @@ async fn set_clovy_stage_companion(app: &AppHandle, enabled: bool) -> Result<(),
     let main = app.get_webview_window("main").ok_or_else(|| {
         AppError::new(
             "computer_use_window_restore_failed",
-            "Clovy's main window is not available for the Computer use task.",
+            "Bonzai Agent's main window is not available for the Computer use task.",
         )
     })?;
     let handle = main.ns_window().map_err(|error| {
         AppError::new(
             "computer_use_window_restore_failed",
-            format!("Clovy could not prepare its window for Computer use. {error}"),
+            format!("Bonzai Agent could not prepare its window for Computer use. {error}"),
         )
     })?;
     if handle.is_null() {
         return Err(AppError::new(
             "computer_use_window_restore_failed",
-            "Clovy could not prepare its window for Computer use.",
+            "Bonzai Agent could not prepare its window for Computer use.",
         ));
     }
 
@@ -3193,7 +3193,7 @@ async fn set_clovy_stage_companion(app: &AppHandle, enabled: bool) -> Result<(),
     .map_err(|error| {
         AppError::new(
             "computer_use_window_restore_failed",
-            format!("Clovy could not prepare its window for Computer use. {error}"),
+            format!("Bonzai Agent could not prepare its window for Computer use. {error}"),
         )
     })?;
     tokio::time::timeout(Duration::from_secs(1), receiver)
@@ -3201,13 +3201,13 @@ async fn set_clovy_stage_companion(app: &AppHandle, enabled: bool) -> Result<(),
         .map_err(|_| {
             AppError::new(
                 "computer_use_window_restore_failed",
-                "Clovy could not prepare its window for Computer use.",
+                "Bonzai Agent could not prepare its window for Computer use.",
             )
         })?
         .map_err(|_| {
             AppError::new(
                 "computer_use_window_restore_failed",
-                "Clovy could not prepare its window for Computer use.",
+                "Bonzai Agent could not prepare its window for Computer use.",
             )
         })?;
     Ok(())
@@ -3270,7 +3270,7 @@ async fn join_target_to_clovy_stage(
     }
     Err(AppError::new(
         "computer_use_window_restore_failed",
-        "Clovy could not add that app window to the current Stage Manager group. Do not retry this window during the current task.",
+        "Bonzai Agent could not add that app window to the current Stage Manager group. Do not retry this window during the current task.",
     ))
 }
 
@@ -3584,7 +3584,7 @@ fn open_app_name(arguments: &Value) -> Result<String, AppError> {
     if blocked_app(name) {
         return Err(AppError::new(
             "computer_use_target_blocked",
-            format!("Clovy cannot open {name} with Computer use."),
+            format!("Bonzai Agent cannot open {name} with Computer use."),
         ));
     }
     Ok(name.to_string())
@@ -3774,7 +3774,7 @@ async fn open_app(
     let identity = app_identity(pid).ok_or_else(|| {
         AppError::new(
             "computer_use_target_unverified",
-            "Clovy could not verify the opened app identity.",
+            "Bonzai Agent could not verify the opened app identity.",
         )
     })?;
     let reported_name = launched
@@ -3785,7 +3785,7 @@ async fn open_app(
     if blocked_target(reported_name, &identity) {
         return Err(AppError::new(
             "computer_use_target_blocked",
-            format!("Clovy cannot operate {reported_name} with Computer use."),
+            format!("Bonzai Agent cannot operate {reported_name} with Computer use."),
         ));
     }
     ensure_task_generation_current(state, task_generation)?;
@@ -3866,7 +3866,7 @@ async fn open_app(
         "window_id": selected.as_ref().map(|window| window.window_id),
         "windows": available_windows,
         "message": if selected.is_some() {
-            "The app is ready in Clovy's current Stage Manager group. Capture the returned window before acting."
+            "The app is ready in Bonzai Agent's current Stage Manager group. Capture the returned window before acting."
         } else {
             "The app opened, but no operable window appeared yet. Wait, then call list_apps."
         },
@@ -3927,7 +3927,7 @@ async fn focus_app(
         "window_id": target.window_id,
         "raised": joined_current_stage,
         "message": if joined_current_stage {
-            "The window was added to Clovy's current Stage Manager group. Capture it before acting."
+            "The window was added to Bonzai Agent's current Stage Manager group. Capture it before acting."
         } else {
             "Target selected without raising its window. Capture it before acting."
         },
@@ -4173,7 +4173,8 @@ async fn park_app_authorization(
         action_id,
         action: "use_app".to_string(),
         target_app: sanitize_line(target_app),
-        summary: "Clovy can inspect and operate this app until the current task ends.".to_string(),
+        summary: "Bonzai Agent can inspect and operate this app until the current task ends."
+            .to_string(),
         capture_path: None,
         requested_at_ms: now,
         expires_at_ms: now.saturating_add(APPROVAL_TIMEOUT.as_millis() as u64),
@@ -4219,7 +4220,7 @@ fn validate_sensitive_action(
         return Err(AppError::new(
             "computer_use_target_blocked",
             format!(
-                "Clovy cannot operate {} with Computer use.",
+                "Bonzai Agent cannot operate {} with Computer use.",
                 target.app_name
             ),
         ));

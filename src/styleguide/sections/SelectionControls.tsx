@@ -11,13 +11,6 @@ const LANGUAGE_OPTIONS = [
   { value: "ja", label: "Japanese" },
 ];
 
-const ACCENT_OPTIONS = [
-  { value: "clay", label: "Clay", color: "#c08457" },
-  { value: "sage", label: "Sage", color: "#7c8a6a" },
-  { value: "slate", label: "Slate", color: "#6b7480" },
-  { value: "plum", label: "Plum", color: "#8a6a80" },
-];
-
 const DENSITY_OPTIONS = [
   { value: "compact", label: "Compact" },
   { value: "cozy", label: "Cozy" },
@@ -28,7 +21,6 @@ export function SelectionControls() {
   const [switchOn, setSwitchOn] = useState(false);
   const [switchOn2, setSwitchOn2] = useState(true);
   const [language, setLanguage] = useState<string | null>("en");
-  const [accent, setAccent] = useState<string | null>("clay");
   const [density, setDensity] = useState<(typeof DENSITY_OPTIONS)[number]["value"]>("cozy");
 
   return (
@@ -82,20 +74,6 @@ export function SelectionControls() {
             placeholder="Choose a language"
             onChange={setLanguage}
             ariaLabel="Language"
-          />
-        </div>
-        <div className="sg-card">
-          <div className="sg-token-meta" style={{ marginBottom: "var(--sp-4)" }}>
-            <span className="sg-token-name">Select (color swatches)</span>
-          </div>
-          <Select
-            className="accent-select"
-            popoverWidth="trigger"
-            value={accent}
-            options={ACCENT_OPTIONS}
-            placeholder="Choose an accent"
-            onChange={setAccent}
-            ariaLabel="Accent color"
           />
         </div>
       </div>

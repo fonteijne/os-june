@@ -1,13 +1,25 @@
 /*
  * Popup token subset copied from src/styles/tokens.css because an extension
- * document cannot inherit Clovy's app document. The Rust
+ * document cannot inherit the app document. The Rust
  * `extension_popup_tokens_match_the_app_source` test fails if a copied value
  * drifts from the source of truth.
  */
+/* Manrope variable font — SIL Open Font License 1.1
+ * Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+ * License: extension/public/Manrope-OFL.txt */
+@font-face {
+  font-family: "Manrope";
+  src: url("/Manrope-Variable.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  font-synthesis: none;
+}
+
 :root {
   --font-sans:
-    "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    "Manrope", "ABC Diatype", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --font-scale: 1;
   --fs-md: calc(13px * var(--font-scale));
   --fw-medium: 600;
@@ -26,12 +38,12 @@
    * this value has no counterpart in src/styles/tokens.css to drift from. */
   --extension-popup-min-w: 220px;
 
-  --brand-wash: #5a7c56;
-  --foreground: oklch(27.24% 0.0015 84.59);
-  --card: color-mix(in oklch, oklch(100% 0 none), var(--brand-wash) 2%);
-  --secondary: color-mix(in oklch, oklch(97.03% 0 none), var(--brand-wash) 3%);
-  --muted-foreground: oklch(55.8% 0.0015 84.59);
-  --destructive: oklch(57% 0.15 30);
-  --success: oklch(48% 0.12 150);
+  --brand-wash: #6f80b8;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --secondary: #f4f4f2;
+  --muted-foreground: #595959;
+  --destructive: #b93c0a;
+  --success: #1b7446;
   --shadow-inset: 0 0 0 1px oklch(0% 0 none / 4%);
 }

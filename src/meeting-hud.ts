@@ -20,14 +20,10 @@ import {
 } from "./lib/tauri";
 import { MEETING_END_STATE_EVENT } from "./lib/events";
 import { installNativeContextMenuGuard } from "./lib/native-context-menu";
-import { subscribeBrand } from "./lib/brand";
 import { createHudLifecycle } from "./lib/hud-lifecycle";
 import "./styles/meeting-hud.css";
 
 const lifecycle = createHudLifecycle();
-
-// Recolor this HUD window to the selected accent and keep it live-synced.
-lifecycle.trackUnlisten(subscribeBrand());
 
 const HAS_TAURI_BRIDGE = "__TAURI_INTERNALS__" in window;
 
@@ -83,7 +79,7 @@ function applyStatus(status: RecordingStatusDto | RecordingTelemetryDto) {
     pill.dataset.state = paused ? "paused" : "recording";
     pill.setAttribute(
       "aria-label",
-      paused ? "Paused. Click to open Clovy" : "Recording. Click to open Clovy",
+      paused ? "Paused. Click to open Bonzai Agent" : "Recording. Click to open Bonzai Agent",
     );
   }
 
@@ -127,7 +123,7 @@ function applyMeetingEndStatus(status: MeetingEndStatus | null) {
       delete pill.dataset.mode;
       pill.setAttribute("role", "button");
       pill.setAttribute("tabindex", "0");
-      pill.setAttribute("aria-label", "Recording. Click to open Clovy");
+      pill.setAttribute("aria-label", "Recording. Click to open Bonzai Agent");
     }
     // Let the snapped state paint before the transition comes back (same
     // two-frame dance as applyZone).
@@ -199,12 +195,12 @@ function resetBars() {
 // Focus the main window from Rust (reliable app activation — clicking a
 // non-activating panel won't bring a backgrounded app forward on its own); Rust
 // then emits the action React uses to land back on the recording note.
-function reopenClovy() {
+function reopenApp() {
   void invoke("meeting_hud_reopen").catch(() => {});
 }
 
 // One surface, two gestures: a press that moves past a small threshold drags
-// the window; a press that stays put is a click → reopen Clovy. Handlers live
+// the window; a press that stays put is a click → reopen the app. Handlers live
 // on the document, not the pill: the native quarter-turn rotates pixels but
 // not DOM hit-testing, so when the pill stands vertical a click on it lands in
 // the DOM's gutter. The window is barely bigger than the pill, so document-
@@ -246,7 +242,7 @@ document.addEventListener(
     if (event.button !== 0) return;
     const wasClick = pill?.dataset.mode !== "meeting-end" && !!pressStart && !dragging;
     pressStart = undefined;
-    if (wasClick) reopenClovy();
+    if (wasClick) reopenApp();
   },
   { signal: lifecycle.signal },
 );
@@ -257,7 +253,7 @@ document.addEventListener(
     if (pill?.dataset.mode === "meeting-end") return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      reopenClovy();
+      reopenApp();
     }
   },
   { signal: lifecycle.signal },

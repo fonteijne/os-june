@@ -59,7 +59,7 @@ export function SecretPart({
     >
       <div className="agent-action-card-body">
         <label htmlFor={inputId}>Secret required</label>
-        <p>{part.reason || "Clovy needs a secret before it can continue."}</p>
+        <p>{part.reason || "Bonzai Agent needs a secret before it can continue."}</p>
         <input
           id={inputId}
           className="dialog-input"

@@ -453,6 +453,8 @@ describe("Clovy technical identity", () => {
       read(".github/workflows/deploy-clovy-link.yml"),
     ]);
 
+    expect(runtimeProvider).toContain('"A model name is required for Bonzai model routing"');
+    expect(runtimeProvider).not.toContain('"A model name is required for Bonzai Agent"');
     expect(runtimeProvider).toContain('"__clovy_model_chat_completions"');
     expect(runtimeHost).toContain('"__clovy_model_chat_completions"');
     expect(runtimeHost).toContain('"__june_model_chat_completions"');

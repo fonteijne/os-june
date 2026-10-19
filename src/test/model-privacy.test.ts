@@ -15,6 +15,13 @@ import type { VeniceModelDto } from "../lib/tauri";
 const model = (partial: Partial<VeniceModelDto>): Partial<VeniceModelDto> => partial;
 
 describe("model privacy labels", () => {
+  it("describes the anonymized retention subject as the upstream provider", () => {
+    expect(ANONYMOUS_MODEL_DESCRIPTION).toContain(
+      "The upstream provider may retain anonymized prompts.",
+    );
+    expect(ANONYMOUS_MODEL_DESCRIPTION).not.toContain("model provider");
+  });
+
   it("uses e2ee mode over private — the stronger claim wins", () => {
     expect(
       modelPrivacyBadge({

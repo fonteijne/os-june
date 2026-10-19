@@ -157,10 +157,10 @@ export function AgentCliAccessCard({
 
   const description = (
     <p>
-      Clovy wants write access to the state folders of your coding CLIs (Claude Code, Codex, Gemini,
-      opencode) so they stay logged in and can save their work in sandboxed sessions. Those folders
-      configure software that also runs outside Clovy's sandbox. Enabling turns on "Agent CLI
-      access" in Settings and restarts the sandboxed runtime.
+      Bonzai Agent wants write access to the state folders of your coding CLIs (Claude Code, Codex,
+      Gemini, opencode) so they stay logged in and can save their work in sandboxed sessions. Those
+      folders configure software that also runs outside Bonzai Agent's sandbox. Enabling turns on
+      "Agent CLI access" in Settings and restarts the sandboxed runtime.
     </p>
   );
 
@@ -285,7 +285,7 @@ export function AgentBrowserAccessCard({
 
   const description = (
     <p>
-      Clovy wants to drive your browser to finish this task, in tabs it opens and tabs you
+      Bonzai Agent wants to drive your browser to finish this task, in tabs it opens and tabs you
       explicitly share. Page content from those tabs (visible text and screenshots) leaves this
       device and is sent to your configured AI model for inference. Enabling turns on "Browser use"
       in Settings and restarts the agent runtime.
@@ -407,12 +407,12 @@ export function ApprovalPart({
         >
           {outcomeUnconfirmed ? (
             <p>
-              The connection closed before Clovy could confirm the response. This approval is no
-              longer actionable, but it may have already been applied. Check the agent activity
+              The connection closed before Bonzai Agent could confirm the response. This approval is
+              no longer actionable, but it may have already been applied. Check the agent activity
               before retrying.
             </p>
           ) : (
-            <p>This approval is no longer pending. Clovy did not approve anything.</p>
+            <p>This approval is no longer pending. Bonzai Agent did not approve anything.</p>
           )}
           {part.command ? <pre>{part.command}</pre> : null}
         </ResolvedActionRow>
@@ -510,8 +510,8 @@ export function ApprovalPart({
             // Generation unavailable (offline, signed out): keep the
             // static framing rather than an empty panel.
             <p>
-              Clovy is paused because this request needs your explicit permission before it can
-              continue.
+              Bonzai Agent is paused because this request needs your explicit permission before it
+              can continue.
             </p>
           )}
           <p>

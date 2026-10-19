@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { applyBrandVar, BRAND_PRESETS } from "../lib/brand";
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 import appCss from "../styles/app.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
 
@@ -103,6 +103,19 @@ describe("Home polish styles", () => {
     expect(activeGlow).toContain("opacity: 1;");
   });
 
+  it("keeps recording status dots inside the semantic orange family", () => {
+    const sidebarDot = cssRuleFor(".sidebar-recording-dot");
+    const noteDot = cssRuleFor(".note-recording-dot");
+    const pulse = cssRuleFor("@keyframes note-recording-breathe");
+
+    for (const rule of [sidebarDot, noteDot]) {
+      expect(rule).toContain("--recording-pulse-rest: var(--record);");
+      expect(rule).toContain("--recording-pulse-peak: var(--record-hover);");
+    }
+    expect(pulse).toContain("var(--recording-pulse-rest, var(--record))");
+    expect(pulse).toContain("var(--recording-pulse-peak, var(--record-hover))");
+  });
+
   it("drops a composer edge fade immediately when it reaches the visible caret", () => {
     const endCaret = cssRuleFor('.agent-composer-editor-root[data-caret-edge="end"]::after');
 
@@ -111,18 +124,16 @@ describe("Home polish styles", () => {
   });
 });
 
-describe("Clovy theme-state parity", () => {
-  afterEach(() => {
-    document.documentElement.removeAttribute("data-brand");
-    document.documentElement.style.removeProperty("--brand");
-    document.documentElement.style.removeProperty("--brand-wash");
-  });
-
-  it("lifts the semantic accent and flips its foreground in dark mode", () => {
+describe("Bonzai theme-state parity", () => {
+  it("uses the approved fixed light/dark Bonzai accent and foregrounds", () => {
+    const lightTokens = cssRuleFor(":root", tokensCss);
     const darkTokens = cssRuleFor('[data-theme="dark"]', tokensCss);
 
-    expect(darkTokens).toContain("--primary: var(--brand-bright);");
-    expect(darkTokens).toContain("--primary-foreground: var(--clovy-ink);");
+    expect(lightTokens).toContain("--brand: #365fd9;");
+    expect(lightTokens).toContain("--primary-foreground: var(--on-accent);");
+    expect(darkTokens).toContain("--brand: #8aa4f2;");
+    expect(darkTokens).toContain("--primary: var(--brand);");
+    expect(darkTokens).toContain("--primary-foreground: var(--on-accent);");
   });
 
   it("routes onboarding progress and checked switches through the semantic accent", () => {
@@ -158,25 +169,32 @@ describe("Clovy theme-state parity", () => {
     expect(icon).toContain("color: var(--primary);");
   });
 
-  it("themes the living Home character without changing its identity default", () => {
+  it("keeps the static character lime and fixes the Home character to blue", () => {
     const identityCharacter = cssRuleFor(".clovy-alive");
-    const homeCharacter = cssRuleFor('.clovy-alive[data-palette="appearance"]');
-    const sageCharacter = cssRuleFor(
-      ':root[data-brand="sage"] .clovy-alive[data-palette="appearance"]',
-    );
+    const appearanceCharacter = cssRuleFor('.clovy-alive[data-palette="appearance"]');
+    const lightTokens = cssRuleFor(":root", tokensCss);
+    const darkTokens = cssRuleFor('[data-theme="dark"]', tokensCss);
+    const character = readFileSync("src/components/brand/ClovyAlive.tsx", "utf8");
 
+    expect(lightTokens).toContain("--clovy-glow: var(--clovy-lime);");
+    expect(lightTokens).toContain("--character-fill-bottom: #365fd9;");
+    expect(darkTokens).toContain("--character-fill-bottom: #8aa4f2;");
     expect(identityCharacter).toContain("--clovy-alive-fill-bottom: var(--clovy-glow);");
-    expect(homeCharacter).toContain("--clovy-alive-fill-bottom: var(--primary);");
-    expect(homeCharacter).toContain("--clovy-alive-depth-color: color-mix(");
-    expect(homeCharacter).toContain("var(--primary) 68%");
-    expect(homeCharacter).toContain("var(--clovy-ink)");
-    expect(sageCharacter).toContain("--clovy-alive-fill-bottom: var(--clovy-glow);");
-    expect(sageCharacter).toContain("--clovy-alive-sheen-color: var(--clovy-lime-top);");
+    expect(appearanceCharacter).toContain(
+      "--clovy-alive-fill-bottom: var(--character-fill-bottom);",
+    );
+    expect(appearanceCharacter).toContain("var(--character-fill-bottom) 68%");
+    expect(appearanceCharacter).toContain("var(--clovy-ink)");
+    expect(appCss).not.toContain(':root[data-brand="sage"] .clovy-alive');
+    expect(character).toContain("var(--clovy-alive-fill-bottom, var(--clovy-glow))");
+    expect(character).toContain('<title>{label ?? "Bonzai Agent"}</title>');
+    expect(character).toContain('palette === "appearance"');
+    expect(character).toContain('"aria-label": label ?? "Bonzai Agent"');
   });
 
-  it.each(BRAND_PRESETS)("exposes $id as the active Appearance preset", ({ id }) => {
-    applyBrandVar(id);
-
-    expect(document.documentElement).toHaveAttribute("data-brand", id);
+  it("keeps the fixed Bonzai palette independent of saved Appearance colors", () => {
+    expect(tokensCss).toContain("--brand: #365fd9;");
+    expect(tokensCss).toContain("--brand: #8aa4f2;");
+    expect(tokensCss).not.toContain("--brand: #3f812f;");
   });
 });

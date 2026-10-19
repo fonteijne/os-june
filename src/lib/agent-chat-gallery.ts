@@ -175,7 +175,7 @@ export function buildAgentChatGallery(): AgentChatGallerySection[] {
             type: "image",
             status: "error",
             prompt: "a fox reading a book",
-            error: "Clovy returned an image it can't display.",
+            error: "Bonzai Agent returned an image it can't display.",
           },
         ]),
       ],

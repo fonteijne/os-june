@@ -13,6 +13,15 @@ describe("issue report prompt display", () => {
     expect(displayedUserMessageText(wrapped)).toBe(report);
   });
 
+  it("uses Bonzai Agent for each user-facing report category", () => {
+    for (const category of ["bug", "feedback", "feature"] as const) {
+      const prompt = categoryPrompt(category, "A short report.");
+      expect(prompt).toContain("Bonzai Agent desktop app");
+      expect(prompt).toContain("Bonzai Agent development team");
+      expect(prompt).not.toContain("Clovy");
+    }
+  });
+
   it("passes ordinary messages through untouched", () => {
     expect(displayedUserMessageText("just a normal question")).toBe("just a normal question");
   });

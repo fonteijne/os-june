@@ -57,7 +57,8 @@ export function PrivacySettingsSection() {
         Privacy
       </h2>
       <p className="settings-group-description">
-        Choose whether Clovy shares anonymous usage statistics with OpenSoftware. Off by default.
+        Choose whether Bonzai Agent shares anonymous usage statistics with OpenSoftware. Off by
+        default.
       </p>
       <div className="settings-card">
         <div className="settings-rows">

@@ -67,7 +67,7 @@ describe("composer editor lifecycle", () => {
       render(
         <ComposerEditor
           ref={ref}
-          placeholder="Message Clovy"
+          placeholder="Message Bonzai Agent"
           onChange={vi.fn()}
           onSubmit={vi.fn()}
         />,
@@ -117,7 +117,7 @@ describe("composer editor lifecycle", () => {
     render(
       <ComposerEditor
         ref={ref}
-        placeholder="Message Clovy"
+        placeholder="Message Bonzai Agent"
         onChange={vi.fn()}
         onSubmit={vi.fn()}
       />,

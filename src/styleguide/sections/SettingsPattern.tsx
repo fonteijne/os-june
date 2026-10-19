@@ -37,7 +37,8 @@ export function SettingsPattern() {
             </h2>
           </div>
           <p className="settings-group-description">
-            Preferences that apply across Clovy. <Caption>settings-group-description</Caption>
+            Preferences that apply across Bonzai Agent.{" "}
+            <Caption>settings-group-description</Caption>
           </p>
 
           <div className="settings-card">

@@ -81,7 +81,7 @@ pub async fn generate_note(
     let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
         AppError::new(
             http::RESPONSE_INVALID,
-            format!("Bonzai returned a response Clovy could not read: {error}"),
+            format!("Bonzai returned a response the app could not read: {error}"),
         )
     })?;
     let content = bonzai_seam::extract_chat_completion_text(&value)

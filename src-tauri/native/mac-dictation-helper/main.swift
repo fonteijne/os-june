@@ -2547,7 +2547,7 @@ enum PasteboardInserter {
     private static func emitPasteTargetUnavailable(takeID: String?) {
         emit("error", takePayload([
             "code": "paste_target_unavailable",
-            "message": "Clovy couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
+            "message": "Bonzai Agent couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
         ], takeID: takeID))
     }
 
@@ -2578,7 +2578,7 @@ enum PasteboardInserter {
             emit("permission_status", permissionPayload())
             emit("error", takePayload([
                 "code": "accessibility_permission_missing",
-                "message": "Clovy couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
+                "message": "Bonzai Agent couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
             ], takeID: takeID))
             return
         }

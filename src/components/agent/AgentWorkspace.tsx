@@ -324,7 +324,7 @@ function artifactView(artifact: AgentArtifactDto): AgentArtifact {
   return {
     name: artifact.name,
     path: artifact.path,
-    rootLabel: "Clovy workspace",
+    rootLabel: "Bonzai Agent workspace",
     size: artifact.sizeBytes,
   };
 }
@@ -1940,7 +1940,7 @@ export function AgentWorkspace({
         return;
       }
 
-      // Attachments and commands need the full Clovy tool/runtime context. Home
+      // Attachments and commands need the full agent tool/runtime context. Home
       // hands them to a focused session deterministically instead of running a
       // second hidden agent turn and hoping it emits a legacy bridge tool.
       if (messageAttachments.length > 0 || message.startsWith("/")) {
@@ -3166,7 +3166,7 @@ export function AgentWorkspace({
           if (!compacting) setCompactOpen(false);
         }}
         title="Compact context?"
-        description="Clovy will replace older conversation turns with one visible summary and keep recent turns unchanged."
+        description="Bonzai Agent will replace older conversation turns with one visible summary and keep recent turns unchanged."
         footer={
           <>
             <button
@@ -3461,7 +3461,7 @@ function AgentComposer({
         ) : null}
         <ComposerEditor
           ref={editorRef}
-          placeholder={hero ? "Ask Clovy anything, run / commands" : "Send a message"}
+          placeholder={hero ? "Ask Bonzai Agent anything, run / commands" : "Send a message"}
           changeKey={editorDraftOwnerId}
           onChange={(text, _category, changedDraftOwnerId) => {
             publishedDraftRef.current = text;
@@ -3514,7 +3514,7 @@ function AgentComposer({
               data-unrestricted={safetyMode === "unrestricted" ? "true" : undefined}
               aria-haspopup="menu"
               aria-expanded={safetyOpen}
-              title="Change what Clovy can touch"
+              title="Change what Bonzai Agent can touch"
               onClick={() => setSafetyOpen((open) => !open)}
             >
               {safetyMode === "sandboxed" ? (
@@ -3575,7 +3575,7 @@ function AgentComposer({
                 <button
                   type="button"
                   className="agent-composer-stop"
-                  aria-label="Stop Clovy"
+                  aria-label="Stop Bonzai Agent"
                   disabled={stopping}
                   onClick={() => void onStop()}
                 >
@@ -3586,7 +3586,7 @@ function AgentComposer({
               <button
                 type="button"
                 className="agent-composer-stop"
-                aria-label="Stop Clovy"
+                aria-label="Stop Bonzai Agent"
                 disabled={stopping}
                 onClick={() => void onStop()}
               >
@@ -3654,7 +3654,7 @@ function AgentComposer({
           role="menu"
           aria-label="Safety mode"
         >
-          <p className="agent-sandbox-menu-title">Choose what Clovy can touch</p>
+          <p className="agent-sandbox-menu-title">Choose what Bonzai Agent can touch</p>
           {SANDBOX_OPTIONS.map((option) => {
             const value: AgentSafetyMode = option.unrestricted ? "unrestricted" : "sandboxed";
             return (
@@ -3728,7 +3728,7 @@ function AgentComposer({
         open={confirmUnrestricted}
         onClose={() => setConfirmUnrestricted(false)}
         title="Turn on unrestricted?"
-        description="Clovy will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong."
+        description="Bonzai Agent will be able to change any file your account can, not just its own workspace. This comes with risks like data loss if something goes wrong."
         footer={
           <>
             <button

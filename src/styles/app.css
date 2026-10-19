@@ -2525,8 +2525,8 @@ input:focus-visible,
   margin-block: var(--sp-4) var(--sp-2);
 }
 
-/* The living marketing-page Clovy carries the Home greeting: a themed body,
- * pine eyes, an occasional blink, and a slight delayed response to the pointer. */
+/* The living renderer character carries the Home greeting with themed body,
+ * contrasting feature details, occasional blinks and pointer response. */
 .agent-home-greeting-mark {
   display: inline-flex;
   margin-bottom: var(--sp-1);
@@ -2545,23 +2545,15 @@ input:focus-visible,
 }
 
 .clovy-alive[data-palette="appearance"] {
-  --clovy-alive-fill-top: color-mix(in oklch, var(--primary) 76%, var(--on-solid));
-  --clovy-alive-fill-bottom: var(--primary);
-  --clovy-alive-depth-color: color-mix(in oklch, var(--primary) 68%, var(--clovy-ink));
-  --clovy-alive-sheen-color: color-mix(in oklch, var(--primary) 42%, var(--on-solid));
-  --clovy-alive-rim-color: color-mix(in oklch, var(--primary) 58%, var(--on-solid));
-}
-
-:root[data-brand="sage"] .clovy-alive[data-palette="appearance"] {
-  --clovy-alive-fill-top: var(--clovy-glow-top);
-  --clovy-alive-fill-bottom: var(--clovy-glow);
+  --clovy-alive-fill-top: color-mix(in oklch, var(--character-fill-top) 76%, var(--on-solid));
+  --clovy-alive-fill-bottom: var(--character-fill-bottom);
   --clovy-alive-depth-color: color-mix(
     in oklch,
-    var(--clovy-leaf-deep) 72%,
-    var(--clovy-tile-bottom)
+    var(--character-fill-bottom) 68%,
+    var(--clovy-ink)
   );
-  --clovy-alive-sheen-color: var(--clovy-lime-top);
-  --clovy-alive-rim-color: var(--clovy-lime-top);
+  --clovy-alive-sheen-color: color-mix(in oklch, var(--character-fill-bottom) 42%, var(--on-solid));
+  --clovy-alive-rim-color: color-mix(in oklch, var(--character-fill-bottom) 58%, var(--on-solid));
 }
 
 .clovy-home-mark {
@@ -2979,8 +2971,8 @@ button.agent-user-attachment:hover {
 }
 
 .agent-turn-action:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--accent);
-  color: var(--accent-foreground);
+  background: var(--neutral-hover);
+  color: var(--foreground);
 }
 
 .agent-turn-action[data-copied] {
@@ -4843,7 +4835,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-activity-toggle:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .agent-activity-toggle-count {
@@ -4926,7 +4918,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-activity-drawer-close:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
   color: var(--foreground);
 }
 
@@ -5091,7 +5083,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-activity-row-action:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .agent-activity-row-action-stop:hover {
@@ -5308,7 +5300,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-artifacts-button:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
   border-color: var(--border-subtle);
 }
 
@@ -6296,7 +6288,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-composer[data-drop-active="true"] {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in oklch, var(--brand) 8%, transparent);
 }
 
 /* Unsupported runtime event notice: a quiet, recoverable banner at the top of
@@ -6401,7 +6393,7 @@ button.agent-user-attachment:hover {
 }
 
 .agent-unsupported-notice-action:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .agent-unsupported-notice-action:focus-visible {
@@ -9042,8 +9034,8 @@ button.agent-user-attachment:hover {
 }
 
 .sidebar-recording-dot {
-  --recording-pulse-rest: var(--brand);
-  --recording-pulse-peak: oklch(0.74 0.115 45);
+  --recording-pulse-rest: var(--record);
+  --recording-pulse-peak: var(--record-hover);
 
   flex: 0 0 auto;
   width: 5px;
@@ -10751,11 +10743,11 @@ button.agent-user-attachment:hover {
 }
 
 .tab-overflow-item:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .tab-overflow-item[data-active] {
-  background: color-mix(in oklch, var(--accent) 70%, var(--foreground) 6%);
+  background: color-mix(in oklch, var(--brand) 14%, var(--card));
 }
 
 .tab-overflow-icon {
@@ -13938,7 +13930,7 @@ button.agent-user-attachment:hover {
 }
 
 .computer-use-permission-step {
-  color: var(--accent-foreground);
+  color: var(--brand);
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
 }
@@ -16033,7 +16025,7 @@ button.agent-user-attachment:hover {
   padding: var(--sp-3) var(--sp-4);
   margin-bottom: var(--sp-4);
   border-radius: var(--r-md);
-  background: color-mix(in oklch, var(--accent) 8%, transparent);
+  background: color-mix(in oklch, var(--brand) 8%, transparent);
 }
 
 .skill-review-lifecycle[data-tone="warning"] {
@@ -16189,7 +16181,7 @@ button.agent-user-attachment:hover {
 }
 
 .skill-review-source[data-source="background"] {
-  background: color-mix(in oklch, var(--accent) 18%, transparent);
+  background: color-mix(in oklch, var(--brand) 18%, transparent);
 }
 
 .skill-review-row-effect {
@@ -16238,7 +16230,7 @@ button.agent-user-attachment:hover {
   padding: 0;
   border: none;
   background: none;
-  color: var(--accent);
+  color: var(--brand);
   font-size: var(--fs-sm);
   cursor: pointer;
 }
@@ -19682,7 +19674,7 @@ button.memory-project:hover {
 .primary-action.primary-destructive {
   border-color: transparent;
   background: var(--destructive);
-  color: var(--on-solid);
+  color: var(--destructive-foreground, var(--on-solid));
 }
 
 .primary-action.primary-destructive:hover {
@@ -22402,7 +22394,7 @@ button.memory-project:hover {
 .folder-note-checkbox-checked .folder-note-select-box {
   border-color: var(--brand);
   background: var(--brand);
-  color: var(--on-solid);
+  color: var(--on-accent);
 }
 
 .folder-note-checkbox:focus-within .folder-note-select-box {
@@ -22452,8 +22444,8 @@ button.memory-project:hover {
  * (same terracotta as the HUD), breathing softly to read as live without the
  * harshness of a blink. */
 .note-recording-dot {
-  --recording-pulse-rest: var(--brand);
-  --recording-pulse-peak: oklch(0.74 0.115 45);
+  --recording-pulse-rest: var(--record);
+  --recording-pulse-peak: var(--record-hover);
 
   flex: 0 0 auto;
   width: 6px;
@@ -22473,11 +22465,11 @@ button.memory-project:hover {
   0%,
   100% {
     opacity: 1;
-    background-color: var(--recording-pulse-rest, var(--brand));
+    background-color: var(--recording-pulse-rest, var(--record));
   }
   50% {
     opacity: 0.92;
-    background-color: var(--recording-pulse-peak, var(--brand));
+    background-color: var(--recording-pulse-peak, var(--record-hover));
   }
 }
 
@@ -25192,7 +25184,7 @@ button.memory-project:hover {
 }
 
 .onboarding-area-option:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .onboarding-area-option[data-selected="true"] {
@@ -25203,7 +25195,7 @@ button.memory-project:hover {
 }
 
 .onboarding-area-option[data-selected="true"]:hover {
-  background: var(--accent);
+  background: var(--neutral-hover);
 }
 
 .onboarding-mood-check {
@@ -25230,14 +25222,6 @@ button.memory-project:hover {
 }
 
 .onboarding-character {
-  --clovy-character-depth: color-mix(
-    in oklch,
-    var(--clovy-leaf-deep) 72%,
-    var(--clovy-tile-bottom)
-  );
-  --clovy-character-feature: var(--clovy-pine);
-  --clovy-character-rim: color-mix(in oklch, var(--clovy-lime-top) 62%, var(--clovy-leaf));
-
   position: relative;
   isolation: isolate;
   display: inline-block;
@@ -25245,19 +25229,7 @@ button.memory-project:hover {
   height: var(--onboarding-sticker-card-size);
   flex: 0 0 auto;
   border-radius: var(--r-2xl);
-  background: radial-gradient(
-    circle at center,
-    color-mix(in oklch, var(--clovy-lime) 18%, transparent),
-    transparent 66%
-  );
-}
-
-[data-theme="dark"] .onboarding-character {
-  background: radial-gradient(
-    circle at center,
-    color-mix(in oklch, var(--clovy-lime) 24%, transparent),
-    transparent 68%
-  );
+  background: radial-gradient(circle at center, var(--character-ambient), transparent 66%);
 }
 
 .onboarding-character-art {
@@ -25277,17 +25249,17 @@ button.memory-project:hover {
 }
 
 .onboarding-character-depth {
-  fill: var(--clovy-character-depth);
+  fill: var(--character-depth);
   opacity: 0.5;
 }
 
 .onboarding-character-fill {
-  filter: drop-shadow(0 4px 7px color-mix(in oklch, var(--clovy-pine) 18%, transparent));
+  filter: drop-shadow(0 4px 7px color-mix(in oklch, var(--character-depth) 18%, transparent));
 }
 
 .onboarding-character-rim {
   fill: none;
-  stroke: var(--clovy-character-rim);
+  stroke: var(--character-rim);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -25295,7 +25267,8 @@ button.memory-project:hover {
 }
 
 .onboarding-character-eyes {
-  fill: var(--clovy-character-feature);
+  color: var(--character-feature);
+  fill: currentColor;
 }
 
 /* The stage mounts a single canonical character and remounts its body group
@@ -28460,6 +28433,7 @@ button.memory-project:hover {
 .checkbox-control-checked .checkbox-box {
   border-color: var(--brand);
   background: var(--brand);
+  color: var(--on-accent);
 }
 
 .checkbox-control input:focus-visible + .checkbox-box {

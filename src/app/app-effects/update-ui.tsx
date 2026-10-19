@@ -98,7 +98,7 @@ function UpdateRelaunchCard({
         type="button"
         className="update-relaunch-card"
         disabled={relaunching}
-        aria-label={`Relaunch to update to Clovy ${payload.version}`}
+        aria-label={`Relaunch to update to Bonzai Agent ${payload.version}`}
         onClick={onRelaunch}
       >
         {/* One motion cue per card: while relaunching the mark slot swaps to the

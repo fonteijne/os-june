@@ -38,7 +38,7 @@ export function useDictationEvents(dependencies: UseDictationEventsDependencies)
           prompt,
           title: titleFromPrompt(prompt),
           status: "received",
-          summary: "Clovy is starting.",
+          summary: "Bonzai Agent is starting.",
         });
         markAgentNewSessionPending(prompt);
         setActiveView("agent");

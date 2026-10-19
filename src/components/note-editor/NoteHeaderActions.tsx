@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { noteReferenceToken } from "../agent/composer/noteReference";
 import { toast } from "../ui/Toaster";
 
-/** The note's top-bar actions: Ask Clovy (toggles the contextual chat panel),
+/** The note's top-bar actions: Ask Bonzai Agent (toggles the contextual chat panel),
  * share, and an overflow menu (copy reference, export, delete). Lives in the
  * note toolbar's actions slot so it sits in a consistent, predictable spot
  * across every note. */
@@ -49,11 +49,11 @@ export function NoteHeaderActions({
         className="note-header-ask"
         aria-expanded={askClovyOpen || undefined}
         data-working={askClovyWorking || undefined}
-        title={askClovyWorking ? "Clovy is working on your question" : undefined}
+        title={askClovyWorking ? "Bonzai Agent is working on your question" : undefined}
         onClick={() => onAskClovy?.()}
       >
         <IconBubble3 size={14} aria-hidden />
-        Ask Clovy
+        Ask Bonzai Agent
         {askClovyWorking ? <span className="note-header-ask-dot" aria-hidden /> : null}
       </button>
       {onShare ? (
@@ -113,7 +113,7 @@ function NoteOverflowMenu({
   async function handleCopyReference() {
     try {
       await navigator.clipboard.writeText(noteReferenceToken({ id: noteId, title: noteTitle }));
-      toast("Reference for Clovy copied");
+      toast("Reference for Bonzai Agent copied");
     } catch {
       // Clipboard API can fail in restricted contexts; stay silent so retrying
       // the same menu action remains the least disruptive recovery.
@@ -143,7 +143,7 @@ function NoteOverflowMenu({
             }}
           >
             <IconReference size={14} />
-            Copy reference for Clovy
+            Copy reference for Bonzai Agent
           </button>
           {onExportPdf ? (
             <button
