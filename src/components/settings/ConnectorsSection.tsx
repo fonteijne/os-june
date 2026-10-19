@@ -379,7 +379,7 @@ function connectDescription(
   } else {
     contentPhrase = "workspace content";
   }
-  return `${lead} You approve everything in ${PROVIDER_NAMES[provider]}'s own sign-in, and you can disconnect any time. When a feature uses AI, ${contentPhrase} goes to your chosen model provider. Choose a local model to keep inference on this device.`;
+  return `${lead} You approve everything in ${PROVIDER_NAMES[provider]}'s own sign-in, and you can disconnect any time. When a feature uses AI, ${contentPhrase} goes to the selected upstream provider. Choose a local model to keep inference on this device.`;
 }
 
 /**
@@ -842,7 +842,7 @@ export function ConnectorsSection({
       <SettingsPageHeader
         id="plugins-heading"
         title="Plugins"
-        blurb="Connect apps and services in local mode. Tokens stay in your Mac's Keychain, and provider calls go straight from this device. When an AI feature uses plugin content, that content goes to your chosen model provider. Choose a local model to keep inference on this device."
+        blurb="Connect apps and services in local mode. Tokens stay in your Mac's Keychain, and provider calls go straight from this device. When an AI feature uses plugin content, that content goes to the selected upstream provider. Choose a local model to keep inference on this device."
       />
 
       {notConfigured ? (

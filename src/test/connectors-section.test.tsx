@@ -303,7 +303,9 @@ describe("ConnectorsSection", () => {
     render(<ConnectorsSection />);
     await findEnabledConnect("Connect Google");
 
-    expect(screen.getByText(/plugin content.*goes to your chosen model provider/i)).toBeVisible();
+    expect(
+      screen.getByText(/plugin content.*goes to the selected upstream provider/i),
+    ).toBeVisible();
     expect(screen.queryByText(/OpenSoftware's servers cannot read your data/i)).toBeNull();
   });
 

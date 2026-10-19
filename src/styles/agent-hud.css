@@ -263,7 +263,7 @@ body {
 /* Clovy mark ------------------------------------------------------------ */
 
 /* The mark carries aggregate state: neutral at rest, foreground shimmer while
- * working, blue for input, green/red on completion or failure. */
+ * working, lime for waiting-for-user-input, green/red on completion or failure. */
 .agent-hud-mark {
   --mark: url("/clovy-mark.svg");
   --mark-base: var(--muted-foreground);

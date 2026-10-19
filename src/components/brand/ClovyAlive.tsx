@@ -253,10 +253,12 @@ export function ClovyAlive({ className, label, palette = "identity", ...props }:
       focusable="false"
       className={`clovy-alive${className ? ` ${className}` : ""}`}
       data-palette={palette}
-      {...(label ? { "aria-label": label, role: "img" as const } : { "aria-hidden": true })}
+      {...(label || palette === "appearance"
+        ? { "aria-label": label ?? "Bonzai Agent", role: "img" as const }
+        : { "aria-hidden": true })}
       {...props}
     >
-      <title>{label ?? "Clovy"}</title>
+      <title>{label ?? "Bonzai Agent"}</title>
       <defs>
         <linearGradient
           id={gradientId}

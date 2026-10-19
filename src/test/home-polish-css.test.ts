@@ -187,6 +187,9 @@ describe("Bonzai theme-state parity", () => {
     expect(appearanceCharacter).toContain("var(--clovy-ink)");
     expect(appCss).not.toContain(':root[data-brand="sage"] .clovy-alive');
     expect(character).toContain("var(--clovy-alive-fill-bottom, var(--clovy-glow))");
+    expect(character).toContain('<title>{label ?? "Bonzai Agent"}</title>');
+    expect(character).toContain('palette === "appearance"');
+    expect(character).toContain('"aria-label": label ?? "Bonzai Agent"');
   });
 
   it("keeps the fixed Bonzai palette independent of saved Appearance colors", () => {

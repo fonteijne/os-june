@@ -1,4 +1,7 @@
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ReferralNudge } from "../components/referral/ReferralNudge";
+import type { ReferralNudgeMoment } from "../lib/referral-nudge";
 import {
   REFERRAL_NUDGE_DICTATION_THRESHOLD,
   REFERRAL_NUDGE_EVENT,
@@ -34,8 +37,22 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
   window.removeEventListener(REFERRAL_NUDGE_EVENT, onNudge);
   vi.restoreAllMocks();
+});
+
+describe("referral nudge presentation copy", () => {
+  it("uses the Bonzai Agent name in every user-facing nudge variant", () => {
+    const moments: ReferralNudgeMoment[] = ["meetings", "agent", "dictation", "feedback"];
+    for (const moment of moments) {
+      const view = render(<ReferralNudge moment={moment} onInvite={vi.fn()} onDismiss={vi.fn()} />);
+      const nudge = view.container.querySelector(".referral-nudge");
+      expect(nudge?.textContent, `${moment} copy`).toContain("Bonzai Agent");
+      expect(nudge?.textContent, `${moment} copy`).not.toContain("Clovy");
+      view.unmount();
+    }
+  });
 });
 
 describe("referral nudge thresholds", () => {

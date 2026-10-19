@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const tokens = readFileSync(resolve("src/styles/tokens.css"), "utf8");
 const appCss = readFileSync(resolve("src/styles/app.css"), "utf8");
 const settings = readFileSync(resolve("src/components/settings/AppSettings.tsx"), "utf8");
+const livingCharacter = readFileSync(resolve("src/components/brand/ClovyAlive.tsx"), "utf8");
 const index = readFileSync(resolve("index.html"), "utf8");
 const fonts = readFileSync(resolve("src/styles/fonts.css"), "utf8");
 const fontRule = readFileSync(resolve("spec/font-families.md"), "utf8");
@@ -140,6 +141,11 @@ describe("Bonzai palette contract", () => {
     expect(checkedBox).toContain("background: var(--brand);");
     expect(checkedBox).toContain("color: var(--on-accent);");
     expect(checkedBox).not.toContain("color: var(--on-solid);");
+    expect(livingCharacter).toContain('<title>{label ?? "Bonzai Agent"}</title>');
+
+    const genericCheckbox = ruleFor(appCss, ".checkbox-control-checked .checkbox-box");
+    expect(genericCheckbox).toContain("background: var(--brand);");
+    expect(genericCheckbox).toContain("color: var(--on-accent);");
   });
 
   it("removes preset controls but keeps theme, text size and date format", () => {

@@ -28433,6 +28433,7 @@ button.memory-project:hover {
 .checkbox-control-checked .checkbox-box {
   border-color: var(--brand);
   background: var(--brand);
+  color: var(--on-accent);
 }
 
 .checkbox-control input:focus-visible + .checkbox-box {

@@ -2488,24 +2488,26 @@ export function AppSettings({
                   </div>
                 </div>
 
-                <div className="settings-row">
-                  <div className="settings-row-info">
-                    <h3 className="settings-row-title">Server verification</h3>
-                    <p className="settings-row-description">
-                      The inference service runs in a confidential VM. See exactly what code is
-                      running and how to verify it yourself.
-                    </p>
+                {!bonzaiActive ? (
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <h3 className="settings-row-title">Server verification</h3>
+                      <p className="settings-row-description">
+                        The Clovy API runs in a confidential VM. See exactly what code is running
+                        and how to verify it yourself.
+                      </p>
+                    </div>
+                    <div className="settings-row-control">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => void clovyOpenVerifyPage().catch(() => undefined)}
+                      >
+                        Verify Clovy API
+                      </button>
+                    </div>
                   </div>
-                  <div className="settings-row-control">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void clovyOpenVerifyPage().catch(() => undefined)}
-                    >
-                      Verify server
-                    </button>
-                  </div>
-                </div>
+                ) : null}
 
                 {onReportIssue && !bonzaiActive ? (
                   <div className="settings-row">

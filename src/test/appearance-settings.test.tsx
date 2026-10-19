@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   dictationSettings: vi.fn(),
   dictationHotkeyStatus: vi.fn(),
   providerModelSettings: vi.fn(),
+  bonzaiStatus: vi.fn(),
+  useBonzaiActive: vi.fn(),
   useDictationCapabilities: vi.fn(),
 }));
 
@@ -22,12 +24,17 @@ vi.mock("../lib/tauri", async (importOriginal) => {
   };
 });
 
+vi.mock("../lib/bonzai", () => ({
+  bonzaiStatus: mocks.bonzaiStatus,
+  useBonzaiActive: mocks.useBonzaiActive,
+}));
+
 vi.mock("../lib/platform", () => ({
-  fallbackDictationCapabilities: {
+  fallbackDictationCapabilities: () => ({
     platform: "other",
     shortcuts: false,
     systemAudio: false,
-  },
+  }),
   isSystemAudioSupportedPlatform: () => false,
   useDictationCapabilities: mocks.useDictationCapabilities,
 }));
@@ -79,6 +86,7 @@ const providerSettings: ProviderModelSettingsDto = {
 };
 
 function setupAppearanceMocks() {
+  mocks.useBonzaiActive.mockReturnValue(true);
   mocks.useDictationCapabilities.mockReturnValue({
     platform: "other",
     shortcuts: false,
@@ -87,6 +95,8 @@ function setupAppearanceMocks() {
   mocks.dictationSettings.mockResolvedValue({ settings: dictationSettingsFixture });
   mocks.dictationHotkeyStatus.mockResolvedValue({ type: "hotkey_trigger_ready" });
   mocks.providerModelSettings.mockResolvedValue({ settings: providerSettings });
+  mocks.bonzaiStatus.mockResolvedValue({ active: true, globalKeyConfigured: false });
+  mocks.useBonzaiActive.mockReturnValue(true);
 }
 
 function renderAppearance() {
@@ -141,5 +151,61 @@ describe("Bonzai Agent Appearance settings", () => {
 
     expect(dark).toHaveAttribute("aria-pressed", "true");
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+  });
+
+  it("describes the server attested by the About verification action on upstream builds", async () => {
+    mocks.useBonzaiActive.mockReturnValue(false);
+    setupAppearanceMocks();
+
+    render(
+      <AppSettings
+        account={account}
+        accountLoading={false}
+        sourceMode="microphoneOnly"
+        checkingSourceReadiness={false}
+        onAccountChanged={() => {}}
+        onAccountRefresh={async () => undefined}
+        onSourceModeChange={() => {}}
+        onEnableSystemAudio={() => {}}
+        activeTab="about"
+        onTabChange={() => {}}
+      />,
+    );
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "settings-tab-about"),
+    );
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText(/The Clovy API runs in a confidential VM/)).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: "Verify Clovy API" })).toBeInTheDocument();
+    expect(within(panel).queryByText(/The inference service runs in a confidential VM/)).toBeNull();
+  });
+
+  it("does not imply the Clovy API verifies Bonzai inference", async () => {
+    setupAppearanceMocks();
+    mocks.useBonzaiActive.mockReturnValue(true);
+
+    render(
+      <AppSettings
+        account={account}
+        accountLoading={false}
+        sourceMode="microphoneOnly"
+        checkingSourceReadiness={false}
+        onAccountChanged={() => {}}
+        onAccountRefresh={async () => undefined}
+        onSourceModeChange={() => {}}
+        onEnableSystemAudio={() => {}}
+        activeTab="about"
+        onTabChange={() => {}}
+      />,
+    );
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "settings-tab-about"),
+    );
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).queryByRole("button", { name: "Verify Clovy API" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Verify server" })).toBeNull();
+    expect(within(panel).queryByText(/The Clovy API runs in a confidential VM/)).toBeNull();
   });
 });
