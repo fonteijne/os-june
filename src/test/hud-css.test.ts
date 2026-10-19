@@ -56,6 +56,6 @@ describe("dictation HUD styles", () => {
     expect(keepRecording).toContain("background: var(--record);");
     const keepRecordingHover = cssRuleFor(meetingHudCss, "#mhud-end-keep:hover");
     expect(keepRecordingHover).toContain("background: var(--record-hover);");
-    expect(keepRecording).toContain("color: #0a0a0a;");
+    expect(keepRecording).toContain("color: var(--on-accent);");
   });
 });

@@ -326,7 +326,7 @@ body:has(.mhud[data-mode="meeting-end"]):active {
 /* The keep-recording safety control uses the orange recording role. */
 #mhud-end-keep {
   background: var(--record);
-  color: #0a0a0a;
+  color: var(--on-accent);
 }
 
 #mhud-end-keep:hover {
