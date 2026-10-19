@@ -22394,7 +22394,7 @@ button.memory-project:hover {
 .folder-note-checkbox-checked .folder-note-select-box {
   border-color: var(--brand);
   background: var(--brand);
-  color: var(--on-solid);
+  color: var(--on-accent);
 }
 
 .folder-note-checkbox:focus-within .folder-note-select-box {

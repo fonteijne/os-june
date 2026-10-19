@@ -133,6 +133,15 @@ describe("Bonzai palette contract", () => {
     expect(hudFiles[2]).toContain("#mhud-end-keep:hover {\n  background: var(--record-hover);");
   });
 
+  it("uses the semantic on-accent foreground inside fixed accent checkboxes", () => {
+    const checkedBox = appCss.match(
+      /\.folder-note-checkbox-checked \.folder-note-select-box \{[^}]*\}/,
+    )?.[0];
+    expect(checkedBox).toContain("background: var(--brand);");
+    expect(checkedBox).toContain("color: var(--on-accent);");
+    expect(checkedBox).not.toContain("color: var(--on-solid);");
+  });
+
   it("removes preset controls but keeps theme, text size and date format", () => {
     const appearanceStart = settings.indexOf('activeTab === "appearance"');
     const appearanceEnd = settings.indexOf('{activeTab === "billing"', appearanceStart);
