@@ -597,7 +597,7 @@ fn setup_app_menu(app: &tauri::App) -> tauri::Result<()> {
     let pkg_info = handle.package_info();
     let config = handle.config();
     let about_metadata = AboutMetadata {
-        name: Some("Clovy".into()),
+        name: Some("Bonzai Agent".into()),
         version: Some(pkg_info.version.to_string()),
         copyright: config.bundle.copyright.clone(),
         authors: config
@@ -610,10 +610,10 @@ fn setup_app_menu(app: &tauri::App) -> tauri::Result<()> {
 
     let app_menu = Submenu::with_items(
         handle,
-        pkg_info.name.clone(),
+        "Bonzai Agent",
         true,
         &[
-            &PredefinedMenuItem::about(handle, None, Some(about_metadata))?,
+            &PredefinedMenuItem::about(handle, Some("About Bonzai Agent"), Some(about_metadata))?,
             &MenuItem::with_id(
                 handle,
                 CHECK_FOR_UPDATES_MENU_ID,
@@ -632,11 +632,11 @@ fn setup_app_menu(app: &tauri::App) -> tauri::Result<()> {
             &PredefinedMenuItem::separator(handle)?,
             &PredefinedMenuItem::services(handle, None)?,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::hide(handle, None)?,
+            &PredefinedMenuItem::hide(handle, Some("Hide Bonzai Agent"))?,
             &PredefinedMenuItem::hide_others(handle, None)?,
             &PredefinedMenuItem::show_all(handle, None)?,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::quit(handle, None)?,
+            &PredefinedMenuItem::quit(handle, Some("Quit Bonzai Agent"))?,
         ],
     )?;
 

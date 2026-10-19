@@ -31,22 +31,22 @@ for free.
 
 ## Color
 
-- **Color is spent, not sprayed.** The brand accent recolors the whole app
-  through the token pipeline, so a single deliberate touch goes a long way.
-  Hovers, rows, nav, and menus stay neutral grey; the brand tint appears only
-  on surfaces that already carry the accent (the chat send affordances, the
-  record controls, onboarding heroes, the living Home character, and
-  Appearance-selected app icons).
-- **Neutrals stay neutral.** Surfaces take a chroma-capped wash of the accent
-  so a vivid preset tints the greys exactly as much as a dusty one. Text never
-  takes the wash.
-- **Earthy over electric.** The preset family (rose, clay, sage, ocean, plum)
-  is dusty and warm; a new accent should feel like it belongs at that table.
-- **Semantic colors stay in the earthy chroma register.** Danger/success/
-  warning live near the palette's saturation (`--brand` ~0.13, `--success`
-  0.12), not above it. `--destructive` was dechromatized from 0.22 to a brick
-  0.15 because a neon red was the one element that fought the low-chroma
-  surfaces around it; keep new status colors in that band.
+- **Color is spent, not sprayed.** The Bonzai renderer uses one fixed blue
+  accent through the token pipeline. Hovers, generic rows, nav, and menus stay
+  neutral; the accent appears on controls that already carry it. The character
+  and renderer HUD identity-led primary actions use the approved Bonzai blue
+  palette. Controls that start, stop, keep, or otherwise change a recording and
+  warning indicators use the orange semantic role. The HUD status/attention
+  graphic mark stays lime; other statuses remain semantic. Native icons and
+  static wordmark art stay unchanged.
+- **Neutrals stay neutral.** Surfaces follow the monochrome-first export. Text
+  never takes the accent wash.
+- **Blue is used with restraint.** One fixed accent replaces only the five
+  selectable color presets; Theme, Text size, and Date format controls remain.
+  Do not tint generic surfaces to make the interface feel themed.
+- **Semantic colors stay distinct.** Success, orange recording/warning, and
+  lime HUD attention remain distinct from blue actions, with text or icons where
+  applicable and contrast verified on their actual surfaces.
 
 ## Motion and feedback
 

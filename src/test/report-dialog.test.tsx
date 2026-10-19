@@ -37,7 +37,7 @@ describe("ReportDialog", () => {
         storedSessionId: "session-failed",
       }),
     );
-    expect(await screen.findByText(/Your report was sent to the Clovy team/)).toBeVisible();
+    expect(await screen.findByText(/Your report was sent to our support team/)).toBeVisible();
   });
 
   it("lets the user omit generated failure diagnostics", async () => {

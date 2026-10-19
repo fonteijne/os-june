@@ -67,7 +67,7 @@ export function ClovyMark({ label, variant = "gradient", ...props }: ClovyLogoPr
       {...accessibilityProps(label)}
       {...props}
     >
-      <title>{label ?? "Clovy"}</title>
+      <title>{label ?? "Bonzai Agent"}</title>
       {variant === "gradient" ? <ClovyGradient id={paint.id} x={128.443} y2={263.666} /> : null}
       <path fillRule="evenodd" clipRule="evenodd" d={CLOVY_MARK_PATH} fill={paint.fill} />
     </svg>
@@ -85,7 +85,7 @@ export function ClovyWordmark({ label, variant = "gradient", ...props }: ClovyLo
       {...accessibilityProps(label)}
       {...props}
     >
-      <title>{label ?? "Clovy"}</title>
+      <title>{label ?? "Bonzai Agent"}</title>
       {variant === "gradient" ? <ClovyGradient id={paint.id} x={549.25} y2={241.764} /> : null}
       {CLOVY_WORDMARK_PATHS.map((path) => (
         <path key={path} d={path} fill={paint.fill} />

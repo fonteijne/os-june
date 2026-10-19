@@ -129,7 +129,7 @@ function assistantPartNode(part: AgentChatPart, index: number, onRetry?: () => v
   }
 }
 
-/** The contextual Ask Clovy chat: a fixed side panel next to the meeting note,
+/** The contextual Ask Bonzai Agent chat: a fixed side panel next to the meeting note,
  * mirroring the agent artifact panel's attach mechanics (sibling card on the
  * window background; the main card slides left via the :has() margin in
  * app.css). The conversation is a real agent session scoped to the
@@ -406,20 +406,20 @@ export function NoteChatPanel({
         className="note-chat-resize-handle"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize Ask Clovy panel"
+        aria-label="Resize Ask Bonzai Agent panel"
         onPointerDown={startResize}
       />
       <aside
         ref={panelRef}
         className="note-chat-panel"
-        aria-label="Ask Clovy about this note"
+        aria-label="Ask Bonzai Agent about this note"
         data-entered={entered || undefined}
         onAnimationEnd={(event) => {
           if (event.animationName === "note-chat-panel-in") setEntered(true);
         }}
       >
         <header className="note-chat-bar">
-          <h2 className="note-chat-bar-title">Ask Clovy</h2>
+          <h2 className="note-chat-bar-title">Ask Bonzai Agent</h2>
           <button
             type="button"
             className="icon-button"
@@ -433,7 +433,7 @@ export function NoteChatPanel({
           <button
             type="button"
             className="icon-button"
-            aria-label="Close Ask Clovy"
+            aria-label="Close Ask Bonzai Agent"
             title="Close"
             onClick={onClose}
           >
@@ -580,8 +580,8 @@ export function NoteChatPanel({
                   <button
                     type="button"
                     className="agent-composer-stop"
-                    aria-label="Stop Clovy"
-                    title="Stop Clovy"
+                    aria-label="Stop Bonzai Agent"
+                    title="Stop Bonzai Agent"
                     onClick={stop}
                   >
                     <IconStop size={16} />

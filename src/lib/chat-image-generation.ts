@@ -126,7 +126,7 @@ export async function generateChatImage(
   if (!parseImageDataUrl(dataUrl)) {
     return {
       status: "error",
-      message: "Clovy returned an image it can't display.",
+      message: "Bonzai Agent returned an image it can't display.",
     };
   }
 
@@ -177,7 +177,7 @@ export async function editChatImage(
   if (!parsedSource) {
     return {
       status: "error",
-      message: "Clovy couldn't read the source image.",
+      message: "Bonzai Agent couldn't read the source image.",
     };
   }
 
@@ -192,7 +192,7 @@ export async function editChatImage(
   if (!parseImageDataUrl(dataUrl)) {
     return {
       status: "error",
-      message: "Clovy returned an image it can't display.",
+      message: "Bonzai Agent returned an image it can't display.",
     };
   }
 

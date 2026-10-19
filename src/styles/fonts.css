@@ -4,22 +4,20 @@
  * uses the tokens must import this file or it silently falls back to
  * system fonts. Faces only download once a rule uses them, so unused
  * families cost nothing on small overlay pages.
+ * The Bonzai fork uses local Manrope under SIL OFL 1.1; the full
+ * copyright and license terms are in public/Manrope-OFL.txt.
  */
 
+/* Manrope variable font — SIL Open Font License 1.1
+ * Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+ * License: public/Manrope-OFL.txt */
 @font-face {
-  font-family: "ABC Diatype";
-  src: url("/ABCDiatype-Regular.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "Manrope";
+  src: url("/Manrope-Variable.woff2") format("woff2");
+  font-weight: 200 800;
   font-style: normal;
   font-display: swap;
-}
-
-@font-face {
-  font-family: "ABC Diatype";
-  src: url("/ABCDiatype-Medium.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
+  font-synthesis: none;
 }
 
 @font-face {

@@ -54,7 +54,7 @@ export function MoodStep({
           <p className="onboarding-personality-greeting">{selectedPresentation.greeting}</p>
         </div>
         <fieldset className="onboarding-personality-picker">
-          <legend className="visually-hidden">Choose Clovy's greeting mood</legend>
+          <legend className="visually-hidden">Choose Bonzai Agent's greeting mood</legend>
           <div className="onboarding-personality-options">
             {ONBOARDING_MOODS.map((mood) => {
               const active = mood === selected;

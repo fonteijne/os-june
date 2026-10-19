@@ -1,8 +1,8 @@
 /*
  * Styleguide page chrome. Every class is `sg-`-prefixed so nothing here can
  * collide with the flat global namespace in app.css. Built only from
- * theme-aware tokens (no raw colors), so light/dark and every brand preset
- * just work. Quiet, document-like: a sticky left nav, a centered reading
+ * theme-aware tokens (no raw colors), so light/dark modes stay consistent.
+ * Quiet, document-like: a sticky left nav, a centered reading
  * column, and specimen cards on --card with hairline --border-subtle edges.
  */
 
@@ -108,36 +108,13 @@
 }
 
 .sg-seg-btn:hover {
-  background: var(--sidebar-accent);
+  background: var(--secondary);
 }
 
 .sg-seg-btn[aria-pressed="true"] {
   background: var(--card);
   color: var(--foreground);
   box-shadow: var(--shadow-sm);
-}
-
-/* Brand swatch picker */
-.sg-brand-swatches {
-  display: inline-flex;
-  gap: var(--sp-2);
-}
-
-.sg-brand-swatch {
-  appearance: none;
-  width: var(--control-xs);
-  height: var(--control-xs);
-  padding: 0;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border-subtle);
-  cursor: pointer;
-  transition: box-shadow var(--t-fast) var(--ease-out);
-}
-
-.sg-brand-swatch[aria-pressed="true"] {
-  box-shadow:
-    0 0 0 2px var(--card),
-    0 0 0 3px var(--brand);
 }
 
 /* Nav ------------------------------------------------------------------- */
@@ -178,11 +155,11 @@
 }
 
 .sg-nav-item:hover {
-  background: var(--sidebar-accent);
+  background: var(--secondary);
 }
 
 .sg-nav-item[aria-current="true"] {
-  background: var(--sidebar-accent);
+  background: var(--secondary);
   font-weight: var(--fw-medium);
 }
 

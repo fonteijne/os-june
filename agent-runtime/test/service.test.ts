@@ -71,8 +71,8 @@ test("answers identity before history compaction or model inference", async () =
     events.map((event) => event.method),
     ["run.started", "message.delta", "message.completed", "usage.updated", "run.completed"],
   );
-  assert.equal(events[1]?.params.delta, "I'm Clovy, your personal AI assistant.");
-  assert.equal(events[2]?.params.text, "I'm Clovy, your personal AI assistant.");
+  assert.equal(events[1]?.params.delta, "I'm Bonzai Agent, your personal AI assistant.");
+  assert.equal(events[2]?.params.text, "I'm Bonzai Agent, your personal AI assistant.");
   assert.equal(events[3]?.params.resolvedModel, undefined);
 });
 

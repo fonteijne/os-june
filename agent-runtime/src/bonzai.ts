@@ -4,7 +4,7 @@ import type { RuntimeFailureDetails } from "./sanitize.js";
 // cannot reach, the egress guard) arrives as an RPC error carrying the
 // `AppError` code in `data.appErrorCode`. Left to the generic classifier its
 // message matches nothing and it lands in the "runtime" bucket, which the UI
-// renders as "Clovy stopped unexpectedly". This names it as a provider
+// renders as "Bonzai Agent stopped unexpectedly". This names it as a provider
 // failure and keeps the host's message, so the UI can show the reason.
 
 const BONZAI_CODE = /^(?:bonzai_[a-z_]+|egress_blocked)$/;

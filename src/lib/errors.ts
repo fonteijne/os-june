@@ -57,7 +57,7 @@ export function isShareNotFoundError(err: unknown): boolean {
 export function describeShareError(err: unknown): string {
   const message = messageFromError(err);
   if (message === "sharing_unavailable") {
-    return "Sharing isn't available on this Clovy server yet. Try again after the next update.";
+    return "Sharing isn't available on this server yet. Try again after the next update.";
   }
   if (message === "share_not_found") {
     return "This share no longer exists. It may have been stopped.";

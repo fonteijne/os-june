@@ -474,7 +474,7 @@ export function renderAppLayout(dependencies: RenderAppLayoutDependencies) {
         open={recordingInactivityPrompt !== null}
         onClose={handleKeepRecordingAfterInactivityPrompt}
         title="Still in a meeting?"
-        description="Clovy has not heard meeting audio for a while."
+        description="Bonzai Agent has not heard meeting audio for a while."
         width={420}
         footer={
           <>
@@ -497,8 +497,8 @@ export function renderAppLayout(dependencies: RenderAppLayoutDependencies) {
       >
         <div className="dialog-body">
           <p className="recording-inactivity-copy">
-            Clovy will pause this recording in {recordingInactivitySecondsRemaining} seconds if you
-            do not answer.
+            Bonzai Agent will pause this recording in {recordingInactivitySecondsRemaining} seconds
+            if you do not answer.
           </p>
         </div>
       </Dialog>

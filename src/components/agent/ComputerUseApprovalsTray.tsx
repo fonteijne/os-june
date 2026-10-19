@@ -24,9 +24,9 @@ function approvalHeading(pending: PendingComputerUseApprovalDto[]) {
   const targetApps = [
     ...new Set(pending.map((item) => item.targetApp.trim()).filter((target) => target.length > 0)),
   ];
-  if (targetApps.length === 1) return `Clovy wants to use ${targetApps[0]}`;
-  if (targetApps.length > 1) return `Clovy wants to use ${targetApps.length} apps`;
-  return "Clovy wants to use an app";
+  if (targetApps.length === 1) return `Bonzai Agent wants to use ${targetApps[0]}`;
+  if (targetApps.length > 1) return `Bonzai Agent wants to use ${targetApps.length} apps`;
+  return "Bonzai Agent wants to use an app";
 }
 
 /** Always-mounted decision surface for the app-owned Computer use broker.

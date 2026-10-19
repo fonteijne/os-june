@@ -1780,7 +1780,9 @@ describe("App shortcuts", () => {
     });
 
     await waitFor(() =>
-      expect(screen.queryByRole("textbox", { name: "Message Clovy" })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("textbox", { name: "Message Bonzai Agent" }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -1795,7 +1797,9 @@ describe("App shortcuts", () => {
     await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     expect(mocks.osAccountsLogout).toHaveBeenCalledWith({ clearBrowserSession: true });
-    expect(await screen.findByRole("heading", { name: "Welcome to Clovy" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" }),
+    ).toBeInTheDocument();
   });
 
   it("keeps notes, session history, and sign out available while funding is required", async () => {
@@ -1824,7 +1828,9 @@ describe("App shortcuts", () => {
     await user.click(screen.getByRole("button", { name: "alex@example.com, account menu" }));
     await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
     expect(mocks.osAccountsLogout).toHaveBeenCalledWith({ clearBrowserSession: true });
-    expect(await screen.findByRole("heading", { name: "Welcome to Clovy" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" }),
+    ).toBeInTheDocument();
   });
 
   it("docks a persistent, non-dismissible notice above the composer while funding is required", async () => {
@@ -1841,8 +1847,11 @@ describe("App shortcuts", () => {
     // The copy renders on the composer notice and inside the sidebar chip's
     // (collapsed) reveal.
     expect(
-      (await screen.findAllByText("Your starter credits are used up. Upgrade to keep using Clovy."))
-        .length,
+      (
+        await screen.findAllByText(
+          "Your starter credits are used up. Upgrade to keep using the app.",
+        )
+      ).length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Upgrade to Pro" }).length).toBeGreaterThan(0);
     // The notice is not a dialog and offers no dismissal.
@@ -2733,7 +2742,9 @@ describe("App shortcuts", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Welcome to Clovy" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" }),
+    ).toBeInTheDocument();
     expect(mocks.bootstrapApp).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "New note" })).toBeNull();
 
@@ -2791,7 +2802,7 @@ describe("App shortcuts", () => {
 
     render(<App />);
 
-    expect(screen.queryByRole("heading", { name: "Welcome to Clovy" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Welcome to Bonzai Agent" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Continue with OpenSoftware" })).toBeNull();
     expect(mocks.bootstrapApp).not.toHaveBeenCalled();
 

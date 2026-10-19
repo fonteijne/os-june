@@ -28,19 +28,34 @@ describe("dictation HUD styles", () => {
     expect(cssRuleFor(hudCss, ".hud")).not.toContain("box-shadow: var(--shadow-md);");
   });
 
-  it("keeps Clovy identity lime even when the appearance accent changes", () => {
+  it("keeps HUD status marks lime, uses orange recording controls, and blue identity controls", () => {
     for (const css of [hudCss, meetingHudCss, agentHudCss]) {
       const root = cssRuleFor(css, ":root");
       expect(root).toContain("--attention: var(--clovy-lime);");
       expect(root).toContain("--attention-bright: var(--clovy-lime-top);");
     }
 
+    const dictationRoot = cssRuleFor(hudCss, ":root");
+    expect(dictationRoot).toContain("--record: #ff9a6b;");
     const dictationSurface = cssRuleFor(hudCss, ".hud");
-    expect(dictationSurface).toContain("--hud-record-bg: var(--clovy-lime);");
-    expect(dictationSurface).toContain("--hud-record-fg: var(--clovy-ink);");
+    expect(dictationSurface).toContain("--hud-record-bg: var(--record);");
+    expect(dictationSurface).toContain("--hud-record-fg: #0a0a0a;");
+    const meetingRoot = cssRuleFor(meetingHudCss, ":root");
+    expect(meetingRoot).toContain("--record: #ff9a6b;");
+    expect(meetingRoot).toContain("--record-hover: #ffb899;");
+
+    const recordMeetingButton = cssRuleFor(hudCss, ".hud-meeting-start");
+    expect(recordMeetingButton).toContain("background: var(--hud-record-bg);");
+    const recordMeetingHover = cssRuleFor(
+      hudCss,
+      ".hud-meeting-start.is-hovered,\n.hud-meeting-start:hover",
+    );
+    expect(recordMeetingHover).toContain("background: var(--record-hover);");
 
     const keepRecording = cssRuleFor(meetingHudCss, "#mhud-end-keep");
-    expect(keepRecording).toContain("background: var(--clovy-lime);");
-    expect(keepRecording).toContain("color: var(--clovy-ink);");
+    expect(keepRecording).toContain("background: var(--record);");
+    const keepRecordingHover = cssRuleFor(meetingHudCss, "#mhud-end-keep:hover");
+    expect(keepRecordingHover).toContain("background: var(--record-hover);");
+    expect(keepRecording).toContain("color: #0a0a0a;");
   });
 });

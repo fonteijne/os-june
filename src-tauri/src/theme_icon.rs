@@ -1,8 +1,7 @@
-//! Per-accent dock icon. The frontend calls `set_dock_icon` whenever the
-//! Appearance accent changes; on macOS we swap the live application icon
-//! (dock + Cmd-Tab) to the matching themed PNG. The themed icons are embedded
-//! in the binary so there are no runtime file paths to resolve. Keep the brand
-//! ids in sync with BRAND_PRESETS in src/lib/brand.ts.
+//! Legacy native dock-icon compatibility. The themed PNGs are embedded in the
+//! binary so there are no runtime file paths to resolve. Renderer Appearance no
+//! longer offers accent presets or calls `set_dock_icon`; keep this native
+//! compatibility palette and aliases separate from the fixed renderer palette.
 
 #[cfg(target_os = "macos")]
 fn icon_bytes(brand: &str) -> &'static [u8] {

@@ -470,7 +470,7 @@ export function RoutineDetail({
               await pauseRoutine(routine.job_id);
             } catch (restoreError) {
               toast.error(
-                `Clovy could not restore the previous inactive state: ${messageFromError(restoreError)}`,
+                `Bonzai Agent could not restore the previous inactive state: ${messageFromError(restoreError)}`,
               );
             }
             throw deleteError;
@@ -603,7 +603,7 @@ export function RoutineDetail({
           ) : null}
           {routineUnrestricted(routine) ? (
             <HoverTip
-              tip="This routine runs with full access: when it fires, Clovy can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files."
+              tip="This routine runs with full access: when it fires, Bonzai Agent can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files."
               className="routine-meta-pill routine-meta-pill-warm"
               tabIndex={0}
             >

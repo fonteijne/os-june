@@ -108,7 +108,7 @@ export function DictionarySettingsSection() {
         Dictionary
       </h2>
       <p className="settings-group-description">
-        Words or phrases Clovy should preserve during transcription.
+        Words or phrases Bonzai Agent should preserve during transcription.
       </p>
       <div className="settings-card dictionary-card">
         <div className="dictionary-toolbar">

@@ -1,10 +1,12 @@
 import type { EngineResult, RunStartParams } from "./types.js";
 
-export const CLOVY_IDENTITY_REPLY = "I'm Clovy, your personal AI assistant.";
+export const CLOVY_IDENTITY_REPLY = "I'm Bonzai Agent, your personal AI assistant.";
 
 const GENERAL_IDENTITY_QUESTIONS = new Set([
+  "are you bonzai_agent",
   "are you chatgpt",
   "are you clovy",
+  "are you june",
   "are you openai",
   "can you tell me who you are",
   "identify yourself",
@@ -23,6 +25,7 @@ const GENERAL_IDENTITY_QUESTIONS = new Set([
 ]);
 
 const LEADING_FILLERS = new Set([
+  "bonzai_agent",
   "clovy",
   "hello",
   "hey",
@@ -39,7 +42,7 @@ const LEADING_FILLERS = new Set([
   "yo",
 ]);
 
-const TRAILING_FILLERS = new Set(["clovy", "june", "please"]);
+const TRAILING_FILLERS = new Set(["bonzai_agent", "clovy", "june", "please"]);
 
 export function clovyIdentityResult(params: RunStartParams): EngineResult | undefined {
   if ((params.attachments?.length ?? 0) > 0 || !isGeneralIdentityQuestion(params.input)) {
@@ -73,7 +76,11 @@ function isGeneralIdentityQuestion(input: string): boolean {
     .toLowerCase()
     .replaceAll("'", "")
     .replaceAll("’", "");
-  const words = normalized.match(/[a-z0-9]+/g) ?? [];
+  const words = (normalized.match(/[a-z0-9]+/g) ?? [])
+    .join(" ")
+    .replaceAll("bonzai agent", "bonzai_agent")
+    .split(" ");
+  if (GENERAL_IDENTITY_QUESTIONS.has(words.join(" "))) return true;
   let start = 0;
   let end = words.length;
   while (start < end && LEADING_FILLERS.has(words[start] ?? "")) start += 1;

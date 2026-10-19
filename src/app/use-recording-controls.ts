@@ -94,7 +94,7 @@ export function useRecordingControls(dependencies: UseRecordingControlsDependenc
       resolve({
         ok: false,
         errorCode: "app_not_ready",
-        errorMessage: "Clovy is not ready to start or stop recording yet.",
+        errorMessage: "Bonzai Agent is not ready to start or stop recording yet.",
       });
       return;
     }

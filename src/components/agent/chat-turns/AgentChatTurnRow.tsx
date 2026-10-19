@@ -93,10 +93,10 @@ export function AgentChatTurnRow({
   clarifySubmitting: Record<string, string>;
   sudoSubmitting: Record<string, "approve" | "deny">;
   secretSubmitting: Record<string, true>;
-  /** State + handler for Clovy's in-chat Agent CLI access request card.
+  /** State + handler for Bonzai Agent's in-chat Agent CLI access request card.
    * Optional so the dev gallery can render rows without the live setting. */
   cliAccess?: AgentCliAccessCardProps;
-  /** State + handler for Clovy's in-chat Browser use request card. Optional
+  /** State + handler for Bonzai Agent's in-chat Browser use request card. Optional
    * for the same reason. */
   browserAccess?: AgentBrowserAccessCardProps;
   thinkingOpen: (key: string) => boolean;

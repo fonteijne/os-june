@@ -4,7 +4,7 @@
 // lines are skipped; a token seen before any banner lands in "Other".
 //
 // resolveToken reads the LIVE computed value off :root, so swatches re-resolve
-// when the theme or brand preset changes (color-mix tokens resolve to concrete
+// when the theme changes (color-mix tokens resolve to concrete
 // colors, spacing/radius to px, etc.).
 
 import tokensRaw from "../styles/tokens.css?raw";

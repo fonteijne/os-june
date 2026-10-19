@@ -77,7 +77,6 @@ import { toast } from "../ui/Toaster";
 import { APP_COMMIT_HASH, APP_VERSION } from "../../app/build-info";
 import type { ReportCategory } from "../agent/composer/reportCategory";
 import { getStoredTheme, setStoredTheme, type ThemePreference } from "../../lib/theme";
-import { BRAND_PRESETS, getStoredBrand, setStoredBrand, type BrandId } from "../../lib/brand";
 import {
   FONT_SCALE_PRESETS,
   setStoredFontScale,
@@ -417,7 +416,7 @@ type AppSettingsProps = {
   // swap is what can kill the dictation helper, so the "dictation paused"
   // notice points the user at the relaunch that finishes the update.
   updateReadyToRelaunch?: boolean;
-  // Relaunches Clovy to finish a staged update (also restores the helper).
+  // Relaunches Bonzai Agent to finish a staged update (also restores the helper).
   onRelaunch?: () => void;
   // Confirmed leave-rc reconcile: downloads and installs the current stable,
   // even if it is older than the running prerelease build (Q4-Q8).
@@ -491,7 +490,6 @@ export function AppSettings({
   }>();
   const [micOpen, setMicOpen] = useState(false);
   const [theme, setTheme] = useState<ThemePreference>(() => getStoredTheme());
-  const [brand, setBrand] = useState<BrandId>(() => getStoredBrand());
   const fontScale = useFontScaleId();
   const [dateFormat, setDateFormat] = useState<DateFormatPreference>(() => getStoredDateFormat());
   const [releaseChannel, setReleaseChannelValue] = useState<ReleaseChannel>("stable");
@@ -522,7 +520,7 @@ export function AppSettings({
   const confirmedCostQualityRef = useRef(DEFAULT_PROVIDER_MODELS.costQuality);
   const [veniceApiKeyDraft, setVeniceApiKeyDraft] = useState("");
   // Saving a Venice key while Auto is the text model would silently keep
-  // billing Clovy credits (Auto never uses the key), so the save surfaces an
+  // billing account credits (Auto never uses the key), so the save surfaces an
   // explicit billing choice: switch to a Venice model or knowingly keep Auto.
   const [veniceKeyAutoBillingChoiceOpen, setVeniceKeyAutoBillingChoiceOpen] = useState(false);
   const [showMoreVoiceOptions, setShowMoreVoiceOptions] = useState(false);
@@ -1614,7 +1612,7 @@ export function AppSettings({
           <>
             <SettingsPageHeader
               title="General"
-              blurb="Your account and everyday Clovy preferences."
+              blurb="Your account and everyday Bonzai Agent preferences."
             />
             <AccountSettingsSection
               account={account}
@@ -1644,7 +1642,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="appearance-heading"
               title="Appearance"
-              blurb="Choose the theme, accent color, text size, and date format Clovy uses."
+              blurb="Choose the theme, text size, and date format used across Bonzai Agent."
             />
             <div className="settings-card">
               <div className="settings-rows">
@@ -1680,35 +1678,6 @@ export function AppSettings({
                       value={fontScale}
                       options={FONT_SCALE_OPTIONS}
                       onValueChange={setStoredFontScale}
-                    />
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <div className="settings-row-info">
-                    <h3 className="settings-row-title">Accent</h3>
-                    <p className="settings-row-description">
-                      The brand color used across buttons, highlights, and the recorder.
-                    </p>
-                  </div>
-                  <div className="settings-row-control">
-                    <Select
-                      className="accent-select"
-                      popoverWidth="trigger"
-                      value={brand}
-                      options={BRAND_PRESETS.map((preset) => ({
-                        value: preset.id,
-                        label: preset.label,
-                        color: preset.value,
-                      }))}
-                      placeholder="Clay"
-                      ariaLabel={`Accent color: ${
-                        BRAND_PRESETS.find((preset) => preset.id === brand)?.label ??
-                        BRAND_PRESETS[0].label
-                      }`}
-                      onChange={(id) => {
-                        setBrand(id as BrandId);
-                        setStoredBrand(id as BrandId);
-                      }}
                     />
                   </div>
                 </div>
@@ -1750,7 +1719,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="shortcuts-heading"
               title="Shortcuts"
-              blurb="Set the keyboard shortcuts that start dictation and control Clovy."
+              blurb="Set the keyboard shortcuts that start dictation and control Bonzai Agent."
             />
             {helperUnavailable ? (
               <InlineNotice
@@ -1765,7 +1734,7 @@ export function AppSettings({
                 actions={
                   updateReadyToRelaunch && onRelaunch ? (
                     <button type="button" className="btn btn-secondary" onClick={onRelaunch}>
-                      Relaunch Clovy
+                      Relaunch Bonzai Agent
                     </button>
                   ) : undefined
                 }
@@ -1896,8 +1865,8 @@ export function AppSettings({
               title="Audio"
               blurb={
                 capabilities.platform === "windows"
-                  ? "Control how Clovy captures microphone audio on this device."
-                  : "Control how Clovy captures meeting and system audio."
+                  ? "Control how Bonzai Agent captures microphone audio on this device."
+                  : "Control how Bonzai Agent captures meeting and system audio."
               }
             />
             <div className="settings-card">
@@ -2016,7 +1985,7 @@ export function AppSettings({
           <>
             <SettingsPageHeader
               title="Models"
-              blurb="Choose the models Clovy uses for voice, text, image, and video."
+              blurb="Choose the models Bonzai Agent uses for voice, text, image, and video."
             />
             <BonzaiSettingsSection />
             <section
@@ -2027,7 +1996,7 @@ export function AppSettings({
                 Voice
               </h2>
               <p className="settings-group-description">
-                Choose the model Clovy uses for note transcription and dictation.
+                Choose the model Bonzai Agent uses for note transcription and dictation.
               </p>
               {showingPartitionModels ? (
                 <p className="settings-models-profile-note">
@@ -2123,7 +2092,7 @@ export function AppSettings({
                 Text
               </h2>
               <p className="settings-group-description">
-                Choose the model Clovy uses for generated notes and agent responses.
+                Choose the model Bonzai Agent uses for generated notes and agent responses.
               </p>
               {showingPartitionModels ? (
                 <p className="settings-models-profile-note">
@@ -2167,7 +2136,7 @@ export function AppSettings({
                       <div className="settings-row-info">
                         <span className="settings-row-title">Auto preference</span>
                         <span className="settings-row-description">
-                          Choose how Clovy balances model quality and usage cost.
+                          Choose how Bonzai Agent balances model quality and usage cost.
                         </span>
                         {providerSettings.veniceApiKeyConfigured ? (
                           <span className="settings-row-description settings-row-substatus">
@@ -2245,7 +2214,7 @@ export function AppSettings({
                 if (!switched) throw new Error("venice_model_switch_failed");
               }}
               title="Auto does not use your Venice API key"
-              description={`Notes and chat are billed to Clovy credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? "a Venice model"} to use your key for notes and new chats.`}
+              description={`Notes and chat are billed to account credits while Auto is selected. Switch to ${veniceKeySwitchTarget?.name ?? "a Venice model"} to use your key for notes and new chats.`}
               confirmLabel={`Use ${veniceKeySwitchTarget?.name ?? "a Venice model"}`}
               cancelLabel="Keep Auto"
             />
@@ -2259,7 +2228,7 @@ export function AppSettings({
                   Image and video
                 </h2>
                 <p className="settings-group-description">
-                  Choose the models Clovy uses when you ask it to generate an image or video.
+                  Choose the models Bonzai Agent uses to generate an image or video.
                 </p>
                 {showingPartitionModels ? (
                   <p className="settings-models-profile-note">
@@ -2403,7 +2372,7 @@ export function AppSettings({
             <SettingsPageHeader
               id="about-heading"
               title="About"
-              blurb="Version, release channel, and other details about this copy of Clovy."
+              blurb="Version, release channel, and other details about this copy of Bonzai Agent."
             />
             <div className="settings-card">
               <div className="settings-rows">
@@ -2439,7 +2408,7 @@ export function AppSettings({
                       <div className="settings-row-info">
                         <h3 className="settings-row-title">Updates</h3>
                         <p className="settings-row-description">
-                          Check whether a newer version of Clovy is available.
+                          Check whether a newer version of Bonzai Agent is available.
                         </p>
                       </div>
                       <div className="settings-row-control">
@@ -2504,7 +2473,7 @@ export function AppSettings({
                   <div className="settings-row-info">
                     <h3 className="settings-row-title">Community</h3>
                     <p className="settings-row-description">
-                      Join us in the Clovy community on Telegram at{" "}
+                      Join the Clovy community on Telegram at{" "}
                       {CLOVY_COMMUNITY_URL.replace("https://", "")}.
                     </p>
                   </div>
@@ -2523,7 +2492,7 @@ export function AppSettings({
                   <div className="settings-row-info">
                     <h3 className="settings-row-title">Server verification</h3>
                     <p className="settings-row-description">
-                      Clovy&apos;s server runs in a confidential VM. See exactly what code is
+                      The inference service runs in a confidential VM. See exactly what code is
                       running and how to verify it yourself.
                     </p>
                   </div>
@@ -2544,7 +2513,7 @@ export function AppSettings({
                       <h3 className="settings-row-title">Report an issue</h3>
                       <p className="settings-row-description">
                         Describe the problem, attach files if you have them, and send the report to
-                        the Clovy team.
+                        our support team.
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2613,7 +2582,7 @@ export function AppSettings({
                       <h3 className="settings-row-title">Browser use</h3>
                       <p className="settings-row-description">
                         Enable Browser use on this install while the public feature remains off.
-                        Turning it off applies fully after Clovy restarts.
+                        Turning it off applies fully after Bonzai Agent restarts.
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2634,10 +2603,10 @@ export function AppSettings({
                       <p className="settings-row-description">
                         {experimentalFlags.companion_pairing ===
                         experimentalFlags.companionPairingEnabled
-                          ? "Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after Clovy restarts."
+                          ? "Enable Linked devices and the Clovy Companion runtime on this install. Changes apply after Bonzai Agent restarts."
                           : experimentalFlags.companionPairingEnabled
-                            ? "Companion pairing remains available until Clovy restarts. It is saved as off for the next launch."
-                            : "Companion pairing is saved as on and will become available after Clovy restarts."}
+                            ? "Companion pairing remains available until Bonzai Agent restarts. It is saved as off for the next launch."
+                            : "Companion pairing is saved as on and will become available after Bonzai Agent restarts."}
                       </p>
                     </div>
                     <div className="settings-row-control">
@@ -2761,22 +2730,22 @@ function StartupSettingsSection() {
         Startup
       </h2>
       <p className="settings-group-description">
-        Dictation shortcuts and meeting detection only work while Clovy is running.
+        Dictation shortcuts and meeting detection only work while Bonzai Agent is running.
       </p>
       <div className="settings-card">
         <div className="settings-rows">
           <div className="settings-row">
             <div className="settings-row-info">
-              <h3 className="settings-row-title">Open Clovy at login</h3>
+              <h3 className="settings-row-title">Open Bonzai Agent at login</h3>
               <p className="settings-row-description">
-                Start Clovy automatically when you sign in to your computer.
+                Start Bonzai Agent automatically when you sign in to your computer.
               </p>
             </div>
             <div className="settings-row-control">
               <Switch
                 checked={enabled === true}
                 disabled={saving || enabled === undefined}
-                aria-label="Open Clovy at login"
+                aria-label="Open Bonzai Agent at login"
                 onCheckedChange={(next) => void toggle(next)}
               />
             </div>
@@ -3119,8 +3088,8 @@ function VeniceApiKeyRow({
       <div className="settings-row-info">
         <h3 className="settings-row-title">Venice API key</h3>
         <p className="settings-row-description">
-          Use your own key for Venice models so Clovy credits are not used. Stored locally and sent
-          only for Venice requests. For least privilege, use an inference-only key.
+          Use your own key for Venice models so account credits are not used. Stored locally and
+          sent only for Venice requests. For least privilege, use an inference-only key.
         </p>
         {configured ? (
           <p className="settings-row-description settings-row-substatus">Key saved.</p>

@@ -1,12 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { ClovyMark } from "../components/brand/ClovyLogo";
-import {
-  applyBrandVar,
-  type BrandId,
-  BRAND_PRESETS,
-  getStoredBrand,
-  setStoredBrand,
-} from "../lib/brand";
 import { applyTheme, getStoredTheme, setStoredTheme, type ThemePreference } from "../lib/theme";
 import { SECTION_GROUPS, SECTIONS, type SectionGroup } from "./sections";
 
@@ -25,9 +17,8 @@ function sectionFromUrl(): string {
 export function StyleguideApp() {
   const [activeId, setActiveId] = useState<string>(sectionFromUrl);
   const [theme, setTheme] = useState<ThemePreference>(getStoredTheme);
-  const [brand, setBrand] = useState<BrandId>(getStoredBrand);
 
-  // Bumped on every theme/brand change so sections re-read live token values.
+  // Bumped on every theme change so sections re-read live token values.
   const [themeVersion, setThemeVersion] = useState(0);
   const bump = useCallback(() => setThemeVersion((v) => v + 1), []);
 
@@ -57,17 +48,6 @@ export function StyleguideApp() {
     [bump],
   );
 
-  const pickBrand = useCallback(
-    (id: BrandId) => {
-      setBrand(id);
-      setStoredBrand(id);
-      applyBrandVar(id, { animate: true });
-      // Re-resolve after the brand transition settles.
-      window.setTimeout(bump, 260);
-    },
-    [bump],
-  );
-
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
   const ActiveComponent = active?.component;
 
@@ -75,8 +55,7 @@ export function StyleguideApp() {
     <div className="sg-root">
       <header className="sg-topbar">
         <h1 className="sg-topbar-title">
-          <ClovyMark variant="mono" />
-          <span>Clovy</span>
+          <span>Bonzai Agent</span>
           <span className="sg-topbar-title-divider" aria-hidden>
             |
           </span>
@@ -96,23 +75,6 @@ export function StyleguideApp() {
                 >
                   {option.label}
                 </button>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="sg-control-group">
-            <legend className="sg-control-label">Brand</legend>
-            <div className="sg-brand-swatches">
-              {BRAND_PRESETS.map((preset) => (
-                <button
-                  type="button"
-                  key={preset.id}
-                  className="sg-brand-swatch"
-                  style={{ background: preset.value }}
-                  aria-pressed={brand === preset.id}
-                  aria-label={preset.label}
-                  title={preset.label}
-                  onClick={() => pickBrand(preset.id)}
-                />
               ))}
             </div>
           </fieldset>

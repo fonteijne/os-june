@@ -263,14 +263,14 @@ pub(crate) fn prepare_for_updater_exit(app: &tauri::AppHandle) -> Result<(), App
                     );
                     Err(AppError::new(
                         "update_cleanup_timed_out",
-                        "Clovy could not finish preparing for the update. Try installing it again.",
+                        "Bonzai Agent could not finish preparing for the update. Try installing it again.",
                     ))
                 }
             }
         }
         BeginShutdown::AlreadyRunning(_) => Err(AppError::new(
             "update_cleanup_incomplete",
-            "Clovy is already shutting down. Try installing the update again.",
+            "Bonzai Agent is already shutting down. Try installing the update again.",
         )),
     }
 }

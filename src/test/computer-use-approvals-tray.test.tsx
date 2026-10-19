@@ -29,7 +29,7 @@ function approval(overrides: Record<string, unknown> = {}) {
     actionId: "action-1",
     action: "use_app",
     targetApp: "TextEdit",
-    summary: "Clovy can inspect and operate this app until the current task ends.",
+    summary: "Bonzai Agent can inspect and operate this app until the current task ends.",
     capturePath: null,
     requestedAtMs: 1,
     expiresAtMs: Date.now() + 60_000,
@@ -59,9 +59,11 @@ describe("ComputerUseApprovalsTray", () => {
     tauriMocks.computerUseApprovalsPending.mockResolvedValue([approval()]);
     render(<ComputerUseApprovalsTray />);
 
-    expect(await screen.findByText("Clovy wants to use TextEdit")).toBeInTheDocument();
+    expect(await screen.findByText("Bonzai Agent wants to use TextEdit")).toBeInTheDocument();
     expect(
-      screen.getByText("Clovy can inspect and operate this app until the current task ends."),
+      screen.getByText(
+        "Bonzai Agent can inspect and operate this app until the current task ends.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/TextEdit/)).toHaveLength(1);
     expect(screen.queryByRole("img")).toBeNull();
@@ -90,7 +92,7 @@ describe("ComputerUseApprovalsTray", () => {
     tauriMocks.computerUseApprovalsPending.mockResolvedValue([approval()]);
     render(<ComputerUseApprovalsTray />);
 
-    expect(await screen.findByText("Clovy wants to use TextEdit")).toBeInTheDocument();
+    expect(await screen.findByText("Bonzai Agent wants to use TextEdit")).toBeInTheDocument();
     expect(screen.getAllByText(/TextEdit/)).toHaveLength(1);
     expect(screen.queryByText(/MCP/i)).toBeNull();
   });
@@ -113,7 +115,9 @@ describe("ComputerUseApprovalsTray", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Deny" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Approval expired");
     expect(
-      screen.getByText("Clovy can inspect and operate this app until the current task ends."),
+      screen.getByText(
+        "Bonzai Agent can inspect and operate this app until the current task ends.",
+      ),
     ).toBeInTheDocument();
   });
 });

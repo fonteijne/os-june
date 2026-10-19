@@ -21,14 +21,10 @@ import {
 import { SPINNER_GRID_COLS, spinnerGrid } from "./lib/spinner-grid";
 import { isOnboardingComplete, subscribeToOnboardingComplete } from "./lib/onboarding";
 import { installNativeContextMenuGuard } from "./lib/native-context-menu";
-import { subscribeBrand } from "./lib/brand";
 import { createHudLifecycle } from "./lib/hud-lifecycle";
 import "./styles/hud.css";
 
 const lifecycle = createHudLifecycle();
-
-// Recolor this HUD window to the selected accent and keep it live-synced.
-lifecycle.trackUnlisten(subscribeBrand());
 
 type DictationHudEvent = {
   type: string;

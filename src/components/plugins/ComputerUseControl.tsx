@@ -272,10 +272,9 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
           <HoverTip
             tip={
               <>
-                macOS will ask for Accessibility so Clovy can inspect and operate the target app,
-                and Screen Recording so Clovy can understand what is visible. Clovy sends only
-                captures needed for the current task to your selected model. Captures are never
-                analytics.
+                macOS will ask for Accessibility so Bonzai Agent can inspect and operate the target
+                app, and Screen Recording so it can understand what is visible. Only captures needed
+                for the current task are sent to your selected model. Captures are never analytics.
               </>
             }
             width={360}
@@ -336,7 +335,7 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
             tone="info"
             icon={<IconExclamationCircle size={16} />}
             eyebrow="Temporarily unavailable"
-            body={status.error || "Computer use is paused for this Clovy or macOS version."}
+            body={status.error || "Computer use is paused for this version of the app or macOS."}
           />
         ) : null}
 
@@ -347,7 +346,7 @@ export function ComputerUseControl({ onOpenModels, onOpenBilling }: ComputerUseC
             eyebrow="Bundled driver unavailable"
             body={
               status.error ||
-              "This build does not contain the pinned Computer use driver. Reinstall or update Clovy."
+              "This build does not contain the pinned Computer use driver. Reinstall or update Bonzai Agent."
             }
           />
         ) : null}

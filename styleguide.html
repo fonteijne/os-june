@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
-  Dev-only living styleguide. Renders Clovy's real design tokens (and, later,
-  real components) against the real src/styles/app.css in a plain browser, so
+  Dev-only living styleguide. Renders the app's real design tokens (and, later,
+  real components) against src/styles/app.css in a plain browser, so
   the design system can be reviewed and iterated without the native build.
   Nothing here ships: vite builds only the rollupOptions inputs (index /
   hud / agent-hud / meeting-hud), so this root-level HTML file is dev-only,
@@ -14,14 +14,13 @@
   URL params:
     ?section=<id>            open a specific section (e.g. ?section=type)
     ?theme=light|dark        force a theme (else os-clovy:theme / system)
-    ?brand=rose|clay|sage|ocean|plum
-                             force a brand preset (else os-clovy:brand / sage)
+                             Bonzai accent colors are fixed by the renderer.
 -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clovy styleguide</title>
+    <title>Bonzai Agent styleguide</title>
     <script>
       // Pre-paint theme bootstrap, same as index.html (plus a ?theme=
       // override so a link can pick a theme). Keep the storage key in sync
@@ -43,44 +42,17 @@
       })();
     </script>
     <script>
-      // Pre-paint brand accent + surface wash, mirroring index.html's inline
-      // brand script (plus a ?brand= override that wins over localStorage so a
-      // link can pick a preset). Keep the id->[accent, wash] map in sync with
-      // src/lib/brand.ts.
-      (function () {
-        try {
-          var param = new URLSearchParams(location.search).get("brand");
-          var brand =
-            param ||
-            localStorage.getItem("os-clovy:brand") ||
-            localStorage.getItem("os-june:brand");
-          var brands = {
-            clay: ["#b5551f", "#976851"],
-            rose: ["#a5655c", "#9e6961"],
-            sage: ["#3f812f", "#5a7c56"],
-            ocean: ["#3d7b9a", "#467a95"],
-            // "blue" was renamed to "ocean"; keep the alias so a stored
-            // "blue" still pre-paints its swatch instead of flashing clay.
-            blue: ["#3d7b9a", "#467a95"],
-            // "amber" was dropped and folded into "clay"; keep the alias so a
-            // stored "amber" still pre-paints clay instead of flashing.
-            amber: ["#b5551f", "#976851"],
-            plum: ["#965d84", "#8f6380"],
-          };
-          var accent = brands[brand] || brands.sage;
-          document.documentElement.style.setProperty("--brand", accent[0]);
-          document.documentElement.style.setProperty(
-            "--brand-wash",
-            accent[1],
-          );
-        } catch (e) {}
-      })();
+      // Pin legacy appearance keys without blocking theme initialization.
+      try {
+        localStorage.setItem("os-clovy:brand", "bonzai");
+        localStorage.setItem("os-june:brand", "bonzai");
+      } catch (e) {}
     </script>
     <script>
       // Minimal null Tauri bridge. This page mounts its own root (not the app
       // shell), so it never talks to the native side — but @tauri-apps/api
-      // imports (pulled in transitively by src/lib/brand.ts) expect these
-      // globals at import time. Keep this tiny: any stray invoke rejects
+      // imports used by renderer modules expect these globals at import time.
+      // Keep this tiny: any stray invoke rejects
       // quietly instead of throwing.
       (() => {
         window.__TAURI_INTERNALS__ = {

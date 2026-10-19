@@ -26,7 +26,7 @@ export function ProviderLogo({ provider, id, name = "", size = 18 }: ProviderLog
         <ClovyMark
           width={Math.round(size * 0.78)}
           height={Math.round(size * 0.78)}
-          label="Clovy"
+          label="Bonzai Agent"
           variant="mono"
         />
       );

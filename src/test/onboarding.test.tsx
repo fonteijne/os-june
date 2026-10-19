@@ -199,7 +199,7 @@ describe("OnboardingFlow", () => {
 
   async function renderFlow(onComplete = vi.fn()) {
     render(<OnboardingFlow {...flowProps({ onComplete })} />);
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Where could I help most?" });
     await userEvent.click(screen.getByRole("radio", { name: /Work/ }));
@@ -207,7 +207,7 @@ describe("OnboardingFlow", () => {
     await screen.findByRole("heading", { name: "Choose my personality" });
     await userEvent.click(screen.getByRole("radio", { name: /Strategic/ }));
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Let Clovy listen and type" });
+    await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" });
     return onComplete;
   }
 
@@ -233,7 +233,9 @@ describe("OnboardingFlow", () => {
 
     render(<OnboardingFlow {...flowProps()} />);
 
-    expect(await screen.findByRole("heading", { name: "Let Clovy listen and type" })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" }),
+    ).toBeVisible();
   });
 
   function stubNavigatorPlatform(platform: string, userAgent: string) {
@@ -296,7 +298,7 @@ describe("OnboardingFlow", () => {
   it("keeps anonymous usage statistics off by default", async () => {
     render(<OnboardingFlow {...flowProps()} />);
 
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
     expect(screen.queryByText("See exactly what is shared")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Learn how it works" })).toHaveAttribute(
       "href",
@@ -316,7 +318,7 @@ describe("OnboardingFlow", () => {
     const user = userEvent.setup();
     render(<OnboardingFlow {...flowProps()} />);
 
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
     await user.click(screen.getByRole("switch", { name: "Share anonymous usage statistics" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
@@ -324,7 +326,7 @@ describe("OnboardingFlow", () => {
     await screen.findByRole("heading", { name: "Where could I help most?" });
   });
 
-  it("asks where Clovy should help before choosing a personality", async () => {
+  it("asks where Bonzai Agent should help before choosing a personality", async () => {
     const user = userEvent.setup();
     setOnboardingResumeStep("area");
     render(<OnboardingFlow {...flowProps()} />);
@@ -360,7 +362,7 @@ describe("OnboardingFlow", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Choose my personality" });
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Let Clovy listen and type" });
+    await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" });
 
     grantPermissions();
     await waitFor(() => expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled());
@@ -390,8 +392,11 @@ describe("OnboardingFlow", () => {
     // One canonical character on the stage; the options stay text-only.
     const stage = container.querySelector(".onboarding-personality-stage");
     expect(container.querySelectorAll(".onboarding-character")).toHaveLength(1);
+    expect(stage?.querySelector(".onboarding-character-art title")?.textContent).toBe(
+      "Clearheaded Bonzai Agent",
+    );
     expect(stage).toContainElement(
-      screen.getByRole("group", { name: "Choose Clovy's greeting mood" }),
+      screen.getByRole("group", { name: "Choose Bonzai Agent's greeting mood" }),
     );
     expect(container.querySelector(".onboarding-personality-check")).toBeNull();
     expect(stage).toHaveAttribute("data-mood", "clearheaded");
@@ -437,7 +442,7 @@ describe("OnboardingFlow", () => {
     await user.click(continueButton);
 
     expect(onboardingMood()).toBe("quick-witted");
-    await screen.findByRole("heading", { name: "Let Clovy listen and type" });
+    await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" });
   });
 
   it("normalizes the factory-default shortcut to fn", async () => {
@@ -465,7 +470,7 @@ describe("OnboardingFlow", () => {
       },
     });
     render(<OnboardingFlow {...flowProps()} />);
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
 
     await waitFor(() =>
       expect(mocks.setDictationShortcut).toHaveBeenCalledWith(
@@ -500,7 +505,7 @@ describe("OnboardingFlow", () => {
       },
     });
     render(<OnboardingFlow {...flowProps()} />);
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
 
     await waitFor(() => expect(mocks.dictationSettings).toHaveBeenCalledOnce());
     expect(mocks.setDictationShortcut).not.toHaveBeenCalled();
@@ -514,23 +519,23 @@ describe("OnboardingFlow", () => {
       <OnboardingFlow {...flowProps({ account: signedOutAccount, onAccountChanged })} />,
     );
 
-    await screen.findByRole("heading", { name: "Welcome to Clovy" });
+    await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" });
     await user.click(screen.getByRole("button", { name: "Continue with OpenSoftware" }));
 
     expect(mocks.osAccountsLogin).toHaveBeenCalledOnce();
     await waitFor(() => expect(onAccountChanged).toHaveBeenCalledWith(account));
     rerender(<OnboardingFlow {...flowProps({ account, onAccountChanged })} />);
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
   });
 
-  it("opens the Clovy community from the welcome step", async () => {
+  it("opens the community from the welcome step", async () => {
     const user = userEvent.setup();
     render(<OnboardingFlow {...flowProps({ account: signedOutAccount })} />);
 
-    await screen.findByRole("heading", { name: "Welcome to Clovy" });
+    await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" });
     await user.click(
       screen.getByRole("button", {
-        name: "Join the Clovy community on Telegram",
+        name: "Join our community on Telegram",
       }),
     );
 
@@ -545,7 +550,7 @@ describe("OnboardingFlow", () => {
     try {
       render(<OnboardingFlow {...flowProps({ account: signedOutAccount })} />);
 
-      await screen.findByRole("heading", { name: "Welcome to Clovy" });
+      await screen.findByRole("heading", { name: "Welcome to Bonzai Agent" });
       expect(screen.getByText("Write with your voice")).toBeInTheDocument();
       expect(screen.getByText("Turn speech into polished text in any app.")).toBeInTheDocument();
       expect(screen.getByText("Capture meetings")).toBeInTheDocument();
@@ -559,14 +564,14 @@ describe("OnboardingFlow", () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     render(<OnboardingFlow {...flowProps({ account: unsubscribedAccount, onComplete })} />);
-    await screen.findByRole("heading", { name: "Help improve Clovy" });
+    await screen.findByRole("heading", { name: "Help improve Bonzai Agent" });
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Where could I help most?" });
     await user.click(screen.getByRole("radio", { name: /Work/ }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Choose my personality" });
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Let Clovy listen and type" });
+    await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" });
 
     grantPermissions();
     await waitFor(() => expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled());
@@ -575,14 +580,14 @@ describe("OnboardingFlow", () => {
 
     expect(screen.queryByRole("heading", { name: /free trial/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /Start free trial/i })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Talk to Clovy" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Talk to Bonzai Agent" })).toBeNull();
     expect(mocks.osAccountsOpenPortal).not.toHaveBeenCalled();
   });
 
   it("resumes a legacy practice step at permissions", async () => {
     setOnboardingResumeStep("dictation-practice");
     render(<OnboardingFlow {...flowProps()} />);
-    await screen.findByRole("heading", { name: "Let Clovy listen and type" });
+    await screen.findByRole("heading", { name: "Let Bonzai Agent listen and type" });
     expect(onboardingResumeStep()).toBe("permissions");
   });
 
@@ -699,7 +704,9 @@ describe("OnboardingFlow", () => {
       await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 
       await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
-      expect(screen.queryByRole("heading", { name: "Talk to Clovy" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Talk to Bonzai Agent" }),
+      ).not.toBeInTheDocument();
     } finally {
       restoreNavigator();
     }
@@ -728,7 +735,7 @@ describe("OnboardingFlow", () => {
       grantPermissions();
 
       await screen.findByText(
-        "Turned off in System Settings. Flip the toggle and Clovy will notice.",
+        "Turned off in System Settings. Flip the toggle and Bonzai Agent will notice.",
       );
       expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
 
@@ -773,7 +780,9 @@ describe("OnboardingFlow", () => {
       grantPermissions();
 
       expect(
-        screen.queryByText("Turned off in System Settings. Flip the toggle and Clovy will notice."),
+        screen.queryByText(
+          "Turned off in System Settings. Flip the toggle and Bonzai Agent will notice.",
+        ),
       ).not.toBeInTheDocument();
       await waitFor(() => expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled());
     } finally {
@@ -790,7 +799,7 @@ describe("OnboardingFlow", () => {
 
       // The grant exists, so there is nothing left to allow, but the source
       // does not work yet and the row must not claim otherwise.
-      await screen.findByText("Allowed. Restart Clovy to finish turning it on.");
+      await screen.findByText("Allowed. Restart Bonzai Agent to finish turning it on.");
       expect(
         screen.queryByText("Hears your calls and meetings, only while you record."),
       ).not.toBeInTheDocument();

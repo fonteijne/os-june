@@ -92,11 +92,11 @@ describe("agent notifications", () => {
       agentNotificationCopy({
         status: "waitingForUser",
         title: "Approve a tool",
-        summary: "Clovy needs approval.",
+        summary: "Bonzai Agent needs approval.",
       }),
     ).toEqual({
-      title: "Clovy needs your input",
-      body: "Clovy needs approval.",
+      title: "Bonzai Agent needs your input",
+      body: "Bonzai Agent needs approval.",
     });
   });
 
@@ -140,7 +140,7 @@ describe("agent notifications", () => {
         {
           sessionId: "session-2",
           title: "Make a PDF",
-          summary: "Clovy finished.",
+          summary: "Bonzai Agent finished.",
         },
         FOCUSED_ELSEWHERE,
       ),
@@ -158,14 +158,14 @@ describe("agent notifications", () => {
         {
           sessionId: "session-3",
           title: "Make a PDF",
-          summary: "Clovy finished.",
+          summary: "Bonzai Agent finished.",
         },
         { ...FOCUSED_ELSEWHERE, away: true },
       ),
     ).resolves.toBe(true);
 
     expect(tauriMocks.sendAppNotification).toHaveBeenCalledWith({
-      title: "Clovy is ready",
+      title: "Bonzai Agent is ready",
       body: "Make a PDF",
       group: "clovy-agent-session-3",
       sessionId: "session-3",
@@ -180,7 +180,7 @@ describe("agent notifications", () => {
         {
           sessionId: "session-hud-ready",
           title: "Make a PDF",
-          summary: "Clovy finished.",
+          summary: "Bonzai Agent finished.",
         },
         { ...FOCUSED_ELSEWHERE, away: true, agentHudEnabled: true },
       ),
@@ -202,7 +202,7 @@ describe("agent notifications", () => {
           sessionId: `session-hud-${status}`,
           status,
           title: "Make a PDF",
-          summary: "Clovy needs attention.",
+          summary: "Bonzai Agent needs attention.",
         },
         { ...FOCUSED_ELSEWHERE, away: true, agentHudEnabled: true },
       ),
@@ -223,14 +223,14 @@ describe("agent notifications", () => {
         {
           sessionId: "session-fallback",
           title: "Make a PDF",
-          summary: "Clovy finished.",
+          summary: "Bonzai Agent finished.",
         },
         { ...FOCUSED_ELSEWHERE, away: true, captureActive: true },
       ),
     ).resolves.toBe(true);
 
     expect(notificationMocks.sendNotification).toHaveBeenCalledWith({
-      title: "Clovy is ready",
+      title: "Bonzai Agent is ready",
       body: "Make a PDF",
       group: "clovy-agent-session-fallback",
     });
@@ -277,11 +277,11 @@ describe("agent notifications", () => {
 
   it("dedupes duplicate attention events", async () => {
     await notifyAgentRunSettled(
-      { sessionId: "session-6", title: "Make a PDF", summary: "Clovy finished." },
+      { sessionId: "session-6", title: "Make a PDF", summary: "Bonzai Agent finished." },
       FOCUSED_ELSEWHERE,
     );
     await notifyAgentRunSettled(
-      { sessionId: "session-6", title: "Make a PDF", summary: "Clovy finished." },
+      { sessionId: "session-6", title: "Make a PDF", summary: "Bonzai Agent finished." },
       FOCUSED_ELSEWHERE,
     );
 
@@ -300,7 +300,7 @@ describe("agent notifications", () => {
     const detail = {
       sessionId: "session-concurrent",
       title: "Make a PDF",
-      summary: "Clovy finished.",
+      summary: "Bonzai Agent finished.",
     };
     const context = { ...FOCUSED_ELSEWHERE, away: true, captureActive: true };
 
@@ -319,7 +319,7 @@ describe("agent notifications", () => {
     const detail = {
       sessionId: "session-retry",
       title: "Make a PDF",
-      summary: "Clovy finished.",
+      summary: "Bonzai Agent finished.",
     };
     const context = { ...FOCUSED_ELSEWHERE, away: true, captureActive: true };
 
@@ -370,7 +370,7 @@ describe("agent notifications", () => {
 
     await expect(
       notifyAgentRunSettled(
-        { sessionId: "session-7", title: "Make a PDF", summary: "Clovy finished." },
+        { sessionId: "session-7", title: "Make a PDF", summary: "Bonzai Agent finished." },
         { ...FOCUSED_ELSEWHERE, away: true },
       ),
     ).resolves.toBe(true);

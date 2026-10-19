@@ -329,7 +329,7 @@ describe("ConnectorsSection", () => {
     expect(mocks.notionConnectorConnect).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Connect Notion" })).toBeInTheDocument();
     expect(
-      screen.getByText(/You'll sign in to Notion and approve Clovy's access/i),
+      screen.getByText(/You'll sign in to Notion and approve Bonzai Agent's access/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(/Access may extend beyond selected pages/i).length,
@@ -429,7 +429,7 @@ describe("ConnectorsSection", () => {
     expect(mocks.notionConnectorConnect).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Reconnect Notion" })).toBeInTheDocument();
     expect(
-      screen.getByText(/You'll sign in to Notion and approve Clovy's access/i),
+      screen.getByText(/You'll sign in to Notion and approve Bonzai Agent's access/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(/Access may extend beyond selected pages/i).length,
@@ -459,7 +459,7 @@ describe("ConnectorsSection", () => {
 
     expect(await screen.findByText("Status unavailable")).toBeInTheDocument();
     expect(
-      screen.getByText("Clovy could not confirm the Notion connection. Try again in a moment."),
+      screen.getByText("The app could not confirm the Notion connection. Try again in a moment."),
     ).toBeInTheDocument();
     await userEvent.hover(screen.getByRole("button", { name: "Notion privacy and access scope" }));
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -673,7 +673,7 @@ describe("ConnectorsSection", () => {
     // Checked on open: a disconnect that leaves the grant alive also drops
     // Clovy's tokens, so the user could never revoke it from Clovy afterward.
     expect(
-      within(dialog).getByRole("checkbox", { name: /revoke Clovy's access with Google/i }),
+      within(dialog).getByRole("checkbox", { name: /revoke Bonzai Agent's access with Google/i }),
     ).toBeChecked();
 
     mocks.connectorsList.mockResolvedValue([]);
@@ -697,7 +697,7 @@ describe("ConnectorsSection", () => {
     const dialog = await screen.findByRole("dialog", { name: /Disconnect alex@example.com/ });
     // Unchecking is a deliberate "I'll reconnect shortly" choice.
     await userEvent.click(
-      within(dialog).getByRole("checkbox", { name: /revoke Clovy's access with Google/i }),
+      within(dialog).getByRole("checkbox", { name: /revoke Bonzai Agent's access with Google/i }),
     );
     await userEvent.click(within(dialog).getByRole("button", { name: "Disconnect" }));
 
@@ -826,7 +826,7 @@ describe("ConnectorsSection — Linear", () => {
 
     await waitFor(() =>
       expect(mocks.toastWarning).toHaveBeenCalledWith(
-        "Disconnected Acme locally. Clovy could not confirm revocation with Linear; you can remove Clovy in Linear settings.",
+        "Disconnected Acme locally. The app could not confirm revocation with Linear; you can remove it in Linear settings.",
       ),
     );
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
@@ -990,7 +990,9 @@ describe("ConnectorsSection — GitHub", () => {
     // The device-code panel is visible INSIDE the dialog (regression guard).
     expect(await within(dialog).findByText("RECON-5678")).toBeInTheDocument();
     expect(
-      within(dialog).getByText(/enter this code at github\.com\/login\/device to approve Clovy/i),
+      within(dialog).getByText(
+        /enter this code at github\.com\/login\/device to approve Bonzai Agent/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -1065,7 +1067,7 @@ describe("ConnectorsSection — GitHub", () => {
     await userEvent.click(screen.getByRole("button", { name: "Disconnect GitHub" }));
     const dialog = await screen.findByRole("dialog", { name: /Disconnect octocat/ });
     expect(
-      within(dialog).getByRole("checkbox", { name: /revoke Clovy's access with GitHub/i }),
+      within(dialog).getByRole("checkbox", { name: /revoke Bonzai Agent's access with GitHub/i }),
     ).toBeChecked();
 
     mocks.connectorsList.mockResolvedValue([]);
@@ -1104,7 +1106,7 @@ describe("ConnectorsSection — GitHub", () => {
     // The device-code panel replaces the bundle picker.
     expect(await screen.findByText("ABCD-1234")).toBeInTheDocument();
     expect(
-      screen.getByText(/enter this code at github\.com\/login\/device to approve Clovy/i),
+      screen.getByText(/enter this code at github\.com\/login\/device to approve Bonzai Agent/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/waiting for approval on GitHub/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /copy code/i })).toBeInTheDocument();

@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Clovy",
+        "title": "Bonzai Agent",
         "width": 1180,
         "height": 780,
         "minWidth": 900,
@@ -27,7 +27,7 @@
       {
         "label": "hud",
         "url": "/hud.html",
-        "title": "Clovy Dictation",
+        "title": "Bonzai Agent dictation",
         "width": 124,
         "height": 32,
         "resizable": false,
@@ -44,7 +44,7 @@
       {
         "label": "agent-hud",
         "url": "/agent-hud.html",
-        "title": "Clovy Agents",
+        "title": "Bonzai Agent",
         "width": 240,
         "height": 48,
         "resizable": false,
@@ -61,7 +61,7 @@
       {
         "label": "meeting-hud",
         "url": "/meeting-hud.html",
-        "title": "Clovy Recording",
+        "title": "Bonzai Agent recording",
         "width": 76,
         "height": 76,
         "resizable": false,
@@ -77,7 +77,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'sha256-5zseCXEQXMrhVnLDc5/8D6srY3KbB1TDtKXlkC9HSao='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' asset: data:; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:*; media-src 'self' asset: data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'sha256-fVa0/nZnXJjzSHW5qN0V/nbcWyckrVqp2Hm32bNV+DI='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' asset: data:; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:*; media-src 'self' asset: data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
       "assetProtocol": {
         "enable": true,
         "scope": [

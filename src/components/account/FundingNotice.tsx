@@ -152,7 +152,7 @@ export function FundingNotice({ account, onRefresh, textFundingContext, active =
 
   const copy: NoticeCopy = billingRecovery
     ? {
-        body: "Your payment needs attention. Update billing to keep using Clovy.",
+        body: "Your payment needs attention. Update billing to keep using the app.",
         cta: "Manage billing",
         waiting: "Waiting for your billing update",
         reopen: "Reopen billing",
@@ -167,13 +167,13 @@ export function FundingNotice({ account, onRefresh, textFundingContext, active =
         }
       : maxTopUpRequired
         ? {
-            body: "Your credit balance is below zero. Top up to keep using Clovy.",
+            body: "Your credit balance is below zero. Top up to keep using the app.",
             cta: "Top up credits",
             waiting: "Waiting for your top-up",
             reopen: "Reopen account portal",
           }
         : {
-            body: "Your starter credits are used up. Upgrade to keep using Clovy.",
+            body: "Your starter credits are used up. Upgrade to keep using the app.",
             cta: "Upgrade to Pro",
             waiting: "Waiting for your upgrade",
             reopen: "Reopen checkout",
@@ -394,7 +394,7 @@ export function FundingNotice({ account, onRefresh, textFundingContext, active =
               : openedPortal
                 ? copy.waiting
                 : autoVeniceRecovery
-                  ? "Auto can route beyond Venice, so it uses Clovy credits. Your Venice API key applies only when you select a Venice model."
+                  ? "Auto can route beyond Venice, so it uses account credits. Your Venice API key applies only when you select a Venice model."
                   : copy.body}
       </p>
       <div className="funding-notice-actions">

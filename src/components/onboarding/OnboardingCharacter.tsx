@@ -69,7 +69,7 @@ export function OnboardingCharacter({
         preserveAspectRatio="xMidYMid meet"
         focusable="false"
       >
-        <title>{`${ONBOARDING_MOOD_PRESENTATION[mood].label} Clovy`}</title>
+        <title>{`${ONBOARDING_MOOD_PRESENTATION[mood].label} Bonzai Agent`}</title>
         <defs>
           <linearGradient
             id={gradientId}
@@ -79,8 +79,8 @@ export function OnboardingCharacter({
             y2="264"
             gradientUnits="userSpaceOnUse"
           >
-            <stop stopColor="var(--clovy-glow-top)" />
-            <stop offset="1" stopColor="var(--clovy-glow)" />
+            <stop stopColor="var(--character-fill-top)" />
+            <stop offset="1" stopColor="var(--character-fill-bottom)" />
           </linearGradient>
         </defs>
         {/* Keyed by mood so a selection swaps the expression in one commit and

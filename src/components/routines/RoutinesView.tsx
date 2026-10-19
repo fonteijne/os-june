@@ -432,7 +432,7 @@ export function RoutinesView({
             await removeRoutine(created.job_id);
           } catch (cleanupError) {
             throw new Error(
-              `${describeRoutineError(setupError)} Clovy also could not remove the partially created routine: ${describeRoutineError(cleanupError)}`,
+              `${describeRoutineError(setupError)} Bonzai Agent also could not remove the partially created routine: ${describeRoutineError(cleanupError)}`,
             );
           }
           throw setupError;
@@ -555,7 +555,7 @@ export function RoutinesView({
         onClose={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
         title={`Delete “${pendingDelete?.name ?? ""}”?`}
-        description="Clovy will stop running this routine. This can’t be undone."
+        description="Bonzai Agent will stop running this routine. This can’t be undone."
         confirmLabel="Delete"
         destructive
       />
@@ -612,7 +612,7 @@ export function RoutinesView({
             Routines
             {routines.length > 0 ? <span className="folders-count">{routines.length}</span> : null}
           </h1>
-          <p className="folders-subtitle">Automations Clovy runs for you on a schedule.</p>
+          <p className="folders-subtitle">Automations Bonzai Agent runs for you on a schedule.</p>
         </div>
         <button type="button" className="primary-action primary-solid" onClick={() => openCreate()}>
           <IconPlusMedium size={13} />
@@ -749,7 +749,7 @@ function TemplateGrid({ onPick }: { onPick: (template: RoutineTemplate) => void 
                 // The list rows spell the badge out; cards just flash the
                 // warm shield and let the tip carry the explanation.
                 <HoverTip
-                  tip="This starter needs full access: when it fires, Clovy can run commands and change any file your account can. You confirm that before creating it."
+                  tip="This starter needs full access: when it fires, Bonzai Agent can run commands and change any file your account can. You confirm that before creating it."
                   className="routines-item-badge routines-item-badge-warm routines-badge-compact"
                   tabIndex={0}
                   aria-label="Unrestricted"
@@ -847,7 +847,7 @@ function RoutineRow({
             <span className="routines-item-name">{routine.name}</span>
             {routineUnrestricted(routine) ? (
               <HoverTip
-                tip="This routine runs with full access: when it fires, Clovy can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files."
+                tip="This routine runs with full access: when it fires, Bonzai Agent can run commands and change any file your account can. Routines without this badge run sandboxed and cannot touch your files."
                 className="routines-item-badge routines-item-badge-warm"
                 tabIndex={0}
               >
@@ -962,7 +962,7 @@ function timeValue(iso: string | null | undefined) {
 function describeRoutineError(err: unknown) {
   const message = messageFromError(err);
   if (/\bAPI returned 5\d\d\b/i.test(message)) {
-    return "Clovy ran into a problem with that request.";
+    return "Bonzai Agent ran into a problem with that request.";
   }
   return message || "Routines are unavailable. Try again.";
 }
@@ -1006,7 +1006,7 @@ const ROUTINE_EXECUTION_MODE_OPTIONS = [
     unrestricted: true,
     icon: <IconShieldCrossed size={16} aria-hidden />,
     title: "Unrestricted",
-    description: "When it fires, Clovy can change any file your account can.",
+    description: "When it fires, Bonzai Agent can change any file your account can.",
   },
 ] as const;
 
@@ -1060,7 +1060,7 @@ function DescribeBar({
       <form
         ref={rootRef}
         className="routines-describe-composer"
-        aria-label="Describe a routine to Clovy"
+        aria-label="Describe a routine to Bonzai Agent"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit();
@@ -1070,7 +1070,7 @@ function DescribeBar({
           <GrowingTextarea
             aria-label="Describe a routine"
             value={draft}
-            placeholder="Have Clovy help you set up a routine"
+            placeholder="Have Bonzai Agent help you set up a routine"
             onChange={(event) => onDraftChange(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) return;
@@ -1103,7 +1103,7 @@ function DescribeBar({
                 type="submit"
                 className="agent-composer-send"
                 disabled={!draft.trim() || Boolean(disabledReason)}
-                aria-label="Ask Clovy to set it up"
+                aria-label="Ask Bonzai Agent to set it up"
                 title={disabledReason}
               >
                 <IconArrowUp size={16} />

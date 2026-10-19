@@ -618,9 +618,9 @@ pub async fn reconcile_after_restart(pool: &SqlitePool) -> Result<(), AppError> 
     // pending approval or clarification remains resumable after relaunch.
     // Ordinary running work cannot survive the process boundary and is
     // interrupted, which releases its claim through `reconcile`.
-    query("UPDATE agent_runs SET status = 'interrupted', completed_at = COALESCE(completed_at, ?), error_code = COALESCE(error_code, 'routine_runtime_restarted'), error_message = COALESCE(error_message, 'Clovy restarted before this routine completed.'), updated_at = ? WHERE id IN (SELECT agent_run_id FROM routine_runs WHERE agent_run_id IS NOT NULL AND status IN ('queued', 'running'))")
+    query("UPDATE agent_runs SET status = 'interrupted', completed_at = COALESCE(completed_at, ?), error_code = COALESCE(error_code, 'routine_runtime_restarted'), error_message = COALESCE(error_message, 'The app restarted before this routine completed.'), updated_at = ? WHERE id IN (SELECT agent_run_id FROM routine_runs WHERE agent_run_id IS NOT NULL AND status IN ('queued', 'running'))")
         .bind(&timestamp).bind(&timestamp).execute(pool).await.map_err(app_error)?;
-    query("UPDATE routine_runs SET status = 'interrupted', completed_at = COALESCE(completed_at, ?), error_code = COALESCE(error_code, 'routine_runtime_restarted'), error_message = COALESCE(error_message, 'Clovy restarted before this routine completed.'), updated_at = ? WHERE status IN ('queued', 'running')")
+    query("UPDATE routine_runs SET status = 'interrupted', completed_at = COALESCE(completed_at, ?), error_code = COALESCE(error_code, 'routine_runtime_restarted'), error_message = COALESCE(error_message, 'The app restarted before this routine completed.'), updated_at = ? WHERE status IN ('queued', 'running')")
         .bind(&timestamp).bind(&timestamp).execute(pool).await.map_err(app_error)?;
     reconcile(pool).await
 }
@@ -1164,7 +1164,7 @@ struct UnattendedRunRequest<'a> {
     enabled_toolsets: &'a [String],
 }
 
-const UNATTENDED_RUN_INSTRUCTIONS: &str = "You are Clovy executing an unattended routine. Complete the requested work without asking questions. Never claim a tool succeeded unless its result confirms success. If a tool needs approval, pause and wait for the user instead of choosing for them.";
+const UNATTENDED_RUN_INSTRUCTIONS: &str = "You are Bonzai Agent executing an unattended routine. Complete the requested work without asking questions. Never claim a tool succeeded unless its result confirms success. If a tool needs approval, pause and wait for the user instead of choosing for them.";
 
 async fn unattended_run_params(
     app: &AppHandle,
@@ -1211,7 +1211,7 @@ async fn unattended_run_params(
     let instructions =
         crate::agent_runtime::persona::instructions_for_app(app, UNATTENDED_RUN_INSTRUCTIONS);
     Ok(
-        json!({ "model": request.model, "reasoningEffort": "medium", "instructions": instructions, "workspace": request.workspace, "safetyMode": request.safety_mode.as_db(), "input": request.prompt, "history": [], "tools": tools, "skills": skills.iter().map(|name| json!({ "name": name, "description": "Enabled Clovy skill", "source": "managed" })).collect::<Vec<_>>(), "contextWindow": 128000, "maxOutputTokens": 8192 }),
+        json!({ "model": request.model, "reasoningEffort": "medium", "instructions": instructions, "workspace": request.workspace, "safetyMode": request.safety_mode.as_db(), "input": request.prompt, "history": [], "tools": tools, "skills": skills.iter().map(|name| json!({ "name": name, "description": "Enabled agent skill", "source": "managed" })).collect::<Vec<_>>(), "contextWindow": 128000, "maxOutputTokens": 8192 }),
     )
 }
 
@@ -1510,15 +1510,15 @@ pub async fn routine_mcp_server_allowed_for_session(
 
 fn base_unattended_tools() -> Value {
     json!([
-        { "name": "search_june", "description": "Search Clovy notes, transcripts, and dictations.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
+        { "name": "search_june", "description": "Search notes, transcripts, and dictations.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
         { "name": "web_search", "description": "Search the public web.", "parameters": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
         { "name": "web_fetch", "description": "Fetch a public web page.", "parameters": { "type": "object", "properties": { "url": { "type": "string" } }, "required": ["url"], "additionalProperties": false } },
         { "name": "list_files", "description": "List files in the routine workspace.", "parameters": { "type": "object", "properties": { "path": { "type": "string" } }, "required": [], "additionalProperties": false } },
         { "name": "read_file", "description": "Read a UTF-8 text file in the routine workspace.", "parameters": { "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"], "additionalProperties": false } },
         { "name": "preview_file", "description": "Read file metadata and a bounded text preview.", "parameters": { "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"], "additionalProperties": false } },
         { "name": "search_files", "description": "Search text files in the routine workspace.", "parameters": { "type": "object", "properties": { "query": { "type": "string" }, "path": { "type": "string" } }, "required": ["query"], "additionalProperties": false } },
-        { "name": "list_skills", "description": "List enabled Clovy skills for this routine.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
-        { "name": "load_skill", "description": "Load instructions for one enabled Clovy skill.", "parameters": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"], "additionalProperties": false } }
+        { "name": "list_skills", "description": "List enabled agent skills for this routine.", "parameters": { "type": "object", "properties": {}, "required": [], "additionalProperties": false } },
+        { "name": "load_skill", "description": "Load instructions for one enabled agent skill.", "parameters": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"], "additionalProperties": false } }
     ])
 }
 
@@ -1743,6 +1743,29 @@ mod tests {
         .await
         .unwrap();
         claimed
+    }
+
+    #[test]
+    fn unattended_prompt_and_tool_descriptors_use_bonzai_agent_identity() {
+        assert!(UNATTENDED_RUN_INSTRUCTIONS.starts_with("You are Bonzai Agent"));
+        assert!(!UNATTENDED_RUN_INSTRUCTIONS.contains("You are Clovy"));
+
+        let tools = base_unattended_tools();
+        let tools = tools.as_array().expect("routine tool catalog");
+        let description = |name: &str| {
+            tools
+                .iter()
+                .find(|tool| tool.get("name").and_then(Value::as_str) == Some(name))
+                .and_then(|tool| tool.get("description"))
+                .and_then(Value::as_str)
+                .expect("routine tool description")
+        };
+        assert_eq!(
+            description("search_june"),
+            "Search notes, transcripts, and dictations."
+        );
+        assert!(description("list_skills").contains("agent skills"));
+        assert!(!description("list_skills").contains("Clovy"));
     }
 
     #[test]

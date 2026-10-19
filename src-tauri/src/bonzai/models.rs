@@ -41,7 +41,7 @@ pub async fn list_ids(resolved: &ResolvedKey) -> Result<Vec<String>, AppError> {
     let list: ModelList = serde_json::from_slice(&body).map_err(|error| {
         AppError::new(
             http::RESPONSE_INVALID,
-            format!("Bonzai returned a model list Clovy could not read: {error}"),
+            format!("Bonzai returned a model list the app could not read: {error}"),
         )
     })?;
     let mut ids: Vec<String> = list

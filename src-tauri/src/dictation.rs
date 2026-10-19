@@ -1645,7 +1645,7 @@ pub fn dictation_helper_command(
         if window.label() != "main" {
             return Err(AppError::new(
                 "dictation_composer_registration_forbidden",
-                "Only Clovy's main window can register composer delivery.",
+                "Only Bonzai Agent's main window can register composer delivery.",
             ));
         }
         let request_id = command
@@ -1685,7 +1685,7 @@ pub fn dictation_helper_command(
     {
         return Err(AppError::new(
             "dictation_composer_registration_forbidden",
-            "Only Clovy's main window can start composer delivery.",
+            "Only Bonzai Agent's main window can start composer delivery.",
         ));
     }
     #[cfg(target_os = "windows")]
@@ -1787,7 +1787,7 @@ fn webview_window_handle(window: &WebviewWindow) -> Result<isize, AppError> {
         .map_err(|error| {
             AppError::new(
                 "dictation_composer_window_unavailable",
-                format!("Clovy could not identify the composer window: {error}"),
+                format!("Bonzai Agent could not identify the composer window: {error}"),
             )
         })
 }
@@ -4621,9 +4621,9 @@ fn retry_helper_spawn(app: &AppHandle, mut survived: Duration, initial_start: bo
                     "dictation helper recovery exhausted; giving up until relaunch"
                 );
                 let message = if initial_start {
-                    "Dictation could not start. Relaunch Clovy to try again."
+                    "Dictation could not start. Relaunch Bonzai Agent to try again."
                 } else {
-                    "Dictation stopped and could not restart. Relaunch Clovy to restore it."
+                    "Dictation stopped and could not restart. Relaunch Bonzai Agent to restore it."
                 };
                 emit_helper_unavailable(app, "exhausted", message);
                 return;
@@ -5554,7 +5554,7 @@ fn retain_low_speech_evidence_recording(
                 &claim.take,
                 app_error_event(AppError::new(
                     "dictation_recovery_unavailable",
-                    "Clovy couldn't save this dictation. The recording was kept for recovery.",
+                    "Bonzai Agent couldn't save this dictation. The recording was kept for recovery.",
                 )),
             );
             tracing::error!(
@@ -10737,7 +10737,7 @@ mod tests {
             "type": "error",
             "payload": {
                 "code": "accessibility_permission_missing",
-                "message": "Clovy couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
+                "message": "Bonzai Agent couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
             }
         });
         assert!(!is_silent_transcription_error(&event));
@@ -10769,7 +10769,7 @@ mod tests {
             "type": "error",
             "payload": {
                 "code": "paste_target_unavailable",
-                "message": "Clovy couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
+                "message": "Bonzai Agent couldn't paste automatically. Your transcript is on the clipboard, so you can paste it with Cmd+V.",
             }
         });
         assert!(!is_silent_transcription_error(&event));
